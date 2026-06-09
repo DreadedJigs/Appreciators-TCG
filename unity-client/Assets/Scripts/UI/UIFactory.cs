@@ -17,7 +17,7 @@ namespace AppreciatorsTcg.UI
         public static readonly Color TextColor = new Color(0.94f, 0.95f, 0.98f);
         public static readonly Color MutedTextColor = new Color(0.70f, 0.74f, 0.82f);
 
-        public static Font DefaultFont => Resources.GetBuiltinResource<Font>("Arial.ttf");
+        public static Font DefaultFont => LoadDefaultFont();
 
         public static Canvas CreateCanvas(string name)
         {
@@ -233,6 +233,35 @@ namespace AppreciatorsTcg.UI
             }
 
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        }
+
+        private static Font LoadDefaultFont()
+        {
+            try
+            {
+                Font legacy = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                if (legacy != null)
+                {
+                    return legacy;
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                Font arial = Resources.GetBuiltinResource<Font>("Arial.ttf");
+                if (arial != null)
+                {
+                    return arial;
+                }
+            }
+            catch
+            {
+            }
+
+            return Font.CreateDynamicFontFromOSFont("Arial", 16);
         }
     }
 }

@@ -12,6 +12,7 @@ namespace AppreciatorsTcg.Core
 
             switch (sceneName)
             {
+                case "Main":
                 case "LoginScene":
                     gameObject.AddComponent<LoginScreenController>();
                     break;

@@ -3,7 +3,8 @@
 ## Unity Editor
 
 - Open `unity-client` in Unity 2022.3 LTS or newer.
-- Open `Assets/Scenes/LoginScene.unity`.
+- Open `Assets/Scenes/Main.unity`.
+- Press Play and use the Game tab.
 - Confirm guest login saves a local player name.
 - Confirm main menu navigation works.
 - Confirm collection shows 30 prototype cards.
@@ -12,6 +13,7 @@
 - Play cards into each lane and confirm energy and lane totals update.
 - End through turn 6 and confirm results show victory, defeat, or draw.
 - Confirm Web3 screen displays Phase 4 placeholders and saves API URL locally.
+- Optional: run `AppreciatorsTcg.EditorTools.AppreciatorsPhase1Audit.RunAll` from Unity batchmode or a temporary editor menu call.
 
 ## Backend
 

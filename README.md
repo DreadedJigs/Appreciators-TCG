@@ -42,10 +42,10 @@ README.md
 1. Open Unity Hub.
 2. Add the `unity-client` folder as a project.
 3. Use Unity `2022.3 LTS` or newer.
-4. Open `Assets/Scenes/LoginScene.unity`.
-5. Press Play.
+4. Open `Assets/Scenes/Main.unity`.
+5. Press Play and use the Game tab.
 
-The prototype UI is generated at runtime from scripts, so the scene files only need the bootstrapper object.
+The primary prototype starts from `Main.unity`, which uses `SceneBootstrapper` to load the login flow. The individual screen scenes remain available for direct testing, but `Main.unity` is the scene to open and build first.
 
 ## Run the Backend Locally
 
@@ -91,6 +91,7 @@ Unity:
 1. Open `unity-client` in Unity.
 2. Open the Unity Test Runner.
 3. Run EditMode tests in `Assets/Tests/EditMode`.
+4. The editor audit entry point is `AppreciatorsTcg.EditorTools.AppreciatorsPhase1Audit.RunAll`.
 
 See `docs/DEBUG_AUDIT.md` for the current debug and audit checklist.
 
@@ -116,6 +117,7 @@ You can also change it in the prototype at `Wallet / Web3 Coming Soon -> Backend
 2. Go to `File -> Build Settings`.
 3. Select `WebGL`.
 4. Make sure these scenes are enabled in order:
+   - `Main`
    - `LoginScene`
    - `MainMenuScene`
    - `CollectionScene`
@@ -125,6 +127,8 @@ You can also change it in the prototype at `Wallet / Web3 Coming Soon -> Backend
    - `Web3MockScene`
 5. Click `Switch Platform`.
 6. Click `Build`.
+
+You can also run the scripted WebGL build from Unity batchmode with `AppreciatorsTcg.EditorTools.AppreciatorsBuildWebGL.Build`.
 
 The match UI is designed for landscape play with large buttons and readable card panels.
 

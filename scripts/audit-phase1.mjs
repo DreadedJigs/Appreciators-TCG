@@ -20,11 +20,14 @@ const requiredFiles = [
   "unity-client/Assets/Scripts/Battle/BattleGame.cs",
   "unity-client/Assets/Scripts/AI/SimpleAiPlayer.cs",
   "unity-client/Assets/Scripts/UI/MatchScreenController.cs",
+  "unity-client/Assets/Editor/AppreciatorsBuildWebGL.cs",
+  "unity-client/Assets/Editor/AppreciatorsPhase1Audit.cs",
   "unity-client/Assets/Tests/EditMode/BattleRulesEditModeTests.cs",
   "docs/DEBUG_AUDIT.md"
 ];
 
 const requiredScenes = [
+  "Main",
   "LoginScene",
   "MainMenuScene",
   "CollectionScene",
@@ -69,5 +72,12 @@ const matchSource = [
 for (const rule of ["StartingHandSize", "CardsDrawnPerTurn", "MaxTurn", "MaxCardsPerLanePerPlayer"]) {
   assert.ok(matchSource.includes(rule), `Battle game is not wired to ${rule}`);
 }
+
+const buildSettings = readFileSync(path.join(root, "unity-client/ProjectSettings/EditorBuildSettings.asset"), "utf8");
+assert.ok(buildSettings.includes("Assets/Scenes/Main.unity"), "Main runtime scene must be included in build settings");
+assert.ok(buildSettings.indexOf("Assets/Scenes/Main.unity") < buildSettings.indexOf("Assets/Scenes/LoginScene.unity"), "Main runtime scene should be first in build settings");
+
+const bootstrapperSource = readFileSync(path.join(root, "unity-client/Assets/Scripts/Core/SceneBootstrapper.cs"), "utf8");
+assert.ok(bootstrapperSource.includes("case \"Main\":"), "SceneBootstrapper must route Main to the login screen");
 
 console.log("Phase 1 audit passed.");

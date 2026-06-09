@@ -13,6 +13,7 @@ Phase 1 playable prototype with placeholder art and mocked Web3 systems.
 - Match screen supports click/touch card selection, lane play, energy spend, AI turn, and six-turn resolution.
 - Results screen shows lane scores and match outcome.
 - Web3 screen remains mock-only and stores a configurable backend API base URL.
+- `Assets/Scenes/Main.unity` is the primary runtime shell and routes through `SceneBootstrapper`. The individual scenes remain in the project for direct screen testing, but WebGL builds should start from `Main`.
 
 ## Automated Tests
 
@@ -41,8 +42,10 @@ The API integration tests import the Express app and require `npm install` first
 Unity:
 
 1. Open `unity-client` in Unity.
-2. Open Test Runner.
-3. Run EditMode tests under `Assets/Tests/EditMode`.
+2. Open `Assets/Scenes/Main.unity`.
+3. Press Play and confirm the login screen appears in the Game tab.
+4. Open Test Runner.
+5. Run EditMode tests under `Assets/Tests/EditMode`.
 
 ## Audit Notes
 
