@@ -1,0 +1,304 @@
+{
+  "cards": [
+    {
+      "id": "original_ape",
+      "name": "Original Ape",
+      "cost": 1,
+      "power": 2,
+      "type": "ORIGINAL",
+      "effectText": "No effect.",
+      "laneAffinity": "",
+      "effectId": "none"
+    },
+    {
+      "id": "blue_face_original",
+      "name": "Blue Face Original",
+      "cost": 2,
+      "power": 3,
+      "type": "ORIGINAL",
+      "effectText": "If played in the Art lane, gain +1 Power.",
+      "laneAffinity": "Art",
+      "effectId": "blue_face_original"
+    },
+    {
+      "id": "gold_x_original",
+      "name": "Gold X Original",
+      "cost": 3,
+      "power": 4,
+      "type": "ORIGINAL",
+      "effectText": "If this card has a Trait, gain +2 Power.",
+      "laneAffinity": "",
+      "effectId": "gold_x_original"
+    },
+    {
+      "id": "dreaded_original",
+      "name": "Dreaded Original",
+      "cost": 4,
+      "power": 6,
+      "type": "ORIGINAL",
+      "effectText": "If you are winning this lane, gain +2 Power.",
+      "laneAffinity": "",
+      "effectId": "dreaded_original"
+    },
+    {
+      "id": "gallery_original",
+      "name": "Gallery Original",
+      "cost": 2,
+      "power": 2,
+      "type": "ORIGINAL",
+      "effectText": "Gains +2 Power in the Art lane.",
+      "laneAffinity": "Art",
+      "effectId": "gallery_original"
+    },
+    {
+      "id": "chain_original",
+      "name": "Chain Original",
+      "cost": 3,
+      "power": 3,
+      "type": "ORIGINAL",
+      "effectText": "Gains +2 Power in the Blockchain lane.",
+      "laneAffinity": "Blockchain",
+      "effectId": "chain_original"
+    },
+    {
+      "id": "community_original",
+      "name": "Community Original",
+      "cost": 3,
+      "power": 3,
+      "type": "ORIGINAL",
+      "effectText": "Give another friendly card in this lane +1 Power.",
+      "laneAffinity": "Community",
+      "effectId": "community_original"
+    },
+    {
+      "id": "rare_original",
+      "name": "Rare Original",
+      "cost": 4,
+      "power": 5,
+      "type": "ORIGINAL",
+      "effectText": "Gains +1 Power for each Trait in this lane.",
+      "laneAffinity": "",
+      "effectId": "rare_original"
+    },
+    {
+      "id": "genesis_original",
+      "name": "Genesis Original",
+      "cost": 5,
+      "power": 8,
+      "type": "ORIGINAL",
+      "effectText": "No effect.",
+      "laneAffinity": "",
+      "effectId": "none"
+    },
+    {
+      "id": "rally_original",
+      "name": "Rally Original",
+      "cost": 2,
+      "power": 2,
+      "type": "ORIGINAL",
+      "effectText": "If played in Community, draw 1 card.",
+      "laneAffinity": "Community",
+      "effectId": "rally_original"
+    },
+    {
+      "id": "on_chain_original",
+      "name": "On-Chain Original",
+      "cost": 4,
+      "power": 5,
+      "type": "ORIGINAL",
+      "effectText": "Reduce the cost of your next Trait by 1.",
+      "laneAffinity": "Blockchain",
+      "effectId": "on_chain_original"
+    },
+    {
+      "id": "be_original",
+      "name": "Be Original",
+      "cost": 6,
+      "power": 10,
+      "type": "ORIGINAL",
+      "effectText": "If this is your only card in this lane, gain +3 Power.",
+      "laneAffinity": "",
+      "effectId": "be_original"
+    },
+    {
+      "id": "kaizo",
+      "name": "Kaizo",
+      "cost": 2,
+      "power": 2,
+      "type": "COMPANION",
+      "effectText": "Give a friendly ORIGINAL in this lane +2 Power.",
+      "laneAffinity": "",
+      "effectId": "kaizo"
+    },
+    {
+      "id": "spike",
+      "name": "Spike",
+      "cost": 2,
+      "power": 3,
+      "type": "COMPANION",
+      "effectText": "If you are losing this lane, Spike gains +2 Power.",
+      "laneAffinity": "",
+      "effectId": "spike"
+    },
+    {
+      "id": "community_pup",
+      "name": "Community Pup",
+      "cost": 1,
+      "power": 1,
+      "type": "COMPANION",
+      "effectText": "Give another friendly card here +1 Power.",
+      "laneAffinity": "Community",
+      "effectId": "community_pup"
+    },
+    {
+      "id": "chain_guardian",
+      "name": "Chain Guardian",
+      "cost": 3,
+      "power": 4,
+      "type": "COMPANION",
+      "effectText": "Gains +1 Power in Blockchain.",
+      "laneAffinity": "Blockchain",
+      "effectId": "chain_guardian"
+    },
+    {
+      "id": "gallery_scout",
+      "name": "Gallery Scout",
+      "cost": 2,
+      "power": 2,
+      "type": "COMPANION",
+      "effectText": "Gains +2 Power in Art.",
+      "laneAffinity": "Art",
+      "effectId": "gallery_scout"
+    },
+    {
+      "id": "rally_beast",
+      "name": "Rally Beast",
+      "cost": 4,
+      "power": 5,
+      "type": "COMPANION",
+      "effectText": "Friendly COMPANIONS in this lane gain +1 Power.",
+      "laneAffinity": "Community",
+      "effectId": "rally_beast"
+    },
+    {
+      "id": "gold_x_emblem",
+      "name": "Gold X Emblem",
+      "cost": 1,
+      "power": 0,
+      "type": "TRAIT",
+      "effectText": "Give a friendly ORIGINAL +2 Power.",
+      "laneAffinity": "",
+      "effectId": "gold_x_emblem"
+    },
+    {
+      "id": "astronaut_helmet",
+      "name": "Astronaut Helmet",
+      "cost": 2,
+      "power": 0,
+      "type": "TRAIT",
+      "effectText": "Give a friendly card +1 Power and protect it from the next negative effect.",
+      "laneAffinity": "",
+      "effectId": "astronaut_helmet"
+    },
+    {
+      "id": "dread_trait",
+      "name": "Dread Trait",
+      "cost": 1,
+      "power": 0,
+      "type": "TRAIT",
+      "effectText": "Give a card +1 Power. If played in Community, give +2 instead.",
+      "laneAffinity": "Community",
+      "effectId": "dread_trait"
+    },
+    {
+      "id": "rare_eyes",
+      "name": "Rare Eyes",
+      "cost": 2,
+      "power": 0,
+      "type": "TRAIT",
+      "effectText": "Give a card +3 Power.",
+      "laneAffinity": "",
+      "effectId": "rare_eyes"
+    },
+    {
+      "id": "chain_badge",
+      "name": "Chain Badge",
+      "cost": 1,
+      "power": 0,
+      "type": "TRAIT",
+      "effectText": "If played in Blockchain, give a card +3 Power. Otherwise give +1.",
+      "laneAffinity": "Blockchain",
+      "effectId": "chain_badge"
+    },
+    {
+      "id": "original_fit",
+      "name": "Original Fit",
+      "cost": 3,
+      "power": 0,
+      "type": "TRAIT",
+      "effectText": "Give a friendly ORIGINAL +4 Power.",
+      "laneAffinity": "",
+      "effectId": "original_fit"
+    },
+    {
+      "id": "art_gallery",
+      "name": "Art Gallery",
+      "cost": 2,
+      "power": 0,
+      "type": "BACKGROUND",
+      "effectText": "ORIGINALS in the Art lane gain +1 Power.",
+      "laneAffinity": "Art",
+      "effectId": "art_gallery"
+    },
+    {
+      "id": "community_rally",
+      "name": "Community Rally",
+      "cost": 2,
+      "power": 0,
+      "type": "BACKGROUND",
+      "effectText": "COMPANIONS in the Community lane gain +1 Power.",
+      "laneAffinity": "Community",
+      "effectId": "community_rally"
+    },
+    {
+      "id": "blockchain_portal",
+      "name": "Blockchain Portal",
+      "cost": 3,
+      "power": 0,
+      "type": "BACKGROUND",
+      "effectText": "Your first TRAIT each turn costs 1 less.",
+      "laneAffinity": "Blockchain",
+      "effectId": "blockchain_portal"
+    },
+    {
+      "id": "mint_day",
+      "name": "Mint Day",
+      "cost": 2,
+      "power": 0,
+      "type": "BACKGROUND",
+      "effectText": "Cards in Blockchain gain +1 Power.",
+      "laneAffinity": "Blockchain",
+      "effectId": "mint_day"
+    },
+    {
+      "id": "creator_studio",
+      "name": "Creator Studio",
+      "cost": 3,
+      "power": 0,
+      "type": "BACKGROUND",
+      "effectText": "Cards with Traits in Art gain +2 Power.",
+      "laneAffinity": "Art",
+      "effectId": "creator_studio"
+    },
+    {
+      "id": "community_space",
+      "name": "Community Space",
+      "cost": 3,
+      "power": 0,
+      "type": "BACKGROUND",
+      "effectText": "At end of match, gain +1 Power here for each friendly card in this lane.",
+      "laneAffinity": "Community",
+      "effectId": "community_space"
+    }
+  ]
+}
