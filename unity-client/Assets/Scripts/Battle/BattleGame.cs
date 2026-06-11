@@ -33,6 +33,11 @@ namespace AppreciatorsTcg.Battle
         public bool IsComplete { get; private set; }
         public string LastMessage { get; private set; } = "Choose a card, then play it into a lane.";
 
+        public int NextAbilityRoll(int maxExclusive)
+        {
+            return random.Next(maxExclusive);
+        }
+
         public void Start()
         {
             Player.DrawCards(GameConstants.StartingHandSize);
@@ -48,14 +53,9 @@ namespace AppreciatorsTcg.Battle
         public int GetEffectiveCost(BattlePlayerState owner, CardDefinition card)
         {
             int reduction = 0;
-            if (card.IsType(GameConstants.Trait))
+            if (card.effectId == "no_head_body")
             {
-                if (!owner.PlayedTraitThisTurn && HasAnyBackground(owner == Player ? OwnerSide.Player : OwnerSide.Opponent, "blockchain_portal"))
-                {
-                    reduction += 1;
-                }
-
-                reduction += owner.NextTraitCostReduction;
+                reduction += 1;
             }
 
             return Math.Max(0, card.cost - reduction);
@@ -107,11 +107,11 @@ namespace AppreciatorsTcg.Battle
         {
             Player.Energy = Turn;
             Opponent.Energy = Turn;
-            Player.PlayedTraitThisTurn = false;
-            Opponent.PlayedTraitThisTurn = false;
 
             Player.DrawCards(GameConstants.CardsDrawnPerTurn);
             Opponent.DrawCards(GameConstants.CardsDrawnPerTurn);
+            CardEffectResolver.ApplyStartOfTurn(this, Player, OwnerSide.Player);
+            CardEffectResolver.ApplyStartOfTurn(this, Opponent, OwnerSide.Opponent);
             LastMessage = $"Turn {Turn}: {Player.DisplayName} has {Player.Energy} energy.";
         }
 
@@ -147,20 +147,79 @@ namespace AppreciatorsTcg.Battle
             BattleCardInstance instance = new BattleCardInstance(cardDefinition, side);
             lane.GetCards(side).Add(instance);
 
-            if (cardDefinition.IsType(GameConstants.Trait))
-            {
-                owner.PlayedTraitThisTurn = true;
-                owner.NextTraitCostReduction = 0;
-            }
-
             CardEffectResolver.ApplyOnPlay(this, owner, lane, instance, ownerPowerBefore, opponentPowerBefore);
+            CardEffectResolver.ApplyAfterCardPlayed(this, side, instance);
             message = $"{owner.DisplayName} played {cardDefinition.name} in {laneType}.";
             return true;
         }
 
-        private bool HasAnyBackground(OwnerSide side, string effectId)
+        public IEnumerable<LaneState> AllLanes()
         {
-            return Lanes.Any(lane => lane.GetCards(side).Any(card => card.Definition.effectId == effectId));
+            return Lanes;
+        }
+
+        public BattlePlayerState GetPlayerState(OwnerSide side)
+        {
+            return side == OwnerSide.Player ? Player : Opponent;
+        }
+
+        public OwnerSide OppositeSide(OwnerSide side)
+        {
+            return side == OwnerSide.Player ? OwnerSide.Opponent : OwnerSide.Player;
+        }
+
+        public void DealAppreciationDamage(LaneState lane, BattleCardInstance source, BattleCardInstance target, int damage)
+        {
+            if (target == null || target.IsProtected)
+            {
+                return;
+            }
+
+            target.CurrentAppreciation -= Math.Max(0, damage);
+            if (target.CurrentAppreciation <= 0)
+            {
+                DefeatCard(lane, source, target);
+            }
+        }
+
+        public void DefeatCard(LaneState lane, BattleCardInstance source, BattleCardInstance defeated)
+        {
+            if (defeated == null || defeated.IsProtected)
+            {
+                return;
+            }
+
+            BattlePlayerState defeatedOwner = GetPlayerState(defeated.Owner);
+            if (defeated.Definition.effectId == "decapitated_body" && !defeatedOwner.ReturnedAfterDefeatIds.Contains(defeated.Definition.id))
+            {
+                defeatedOwner.ReturnedAfterDefeatIds.Add(defeated.Definition.id);
+                defeatedOwner.Hand.Add(defeated.Definition);
+                lane.GetCards(defeated.Owner).Remove(defeated);
+                return;
+            }
+
+            if (defeated.Definition.effectId == "yellow_skin")
+            {
+                defeatedOwner.DrawCard();
+            }
+
+            lane.GetCards(defeated.Owner).Remove(defeated);
+
+            if (source != null && source.Definition.effectId == "great_white_head")
+            {
+                source.CurrentAppreciation += 2;
+            }
+        }
+
+        public bool TrySummonToken(OwnerSide side, LaneState lane, CardDefinition token)
+        {
+            if (!lane.HasSpace(side))
+            {
+                return false;
+            }
+
+            lane.GetCards(side).Add(new BattleCardInstance(token, side));
+            return true;
         }
 
         private void CompleteMatch()
@@ -220,12 +279,12 @@ namespace AppreciatorsTcg.Battle
             List<string> starter = CardCatalog.StarterDeckIds();
             List<string> extras = new List<string>
             {
-                "chain_guardian",
-                "gallery_scout",
-                "rare_eyes",
-                "mint_day",
-                "rare_original",
-                "rally_beast"
+                "pigeon_companion",
+                "snake_companion",
+                "tiger_shark_head",
+                "overcast_background",
+                "purple_skin",
+                "alpha_kaiju_head"
             };
 
             List<string> aiIds = starter.Take(8).Concat(extras.Take(4)).ToList();

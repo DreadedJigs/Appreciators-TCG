@@ -10,7 +10,12 @@ namespace AppreciatorsTcg.Core
 
         public const string Original = "ORIGINAL";
         public const string Companion = "COMPANION";
-        public const string Trait = "TRAIT";
-        public const string Background = "BACKGROUND";
+        public const string Item = "ITEM";
+        public const string Event = "EVENT";
+
+        public const string Common = "Common";
+        public const string Rare = "Rare";
+        public const string Legendary = "Legendary";
+        public const string OneOfOne = "1/1";
     }
 }

@@ -11,11 +11,11 @@ namespace AppreciatorsTcg.Tests
         [Test]
         public void PrototypeCardSetHasRequiredCounts()
         {
-            Assert.AreEqual(30, CardCatalog.AllCards.Count);
-            Assert.AreEqual(12, CardCatalog.AllCards.Count(card => card.type == GameConstants.Original));
-            Assert.AreEqual(6, CardCatalog.AllCards.Count(card => card.type == GameConstants.Companion));
-            Assert.AreEqual(6, CardCatalog.AllCards.Count(card => card.type == GameConstants.Trait));
-            Assert.AreEqual(6, CardCatalog.AllCards.Count(card => card.type == GameConstants.Background));
+            Assert.AreEqual(29, CardCatalog.AllCards.Count);
+            Assert.AreEqual(17, CardCatalog.AllCards.Count(card => card.type == GameConstants.Original));
+            Assert.AreEqual(5, CardCatalog.AllCards.Count(card => card.type == GameConstants.Companion));
+            Assert.AreEqual(7, CardCatalog.AllCards.Count(card => card.type == GameConstants.Item));
+            Assert.AreEqual(0, CardCatalog.AllCards.Count(card => card.type == GameConstants.Event));
         }
 
         [Test]

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using AppreciatorsTcg.Cards;
 using AppreciatorsTcg.Core;
 
 namespace AppreciatorsTcg.Battle
@@ -15,136 +16,178 @@ namespace AppreciatorsTcg.Battle
             int opponentPowerBefore)
         {
             List<BattleCardInstance> friendly = lane.GetCards(card.Owner);
+            List<BattleCardInstance> enemy = lane.GetCards(game.OppositeSide(card.Owner));
 
             switch (card.Definition.effectId)
             {
-                case "blue_face_original":
-                    if (lane.Lane == LaneType.Art)
-                    {
-                        card.CurrentPower += 1;
-                    }
-                    break;
-                case "gallery_original":
-                    if (lane.Lane == LaneType.Art)
-                    {
-                        card.CurrentPower += 2;
-                    }
-                    break;
-                case "chain_original":
+                case "ghost_companion":
                     if (lane.Lane == LaneType.Blockchain)
                     {
                         card.CurrentPower += 2;
                     }
                     break;
-                case "community_original":
-                    BuffCard(FindLowestPower(friendly.Where(item => item != card)), 1, false);
+                case "pigeon_companion":
+                    game.DefeatCard(lane, card, FindLowestAppreciation(enemy.Where(item => item.Definition.rarity == GameConstants.Common && !item.IsProtected)));
                     break;
-                case "rally_original":
-                    if (lane.Lane == LaneType.Community)
+                case "cat_companion":
+                    foreach (BattleCardInstance kaiju in game.AllLanes().SelectMany(item => item.GetCards(card.Owner)).Where(item => item.Definition.HasTag("Kaiju")))
                     {
-                        owner.DrawCard();
+                        kaiju.CurrentPower += AllyBuffAmount(lane, 2);
                     }
                     break;
-                case "on_chain_original":
-                    owner.NextTraitCostReduction += 1;
+                case "devil_dog_companion":
+                    owner.DrawCard();
                     break;
-                case "be_original":
-                    if (friendly.Count == 1)
+                case "tiger_shark_head":
+                    BattleCardInstance attackTarget = FindLowestAppreciation(enemy.Where(item => !item.IsProtected));
+                    game.DealAppreciationDamage(lane, card, attackTarget, card.CurrentPower);
+                    break;
+                case "unicorn_head":
+                    foreach (BattleCardInstance ally in friendly.Where(item => item != card))
                     {
-                        card.CurrentPower += 3;
+                        ally.CurrentAppreciation += AllyBuffAmount(lane, 1);
                     }
                     break;
-                case "dreaded_original":
-                    if (ownerPowerBefore > opponentPowerBefore)
+                case "alpha_kaiju_head":
+                    foreach (BattleCardInstance ally in friendly)
                     {
-                        card.CurrentPower += 2;
+                        ally.CurrentPower += AllyBuffAmount(lane, 1);
                     }
                     break;
-                case "kaizo":
-                    BuffCard(FindHighestPower(friendly.Where(item => item != card && item.Definition.IsType(GameConstants.Original))), 2, false);
-                    break;
-                case "spike":
-                    if (ownerPowerBefore < opponentPowerBefore)
-                    {
-                        card.CurrentPower += 2;
-                    }
-                    break;
-                case "community_pup":
-                    BuffCard(FindLowestPower(friendly.Where(item => item != card)), 1, false);
-                    break;
-                case "chain_guardian":
+                case "blockchain_background":
                     if (lane.Lane == LaneType.Blockchain)
+                    {
+                        card.CurrentPower += 2;
+                    }
+                    break;
+                case "ghost_flame_background":
+                    card.IsProtected = true;
+                    card.ProtectedUntilTurn = game.Turn;
+                    break;
+                case "pink_lemonade_background":
+                    BattleCardInstance healTarget = FindLowestAppreciation(friendly);
+                    if (healTarget != null)
+                    {
+                        healTarget.CurrentAppreciation += 2;
+                    }
+                    break;
+                case "tropical_background":
+                    owner.DrawCard();
+                    break;
+                case "overcast_background":
+                    DebuffPower(FindHighestPower(enemy.Where(item => !item.IsProtected)), 1);
+                    break;
+                case "second_hand_smoke_seafoam":
+                    foreach (BattleCardInstance ally in friendly)
+                    {
+                        ally.CurrentAppreciation += AllyBuffAmount(lane, 1);
+                    }
+                    break;
+                case "blue_skin":
+                    card.CurrentAppreciation += 2;
+                    break;
+                case "purple_skin":
+                    BattleCardInstance stealTarget = FindHighestAppreciation(enemy.Where(item => !item.IsProtected));
+                    if (stealTarget != null)
+                    {
+                        card.CurrentAppreciation += 1;
+                        game.DealAppreciationDamage(lane, card, stealTarget, 1);
+                    }
+                    break;
+                case "pink_skin":
+                    if (game.AllLanes().Any(item => item.GetCards(card.Owner).Any(ally => ally != card && ally.Definition.IsType(GameConstants.Original))))
                     {
                         card.CurrentPower += 1;
                     }
                     break;
-                case "gallery_scout":
-                    if (lane.Lane == LaneType.Art)
+                case "captain_fish_food":
+                    game.TrySummonToken(card.Owner, lane, FishCompanionToken());
+                    break;
+                case "the_original":
+                    foreach (BattleCardInstance original in game.AllLanes().SelectMany(item => item.GetCards(card.Owner)).Where(item => item.Definition.IsType(GameConstants.Original)))
                     {
-                        card.CurrentPower += 2;
+                        original.CurrentPower += AllyBuffAmount(lane, 2);
                     }
-                    break;
-                case "rally_beast":
-                    foreach (BattleCardInstance companion in friendly.Where(item => item.Definition.IsType(GameConstants.Companion)))
-                    {
-                        companion.CurrentPower += 1;
-                    }
-                    break;
-                case "gold_x_emblem":
-                    AttachTrait(FindHighestPower(friendly.Where(item => item != card && item.Definition.IsType(GameConstants.Original))), 2);
-                    break;
-                case "astronaut_helmet":
-                    BattleCardInstance helmetTarget = FindHighestPower(friendly.Where(item => item != card));
-                    AttachTrait(helmetTarget, 1);
-                    if (helmetTarget != null)
-                    {
-                        helmetTarget.IsProtected = true;
-                    }
-                    break;
-                case "dread_trait":
-                    AttachTrait(FindHighestPower(friendly.Where(item => item != card)), lane.Lane == LaneType.Community ? 2 : 1);
-                    break;
-                case "rare_eyes":
-                    AttachTrait(FindHighestPower(friendly.Where(item => item != card)), 3);
-                    break;
-                case "chain_badge":
-                    AttachTrait(FindHighestPower(friendly.Where(item => item != card)), lane.Lane == LaneType.Blockchain ? 3 : 1);
-                    break;
-                case "original_fit":
-                    AttachTrait(FindHighestPower(friendly.Where(item => item != card && item.Definition.IsType(GameConstants.Original))), 4);
                     break;
             }
         }
 
-        private static void AttachTrait(BattleCardInstance target, int power)
+        public static void ApplyAfterCardPlayed(BattleGame game, OwnerSide playedSide, BattleCardInstance playedCard)
+        {
+            if (!playedCard.Definition.IsType(GameConstants.Companion))
+            {
+                return;
+            }
+
+            OwnerSide opponent = game.OppositeSide(playedSide);
+            foreach (BattleCardInstance snake in game.AllLanes().SelectMany(lane => lane.GetCards(opponent)).Where(card => card.Definition.effectId == "snake_companion"))
+            {
+                snake.CurrentPower += 1;
+            }
+        }
+
+        public static void ApplyStartOfTurn(BattleGame game, BattlePlayerState owner, OwnerSide side)
+        {
+            foreach (LaneState lane in game.AllLanes())
+            {
+                foreach (BattleCardInstance card in lane.GetCards(side))
+                {
+                    if (card.ProtectedUntilTurn >= 0 && card.ProtectedUntilTurn < game.Turn)
+                    {
+                        card.IsProtected = false;
+                        card.ProtectedUntilTurn = -1;
+                    }
+
+                    switch (card.Definition.effectId)
+                    {
+                        case "beer_helmet":
+                        case "green_skin":
+                        case "second_hand_smoke_dawn":
+                            card.CurrentPower += 1;
+                            break;
+                        case "chaos":
+                            ApplyChaosRoll(game, owner, lane, card);
+                            break;
+                    }
+                }
+            }
+        }
+
+        private static void ApplyChaosRoll(BattleGame game, BattlePlayerState owner, LaneState lane, BattleCardInstance chaos)
+        {
+            switch (game.NextAbilityRoll(4))
+            {
+                case 0:
+                    chaos.CurrentPower += 1;
+                    break;
+                case 1:
+                    chaos.CurrentAppreciation += 2;
+                    break;
+                case 2:
+                    owner.DrawCard();
+                    break;
+                default:
+                    foreach (BattleCardInstance ally in lane.GetCards(chaos.Owner).Where(item => item != chaos))
+                    {
+                        ally.CurrentPower += AllyBuffAmount(lane, 1);
+                    }
+                    break;
+            }
+        }
+
+        private static int AllyBuffAmount(LaneState lane, int baseAmount)
+        {
+            return lane.Lane == LaneType.Community ? baseAmount + 1 : baseAmount;
+        }
+
+        private static void DebuffPower(BattleCardInstance target, int power)
         {
             if (target == null)
             {
                 return;
             }
 
-            target.HasTrait = true;
-            target.CurrentPower += power;
-
-            if (target.Definition.effectId == "gold_x_original" && !target.GoldTraitBonusApplied)
-            {
-                target.CurrentPower += 2;
-                target.GoldTraitBonusApplied = true;
-            }
-        }
-
-        private static void BuffCard(BattleCardInstance target, int power, bool markTrait)
-        {
-            if (target == null)
-            {
-                return;
-            }
-
-            target.CurrentPower += power;
-            if (markTrait)
-            {
-                target.HasTrait = true;
-            }
+            target.CurrentPower -= power;
         }
 
         private static BattleCardInstance FindHighestPower(IEnumerable<BattleCardInstance> cards)
@@ -152,9 +195,34 @@ namespace AppreciatorsTcg.Battle
             return cards.OrderByDescending(card => card.CurrentPower).FirstOrDefault();
         }
 
-        private static BattleCardInstance FindLowestPower(IEnumerable<BattleCardInstance> cards)
+        private static BattleCardInstance FindLowestAppreciation(IEnumerable<BattleCardInstance> cards)
         {
-            return cards.OrderBy(card => card.CurrentPower).FirstOrDefault();
+            return cards.OrderBy(card => card.CurrentAppreciation).FirstOrDefault();
+        }
+
+        private static BattleCardInstance FindHighestAppreciation(IEnumerable<BattleCardInstance> cards)
+        {
+            return cards.OrderByDescending(card => card.CurrentAppreciation).FirstOrDefault();
+        }
+
+        private static CardDefinition FishCompanionToken()
+        {
+            return new CardDefinition
+            {
+                id = "fish_companion_token",
+                name = "Fish Companion",
+                cost = 0,
+                power = 2,
+                appreciation = 2,
+                rarity = GameConstants.Common,
+                type = GameConstants.Companion,
+                traitGroup = "Token",
+                effectText = "Summoned by CAPTAIN FISH FOOD.",
+                laneAffinity = "Community",
+                effectId = "none",
+                artKey = "fish_companion_token",
+                artPath = "Art/Placeholder/placeholder_companion"
+            };
         }
     }
 }

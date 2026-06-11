@@ -7,7 +7,7 @@
 - Press Play and use the Game tab.
 - Confirm guest login saves a local player name.
 - Confirm main menu navigation works.
-- Confirm collection shows 30 prototype cards.
+- Confirm collection shows 29 approved Appreciators trait cards.
 - Confirm cards show placeholder art, then replace one PNG under `Assets/Resources/Art/Cards` and confirm that card uses final art.
 - Confirm deck builder saves only a 12-card deck.
 - Confirm casual match starts with three lanes, hand, energy, and end turn button.

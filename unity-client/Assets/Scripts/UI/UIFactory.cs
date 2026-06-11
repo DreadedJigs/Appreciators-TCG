@@ -238,8 +238,9 @@ namespace AppreciatorsTcg.UI
             string affinity = string.IsNullOrWhiteSpace(card.laneAffinity) ? "Any lane" : card.laneAffinity;
             string title = selected ? $"SELECTED\n{card.name}" : card.name;
             CreateText(panel.transform, title, compact ? 18 : 21, TextAnchor.MiddleLeft, TextColor, FontStyle.Bold);
-            CreateText(panel.transform, $"Cost {card.cost} | Power {card.power} | {card.type}", compact ? 16 : 18, TextAnchor.MiddleLeft, Accent, FontStyle.Bold);
-            CreateText(panel.transform, affinity, compact ? 15 : 17, TextAnchor.MiddleLeft, MutedTextColor);
+            CreateText(panel.transform, $"Cost {card.cost} | Power {card.power} | Appreciation {card.appreciation}", compact ? 15 : 17, TextAnchor.MiddleLeft, Accent, FontStyle.Bold);
+            CreateText(panel.transform, $"{card.rarity} | {card.type} | {card.traitGroup}", compact ? 15 : 17, TextAnchor.MiddleLeft, TextColor);
+            CreateText(panel.transform, affinity, compact ? 14 : 16, TextAnchor.MiddleLeft, MutedTextColor);
             CreateText(panel.transform, card.effectText, compact ? 15 : 17, TextAnchor.UpperLeft, TextColor);
 
             if (!string.IsNullOrWhiteSpace(footer))
@@ -262,12 +263,17 @@ namespace AppreciatorsTcg.UI
                 return new Color(0.09f, 0.19f, 0.22f);
             }
 
-            if (type == GameConstants.Trait)
+            if (type == GameConstants.Item)
             {
                 return new Color(0.20f, 0.17f, 0.08f);
             }
 
-            return new Color(0.11f, 0.18f, 0.13f);
+            if (type == GameConstants.Event)
+            {
+                return new Color(0.11f, 0.18f, 0.13f);
+            }
+
+            return new Color(0.16f, 0.16f, 0.20f);
         }
 
         private static void CreateCardArt(Transform parent, CardDefinition card, int preferredHeight)

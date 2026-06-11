@@ -17,9 +17,8 @@ namespace AppreciatorsTcg.Battle
         public string DisplayName { get; }
         public List<CardDefinition> DrawPile { get; }
         public List<CardDefinition> Hand { get; }
+        public HashSet<string> ReturnedAfterDefeatIds { get; } = new HashSet<string>();
         public int Energy { get; set; }
-        public bool PlayedTraitThisTurn { get; set; }
-        public int NextTraitCostReduction { get; set; }
 
         public void DrawCards(int amount)
         {

@@ -14,11 +14,11 @@ test("prototype card set has the required Phase 1 shape", async () => {
     return result;
   }, {});
 
-  assert.equal(cards.length, 30);
-  assert.equal(counts.ORIGINAL, 12);
-  assert.equal(counts.COMPANION, 6);
-  assert.equal(counts.TRAIT, 6);
-  assert.equal(counts.BACKGROUND, 6);
+  assert.equal(cards.length, 29);
+  assert.equal(counts.ORIGINAL, 17);
+  assert.equal(counts.COMPANION, 5);
+  assert.equal(counts.ITEM, 7);
+  assert.equal(counts.EVENT || 0, 0);
 });
 
 test("every card has editable gameplay fields", async () => {
@@ -30,9 +30,13 @@ test("every card has editable gameplay fields", async () => {
     assert.equal(typeof card.name, "string");
     assert.equal(typeof card.effectText, "string");
     assert.equal(typeof card.effectId, "string");
+    assert.equal(typeof card.rarity, "string");
+    assert.equal(typeof card.traitGroup, "string");
     assert.ok(Number.isInteger(card.cost), `${card.name} cost must be an integer`);
     assert.ok(Number.isInteger(card.power), `${card.name} power must be an integer`);
-    assert.ok(["ORIGINAL", "COMPANION", "TRAIT", "BACKGROUND"].includes(card.type));
+    assert.ok(Number.isInteger(card.appreciation), `${card.name} appreciation must be an integer`);
+    assert.ok(["ORIGINAL", "COMPANION", "ITEM", "EVENT"].includes(card.type));
+    assert.equal(/dreaded ape/i.test(`${card.id} ${card.name} ${card.artPath}`), false);
     assert.ok(!ids.has(card.id), `Duplicate card id ${card.id}`);
     ids.add(card.id);
   }

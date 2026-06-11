@@ -63,11 +63,11 @@ const counts = backendCards.reduce((result, card) => {
   return result;
 }, {});
 
-assert.equal(backendCards.length, 30, "Phase 1 needs 30 prototype cards");
-assert.equal(counts.ORIGINAL, 12, "Phase 1 needs 12 ORIGINALS");
-assert.equal(counts.COMPANION, 6, "Phase 1 needs 6 COMPANIONS");
-assert.equal(counts.TRAIT, 6, "Phase 1 needs 6 TRAITS");
-assert.equal(counts.BACKGROUND, 6, "Phase 1 needs 6 BACKGROUNDS");
+assert.equal(backendCards.length, 29, "Approved Appreciators trait set needs 29 cards");
+assert.equal(counts.ORIGINAL, 17, "Approved trait set needs 17 ORIGINALS");
+assert.equal(counts.COMPANION, 5, "Approved trait set needs 5 COMPANIONS");
+assert.equal(counts.ITEM, 7, "Approved trait set needs 7 ITEMS");
+assert.equal(counts.EVENT || 0, 0, "Do not invent EVENT cards outside the approved list");
 
 const backendSource = readFileSync(path.join(root, "backend/src/createApp.js"), "utf8");
 for (const route of ["/health", "/api/profile", "/api/cards", "/api/matchmaking/casual", "/api/wallet/verify", "/api/nft/sync"]) {
@@ -78,6 +78,10 @@ assert.ok(backendSource.includes("/api/assets/manifest"), "Missing backend route
 for (const card of backendCards) {
   assert.equal(card.artKey, card.id, `${card.id} must have a stable artKey`);
   assert.equal(card.artPath, `Art/Cards/${card.id}`, `${card.id} must have a Unity Resources artPath`);
+  assert.ok(Number.isInteger(card.appreciation), `${card.id} must have Appreciation`);
+  assert.ok(["Common", "Rare", "Legendary", "1/1"].includes(card.rarity), `${card.id} must have approved rarity`);
+  assert.ok(["ORIGINAL", "COMPANION", "ITEM", "EVENT"].includes(card.type), `${card.id} must have approved type`);
+  assert.ok(!/dreaded ape/i.test(`${card.id} ${card.name} ${card.artPath}`), `${card.id} must not reference Dreaded Ape assets`);
 }
 
 const matchSource = [

@@ -12,6 +12,7 @@ namespace AppreciatorsTcg.Battle
             Definition = definition;
             Owner = owner;
             CurrentPower = definition.power;
+            CurrentAppreciation = definition.appreciation;
             InstanceId = nextInstanceId++;
         }
 
@@ -19,14 +20,13 @@ namespace AppreciatorsTcg.Battle
         public CardDefinition Definition { get; }
         public OwnerSide Owner { get; }
         public int CurrentPower { get; set; }
-        public bool HasTrait { get; set; }
+        public int CurrentAppreciation { get; set; }
         public bool IsProtected { get; set; }
-        public bool GoldTraitBonusApplied { get; set; }
+        public int ProtectedUntilTurn { get; set; } = -1;
 
         public string ShortLabel()
         {
-            string traitMarker = HasTrait ? "*" : string.Empty;
-            return $"{Definition.name}{traitMarker} ({CurrentPower})";
+            return $"{Definition.name} ({CurrentPower}/{CurrentAppreciation})";
         }
     }
 }

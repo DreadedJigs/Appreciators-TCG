@@ -36,7 +36,7 @@ test("cards route serves the prototype card list", async () => {
   try {
     const { response, body } = await request(server, "/api/cards");
     assert.equal(response.status, 200);
-    assert.equal(body.cards.length, 30);
+    assert.equal(body.cards.length, 29);
   } finally {
     server.close();
   }
@@ -48,7 +48,7 @@ test("asset manifest exposes expected card art slots", async () => {
     const { response, body } = await request(server, "/api/assets/manifest");
     assert.equal(response.status, 200);
     assert.equal(body.version, "phase-1");
-    assert.equal(body.cards.length, 30);
+    assert.equal(body.cards.length, 29);
     assert.equal(body.cards[0].expectedFile.endsWith(".png"), true);
   } finally {
     server.close();

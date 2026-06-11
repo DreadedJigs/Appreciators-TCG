@@ -11,42 +11,17 @@ namespace AppreciatorsTcg.Battle
             List<BattleCardInstance> cards = lane.GetCards(side);
             int total = cards.Sum(card => card.CurrentPower);
 
-            if (lane.Lane == LaneType.Art && HasBackground(cards, "art_gallery"))
+            if (lane.Lane == LaneType.Art)
             {
-                total += cards.Count(card => card.Definition.IsType(GameConstants.Original));
+                total += cards.Count(card => card.Definition.HasLaneAffinity("Art"));
             }
 
-            if (lane.Lane == LaneType.Community && HasBackground(cards, "community_rally"))
+            if (lane.Lane == LaneType.Blockchain)
             {
-                total += cards.Count(card => card.Definition.IsType(GameConstants.Companion));
-            }
-
-            if (lane.Lane == LaneType.Blockchain && HasBackground(cards, "mint_day"))
-            {
-                total += cards.Count;
-            }
-
-            int rareOriginals = cards.Count(card => card.Definition.effectId == "rare_original");
-            int traitsInLane = cards.Count(card => card.Definition.IsType(GameConstants.Trait));
-            total += rareOriginals * traitsInLane;
-
-            if (lane.Lane == LaneType.Art && HasBackground(cards, "creator_studio"))
-            {
-                total += cards.Count(card => card.HasTrait) * 2;
-            }
-
-            if (finalScore)
-            {
-                int communitySpaces = cards.Count(card => card.Definition.effectId == "community_space");
-                total += communitySpaces * cards.Count;
+                total += cards.Count(card => card.Definition.HasTag("Technology") || card.Definition.HasLaneAffinity("Blockchain")) * 2;
             }
 
             return total;
-        }
-
-        public static bool HasBackground(IEnumerable<BattleCardInstance> cards, string effectId)
-        {
-            return cards.Any(card => card.Definition.IsType(GameConstants.Background) && card.Definition.effectId == effectId);
         }
     }
 }

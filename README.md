@@ -131,7 +131,7 @@ Official card art should be dropped into:
 unity-client/Assets/Resources/Art/Cards/
 ```
 
-Use the exact file names in `docs/ART_ASSET_MANIFEST.csv`, such as `original_ape.png`. The Unity UI loads `artPath` from card data and falls back to placeholder art until final PNGs exist.
+Use the exact file names in `docs/ART_ASSET_MANIFEST.csv`, such as `ghost_companion.png`. The Unity UI loads `artPath` from card data and falls back to placeholder art until final PNGs exist.
 
 ## Build Unity WebGL
 

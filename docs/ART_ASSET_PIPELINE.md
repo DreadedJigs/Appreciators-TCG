@@ -13,18 +13,18 @@ unity-client/Assets/Resources/Art/Cards/
 Each file should use the stable card id:
 
 ```text
-original_ape.png
-blue_face_original.png
-gold_x_original.png
+ghost_companion.png
+beer_helmet.png
+the_original.png
 ```
 
 Unity card data points to these files through each card's `artPath` field, for example:
 
 ```json
 {
-  "id": "original_ape",
-  "artKey": "original_ape",
-  "artPath": "Art/Cards/original_ape"
+  "id": "ghost_companion",
+  "artKey": "ghost_companion",
+  "artPath": "Art/Cards/ghost_companion"
 }
 ```
 

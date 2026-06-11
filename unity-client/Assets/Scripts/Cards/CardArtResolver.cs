@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AppreciatorsTcg.Core;
 using UnityEngine;
 
 namespace AppreciatorsTcg.Cards
@@ -33,6 +34,16 @@ namespace AppreciatorsTcg.Cards
         public static string PlaceholderPath(string cardType)
         {
             string safeType = string.IsNullOrWhiteSpace(cardType) ? "card" : cardType.ToLowerInvariant();
+            if (safeType == GameConstants.Item.ToLowerInvariant())
+            {
+                return "Art/Placeholder/placeholder_background";
+            }
+
+            if (safeType == GameConstants.Event.ToLowerInvariant())
+            {
+                return "Art/Placeholder/placeholder_trait";
+            }
+
             return $"Art/Placeholder/placeholder_{safeType}";
         }
 

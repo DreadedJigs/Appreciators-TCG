@@ -37,18 +37,18 @@ namespace AppreciatorsTcg.Data
         {
             return new List<string>
             {
-                "original_ape",
-                "blue_face_original",
-                "gallery_original",
-                "chain_original",
-                "community_original",
-                "rally_original",
-                "kaizo",
-                "spike",
-                "community_pup",
-                "gold_x_emblem",
-                "dread_trait",
-                "art_gallery"
+                "regular_body",
+                "no_head_body",
+                "beer_helmet",
+                "devil_dog_companion",
+                "ghost_companion",
+                "pink_lemonade_background",
+                "tropical_background",
+                "blue_skin",
+                "pink_skin",
+                "yellow_skin",
+                "unicorn_head",
+                "blockchain_background"
             };
         }
 

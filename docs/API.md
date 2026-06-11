@@ -19,7 +19,7 @@ Example body:
 ```json
 {
   "username": "Player",
-  "deckIds": ["original_ape"]
+  "deckIds": ["regular_body"]
 }
 ```
 

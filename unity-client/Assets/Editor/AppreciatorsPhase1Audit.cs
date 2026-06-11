@@ -36,14 +36,15 @@ namespace AppreciatorsTcg.EditorTools
 
         private static void AuditCards()
         {
-            Require(CardCatalog.AllCards.Count == 30, "Prototype set must contain 30 cards.");
-            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Original) == 12, "Prototype set must contain 12 ORIGINALS.");
-            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Companion) == 6, "Prototype set must contain 6 COMPANIONS.");
-            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Trait) == 6, "Prototype set must contain 6 TRAITS.");
-            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Background) == 6, "Prototype set must contain 6 BACKGROUNDS.");
+            Require(CardCatalog.AllCards.Count == 29, "Approved trait set must contain 29 cards.");
+            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Original) == 17, "Approved trait set must contain 17 ORIGINALS.");
+            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Companion) == 5, "Approved trait set must contain 5 COMPANIONS.");
+            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Item) == 7, "Approved trait set must contain 7 ITEMS.");
+            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Event) == 0, "Phase 1 should not invent EVENT cards outside the approved list.");
             Require(CardCatalog.AllCards.Select(card => card.id).Distinct().Count() == CardCatalog.AllCards.Count, "Card ids must be unique.");
             Require(CardCatalog.AllCards.All(card => card.artKey == card.id), "Every card artKey must match its stable id.");
             Require(CardCatalog.AllCards.All(card => card.EffectiveArtPath() == $"Art/Cards/{card.id}"), "Every card must have a Unity Resources art path.");
+            Require(CardCatalog.AllCards.All(card => !($"{card.id} {card.name} {card.artPath}").ToLowerInvariant().Contains("dreaded ape")), "Dreaded Ape assets must not be referenced.");
         }
 
         private static void AuditDeck()
