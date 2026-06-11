@@ -42,6 +42,19 @@ test("cards route serves the prototype card list", async () => {
   }
 });
 
+test("asset manifest exposes expected card art slots", async () => {
+  const server = await listen(createApp());
+  try {
+    const { response, body } = await request(server, "/api/assets/manifest");
+    assert.equal(response.status, 200);
+    assert.equal(body.version, "phase-1");
+    assert.equal(body.cards.length, 30);
+    assert.equal(body.cards[0].expectedFile.endsWith(".png"), true);
+  } finally {
+    server.close();
+  }
+});
+
 test("mock profile and matchmaking routes return playable local data", async () => {
   const server = await listen(createApp());
   try {

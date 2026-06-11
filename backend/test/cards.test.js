@@ -37,3 +37,12 @@ test("every card has editable gameplay fields", async () => {
     ids.add(card.id);
   }
 });
+
+test("every card has a final-art drop slot", async () => {
+  const cards = await loadCards();
+
+  for (const card of cards) {
+    assert.equal(card.artKey, card.id, `${card.id} artKey should match its stable card id`);
+    assert.equal(card.artPath, `Art/Cards/${card.id}`, `${card.id} artPath should target Unity Resources`);
+  }
+});

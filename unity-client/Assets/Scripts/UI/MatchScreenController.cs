@@ -55,14 +55,13 @@ namespace AppreciatorsTcg.UI
                 int handIndex = i;
                 CardDefinition card = game.Player.Hand[i];
                 int cost = game.GetEffectiveCost(game.Player, card);
-                string selected = selectedHandIndex == i ? "SELECTED\n" : string.Empty;
-                string body = $"{selected}{card.name}\nCost {cost} | Power {card.power}\n{card.type}\n{card.effectText}";
-                Button button = UIFactory.CreateButton(handContent, body, () => SelectHandCard(handIndex), selectedHandIndex == i ? UIFactory.Accent : UIFactory.PanelAlt);
-                LayoutElement layout = button.GetComponent<LayoutElement>();
-                layout.minWidth = 240;
-                layout.preferredWidth = 260;
-                layout.minHeight = 170;
-                layout.preferredHeight = 185;
+                UIFactory.CreateCardPanel(
+                    handContent,
+                    card,
+                    () => SelectHandCard(handIndex),
+                    selectedHandIndex == i,
+                    $"Current cost {cost}",
+                    true);
             }
         }
 

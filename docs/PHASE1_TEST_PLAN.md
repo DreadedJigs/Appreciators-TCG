@@ -8,6 +8,7 @@
 - Confirm guest login saves a local player name.
 - Confirm main menu navigation works.
 - Confirm collection shows 30 prototype cards.
+- Confirm cards show placeholder art, then replace one PNG under `Assets/Resources/Art/Cards` and confirm that card uses final art.
 - Confirm deck builder saves only a 12-card deck.
 - Confirm casual match starts with three lanes, hand, energy, and end turn button.
 - Play cards into each lane and confirm energy and lane totals update.
@@ -27,6 +28,7 @@ Then test:
 
 - `GET http://localhost:3001/health`
 - `GET http://localhost:3001/api/cards`
+- `GET http://localhost:3001/api/assets/manifest`
 - `POST http://localhost:3001/api/profile`
 - `POST http://localhost:3001/api/matchmaking/casual`
 - `POST http://localhost:3001/api/wallet/verify`

@@ -71,6 +71,7 @@ Useful routes:
 
 - `GET /health`
 - `GET /api/cards`
+- `GET /api/assets/manifest`
 - `POST /api/profile`
 - `POST /api/matchmaking/casual`
 - `POST /api/wallet/verify`
@@ -104,6 +105,7 @@ Unity:
 4. The editor audit entry point is `AppreciatorsTcg.EditorTools.AppreciatorsPhase1Audit.RunAll`.
 
 See `docs/DEBUG_AUDIT.md` for the current debug and audit checklist.
+See `docs/ART_ASSET_PIPELINE.md` and `docs/ART_ASSET_MANIFEST.csv` for the final art drop process.
 
 Full Phase 1 structure audit:
 
@@ -120,6 +122,16 @@ unity-client/Assets/Resources/app-config.json
 ```
 
 You can also change it in the prototype at `Wallet / Web3 Coming Soon -> Backend API Base URL`. The saved value uses Unity `PlayerPrefs`, so local gameplay still works if the backend is offline.
+
+## Add Final Art
+
+Official card art should be dropped into:
+
+```text
+unity-client/Assets/Resources/Art/Cards/
+```
+
+Use the exact file names in `docs/ART_ASSET_MANIFEST.csv`, such as `original_ape.png`. The Unity UI loads `artPath` from card data and falls back to placeholder art until final PNGs exist.
 
 ## Build Unity WebGL
 
@@ -207,8 +219,8 @@ Goal: enhance gameplay through ownership without making NFTs mandatory.
 
 ## Known Limitations
 
-- Phase 1 uses placeholder UI panels instead of final art.
-- Placeholder PNGs live in `unity-client/Assets/Art/Placeholder` until official art is delivered.
+- Phase 1 uses placeholder card art until official files are delivered.
+- Runtime placeholder PNGs live in `unity-client/Assets/Resources/Art/Placeholder`.
 - Wallets, NFT sync, and rewards are mocked only.
 - Backend profiles use in-memory storage.
 - AI is intentionally simple.

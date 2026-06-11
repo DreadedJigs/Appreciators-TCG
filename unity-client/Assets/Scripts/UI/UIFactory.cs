@@ -1,3 +1,5 @@
+using AppreciatorsTcg.Cards;
+using AppreciatorsTcg.Core;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -199,6 +201,95 @@ namespace AppreciatorsTcg.UI
             CreateText(card.transform, title, 22, TextAnchor.MiddleLeft, TextColor, FontStyle.Bold);
             CreateText(card.transform, body, 18, TextAnchor.UpperLeft, MutedTextColor);
             return card;
+        }
+
+        public static GameObject CreateCardPanel(
+            Transform parent,
+            CardDefinition card,
+            UnityAction action = null,
+            bool selected = false,
+            string footer = null,
+            bool compact = false)
+        {
+            Color color = selected ? Accent : ColorForType(card.type);
+            GameObject panel = CreateVerticalStack(parent, card.name, color, compact ? 5 : 7, compact ? 8 : 10);
+            LayoutElement layout = panel.AddComponent<LayoutElement>();
+            layout.minWidth = compact ? 205 : 225;
+            layout.preferredWidth = compact ? 230 : 255;
+            layout.minHeight = compact ? 170 : 230;
+            layout.preferredHeight = compact ? 185 : 255;
+
+            if (action != null)
+            {
+                Button button = panel.AddComponent<Button>();
+                button.targetGraphic = panel.GetComponent<Image>();
+                button.onClick.AddListener(action);
+
+                ColorBlock colors = button.colors;
+                colors.normalColor = color;
+                colors.highlightedColor = Color.Lerp(color, Color.white, 0.10f);
+                colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
+                colors.disabledColor = new Color(0.20f, 0.21f, 0.25f);
+                button.colors = colors;
+            }
+
+            CreateCardArt(panel.transform, card, compact ? 58 : 88);
+
+            string affinity = string.IsNullOrWhiteSpace(card.laneAffinity) ? "Any lane" : card.laneAffinity;
+            string title = selected ? $"SELECTED\n{card.name}" : card.name;
+            CreateText(panel.transform, title, compact ? 18 : 21, TextAnchor.MiddleLeft, TextColor, FontStyle.Bold);
+            CreateText(panel.transform, $"Cost {card.cost} | Power {card.power} | {card.type}", compact ? 16 : 18, TextAnchor.MiddleLeft, Accent, FontStyle.Bold);
+            CreateText(panel.transform, affinity, compact ? 15 : 17, TextAnchor.MiddleLeft, MutedTextColor);
+            CreateText(panel.transform, card.effectText, compact ? 15 : 17, TextAnchor.UpperLeft, TextColor);
+
+            if (!string.IsNullOrWhiteSpace(footer))
+            {
+                CreateText(panel.transform, footer, compact ? 15 : 17, TextAnchor.MiddleLeft, Accent, FontStyle.Bold);
+            }
+
+            return panel;
+        }
+
+        public static Color ColorForType(string type)
+        {
+            if (type == GameConstants.Original)
+            {
+                return new Color(0.20f, 0.13f, 0.25f);
+            }
+
+            if (type == GameConstants.Companion)
+            {
+                return new Color(0.09f, 0.19f, 0.22f);
+            }
+
+            if (type == GameConstants.Trait)
+            {
+                return new Color(0.20f, 0.17f, 0.08f);
+            }
+
+            return new Color(0.11f, 0.18f, 0.13f);
+        }
+
+        private static void CreateCardArt(Transform parent, CardDefinition card, int preferredHeight)
+        {
+            GameObject artObject = CreatePanel(parent, "CardArt", Color.Lerp(ColorForType(card.type), Color.black, 0.18f));
+            LayoutElement layout = artObject.AddComponent<LayoutElement>();
+            layout.minHeight = preferredHeight;
+            layout.preferredHeight = preferredHeight;
+
+            Image image = artObject.GetComponent<Image>();
+            Sprite sprite = CardArtResolver.LoadSprite(card);
+            if (sprite != null)
+            {
+                image.sprite = sprite;
+                image.color = Color.white;
+                image.preserveAspect = true;
+                return;
+            }
+
+            string shortType = string.IsNullOrWhiteSpace(card.type) ? "CARD" : card.type.Substring(0, Mathf.Min(3, card.type.Length));
+            Text fallback = CreateText(artObject.transform, shortType, 30, TextAnchor.MiddleCenter, Accent, FontStyle.Bold);
+            Stretch(fallback.rectTransform);
         }
 
         public static void Stretch(RectTransform rectTransform)

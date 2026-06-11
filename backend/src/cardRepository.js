@@ -16,3 +16,23 @@ export async function getPrototypeCards() {
 
   return cachedCards;
 }
+
+export async function getAssetManifest() {
+  const prototypeCards = await getPrototypeCards();
+
+  return {
+    version: "phase-1",
+    expectedUnityFolder: "unity-client/Assets/Resources/Art/Cards",
+    placeholderUnityFolder: "unity-client/Assets/Resources/Art/Placeholder",
+    filenamePattern: "{card_id}.png",
+    cards: prototypeCards.cards.map((card) => ({
+      id: card.id,
+      name: card.name,
+      type: card.type,
+      laneAffinity: card.laneAffinity || "",
+      artKey: card.artKey,
+      artPath: card.artPath,
+      expectedFile: `${card.id}.png`
+    }))
+  };
+}

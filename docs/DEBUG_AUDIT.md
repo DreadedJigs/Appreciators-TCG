@@ -14,6 +14,7 @@ Phase 1 playable prototype with placeholder art and mocked Web3 systems.
 - Results screen shows lane scores and match outcome.
 - Web3 screen remains mock-only and stores a configurable backend API base URL.
 - `Assets/Scenes/Main.unity` is the primary runtime shell and routes through `SceneBootstrapper`. The individual scenes remain in the project for direct screen testing, but WebGL builds should start from `Main`.
+- Final card art is addressable through each card's `artKey` and `artPath`; missing final art falls back to runtime placeholders.
 
 ## Automated Tests
 
@@ -50,6 +51,7 @@ Unity:
 ## Audit Notes
 
 - Placeholder panels are intentional until official art arrives.
+- Official art should follow `docs/ART_ASSET_PIPELINE.md` and `docs/ART_ASSET_MANIFEST.csv`.
 - No real wallet connection is implemented.
 - NFT ownership does not affect gameplay.
 - Offline AI play remains available if the backend is unavailable.

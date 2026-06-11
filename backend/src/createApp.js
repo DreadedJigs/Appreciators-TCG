@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { getPrototypeCards } from "./cardRepository.js";
+import { getAssetManifest, getPrototypeCards } from "./cardRepository.js";
 import { upsertProfile } from "./profileStore.js";
 
 export function createApp() {
@@ -30,6 +30,14 @@ export function createApp() {
     try {
       const cards = await getPrototypeCards();
       res.json(cards);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/assets/manifest", async (_req, res, next) => {
+    try {
+      res.json(await getAssetManifest());
     } catch (error) {
       next(error);
     }

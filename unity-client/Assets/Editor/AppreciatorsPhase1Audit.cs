@@ -42,6 +42,8 @@ namespace AppreciatorsTcg.EditorTools
             Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Trait) == 6, "Prototype set must contain 6 TRAITS.");
             Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Background) == 6, "Prototype set must contain 6 BACKGROUNDS.");
             Require(CardCatalog.AllCards.Select(card => card.id).Distinct().Count() == CardCatalog.AllCards.Count, "Card ids must be unique.");
+            Require(CardCatalog.AllCards.All(card => card.artKey == card.id), "Every card artKey must match its stable id.");
+            Require(CardCatalog.AllCards.All(card => card.EffectiveArtPath() == $"Art/Cards/{card.id}"), "Every card must have a Unity Resources art path.");
         }
 
         private static void AuditDeck()

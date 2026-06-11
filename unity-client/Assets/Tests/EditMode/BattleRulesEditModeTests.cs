@@ -25,6 +25,16 @@ namespace AppreciatorsTcg.Tests
         }
 
         [Test]
+        public void CardsHaveFinalArtSlots()
+        {
+            foreach (var card in CardCatalog.AllCards)
+            {
+                Assert.AreEqual(card.id, card.artKey);
+                Assert.AreEqual($"Art/Cards/{card.id}", card.EffectiveArtPath());
+            }
+        }
+
+        [Test]
         public void BattleCompletesAfterSixTurns()
         {
             BattleGame game = new BattleGame("Tester", PlayerDeckService.LoadDeckOrStarter());

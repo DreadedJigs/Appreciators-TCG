@@ -13,6 +13,8 @@ namespace AppreciatorsTcg.Cards
         public string effectText;
         public string laneAffinity;
         public string effectId;
+        public string artKey;
+        public string artPath;
 
         public bool IsType(string cardType)
         {
@@ -22,6 +24,11 @@ namespace AppreciatorsTcg.Cards
         public bool HasLaneAffinity(string laneName)
         {
             return string.Equals(laneAffinity, laneName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public string EffectiveArtPath()
+        {
+            return string.IsNullOrWhiteSpace(artPath) ? $"Art/Cards/{id}" : artPath;
         }
     }
 }

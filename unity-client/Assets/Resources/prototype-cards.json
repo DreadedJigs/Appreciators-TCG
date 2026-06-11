@@ -8,7 +8,9 @@
       "type": "ORIGINAL",
       "effectText": "No effect.",
       "laneAffinity": "",
-      "effectId": "none"
+      "effectId": "none",
+      "artKey": "original_ape",
+      "artPath": "Art/Cards/original_ape"
     },
     {
       "id": "blue_face_original",
@@ -18,7 +20,9 @@
       "type": "ORIGINAL",
       "effectText": "If played in the Art lane, gain +1 Power.",
       "laneAffinity": "Art",
-      "effectId": "blue_face_original"
+      "effectId": "blue_face_original",
+      "artKey": "blue_face_original",
+      "artPath": "Art/Cards/blue_face_original"
     },
     {
       "id": "gold_x_original",
@@ -28,7 +32,9 @@
       "type": "ORIGINAL",
       "effectText": "If this card has a Trait, gain +2 Power.",
       "laneAffinity": "",
-      "effectId": "gold_x_original"
+      "effectId": "gold_x_original",
+      "artKey": "gold_x_original",
+      "artPath": "Art/Cards/gold_x_original"
     },
     {
       "id": "dreaded_original",
@@ -38,7 +44,9 @@
       "type": "ORIGINAL",
       "effectText": "If you are winning this lane, gain +2 Power.",
       "laneAffinity": "",
-      "effectId": "dreaded_original"
+      "effectId": "dreaded_original",
+      "artKey": "dreaded_original",
+      "artPath": "Art/Cards/dreaded_original"
     },
     {
       "id": "gallery_original",
@@ -48,7 +56,9 @@
       "type": "ORIGINAL",
       "effectText": "Gains +2 Power in the Art lane.",
       "laneAffinity": "Art",
-      "effectId": "gallery_original"
+      "effectId": "gallery_original",
+      "artKey": "gallery_original",
+      "artPath": "Art/Cards/gallery_original"
     },
     {
       "id": "chain_original",
@@ -58,7 +68,9 @@
       "type": "ORIGINAL",
       "effectText": "Gains +2 Power in the Blockchain lane.",
       "laneAffinity": "Blockchain",
-      "effectId": "chain_original"
+      "effectId": "chain_original",
+      "artKey": "chain_original",
+      "artPath": "Art/Cards/chain_original"
     },
     {
       "id": "community_original",
@@ -68,7 +80,9 @@
       "type": "ORIGINAL",
       "effectText": "Give another friendly card in this lane +1 Power.",
       "laneAffinity": "Community",
-      "effectId": "community_original"
+      "effectId": "community_original",
+      "artKey": "community_original",
+      "artPath": "Art/Cards/community_original"
     },
     {
       "id": "rare_original",
@@ -78,7 +92,9 @@
       "type": "ORIGINAL",
       "effectText": "Gains +1 Power for each Trait in this lane.",
       "laneAffinity": "",
-      "effectId": "rare_original"
+      "effectId": "rare_original",
+      "artKey": "rare_original",
+      "artPath": "Art/Cards/rare_original"
     },
     {
       "id": "genesis_original",
@@ -88,7 +104,9 @@
       "type": "ORIGINAL",
       "effectText": "No effect.",
       "laneAffinity": "",
-      "effectId": "none"
+      "effectId": "none",
+      "artKey": "genesis_original",
+      "artPath": "Art/Cards/genesis_original"
     },
     {
       "id": "rally_original",
@@ -98,7 +116,9 @@
       "type": "ORIGINAL",
       "effectText": "If played in Community, draw 1 card.",
       "laneAffinity": "Community",
-      "effectId": "rally_original"
+      "effectId": "rally_original",
+      "artKey": "rally_original",
+      "artPath": "Art/Cards/rally_original"
     },
     {
       "id": "on_chain_original",
@@ -108,7 +128,9 @@
       "type": "ORIGINAL",
       "effectText": "Reduce the cost of your next Trait by 1.",
       "laneAffinity": "Blockchain",
-      "effectId": "on_chain_original"
+      "effectId": "on_chain_original",
+      "artKey": "on_chain_original",
+      "artPath": "Art/Cards/on_chain_original"
     },
     {
       "id": "be_original",
@@ -118,7 +140,9 @@
       "type": "ORIGINAL",
       "effectText": "If this is your only card in this lane, gain +3 Power.",
       "laneAffinity": "",
-      "effectId": "be_original"
+      "effectId": "be_original",
+      "artKey": "be_original",
+      "artPath": "Art/Cards/be_original"
     },
     {
       "id": "kaizo",
@@ -128,7 +152,9 @@
       "type": "COMPANION",
       "effectText": "Give a friendly ORIGINAL in this lane +2 Power.",
       "laneAffinity": "",
-      "effectId": "kaizo"
+      "effectId": "kaizo",
+      "artKey": "kaizo",
+      "artPath": "Art/Cards/kaizo"
     },
     {
       "id": "spike",
@@ -138,7 +164,9 @@
       "type": "COMPANION",
       "effectText": "If you are losing this lane, Spike gains +2 Power.",
       "laneAffinity": "",
-      "effectId": "spike"
+      "effectId": "spike",
+      "artKey": "spike",
+      "artPath": "Art/Cards/spike"
     },
     {
       "id": "community_pup",
@@ -148,7 +176,9 @@
       "type": "COMPANION",
       "effectText": "Give another friendly card here +1 Power.",
       "laneAffinity": "Community",
-      "effectId": "community_pup"
+      "effectId": "community_pup",
+      "artKey": "community_pup",
+      "artPath": "Art/Cards/community_pup"
     },
     {
       "id": "chain_guardian",
@@ -158,7 +188,9 @@
       "type": "COMPANION",
       "effectText": "Gains +1 Power in Blockchain.",
       "laneAffinity": "Blockchain",
-      "effectId": "chain_guardian"
+      "effectId": "chain_guardian",
+      "artKey": "chain_guardian",
+      "artPath": "Art/Cards/chain_guardian"
     },
     {
       "id": "gallery_scout",
@@ -168,7 +200,9 @@
       "type": "COMPANION",
       "effectText": "Gains +2 Power in Art.",
       "laneAffinity": "Art",
-      "effectId": "gallery_scout"
+      "effectId": "gallery_scout",
+      "artKey": "gallery_scout",
+      "artPath": "Art/Cards/gallery_scout"
     },
     {
       "id": "rally_beast",
@@ -178,7 +212,9 @@
       "type": "COMPANION",
       "effectText": "Friendly COMPANIONS in this lane gain +1 Power.",
       "laneAffinity": "Community",
-      "effectId": "rally_beast"
+      "effectId": "rally_beast",
+      "artKey": "rally_beast",
+      "artPath": "Art/Cards/rally_beast"
     },
     {
       "id": "gold_x_emblem",
@@ -188,7 +224,9 @@
       "type": "TRAIT",
       "effectText": "Give a friendly ORIGINAL +2 Power.",
       "laneAffinity": "",
-      "effectId": "gold_x_emblem"
+      "effectId": "gold_x_emblem",
+      "artKey": "gold_x_emblem",
+      "artPath": "Art/Cards/gold_x_emblem"
     },
     {
       "id": "astronaut_helmet",
@@ -198,7 +236,9 @@
       "type": "TRAIT",
       "effectText": "Give a friendly card +1 Power and protect it from the next negative effect.",
       "laneAffinity": "",
-      "effectId": "astronaut_helmet"
+      "effectId": "astronaut_helmet",
+      "artKey": "astronaut_helmet",
+      "artPath": "Art/Cards/astronaut_helmet"
     },
     {
       "id": "dread_trait",
@@ -208,7 +248,9 @@
       "type": "TRAIT",
       "effectText": "Give a card +1 Power. If played in Community, give +2 instead.",
       "laneAffinity": "Community",
-      "effectId": "dread_trait"
+      "effectId": "dread_trait",
+      "artKey": "dread_trait",
+      "artPath": "Art/Cards/dread_trait"
     },
     {
       "id": "rare_eyes",
@@ -218,7 +260,9 @@
       "type": "TRAIT",
       "effectText": "Give a card +3 Power.",
       "laneAffinity": "",
-      "effectId": "rare_eyes"
+      "effectId": "rare_eyes",
+      "artKey": "rare_eyes",
+      "artPath": "Art/Cards/rare_eyes"
     },
     {
       "id": "chain_badge",
@@ -228,7 +272,9 @@
       "type": "TRAIT",
       "effectText": "If played in Blockchain, give a card +3 Power. Otherwise give +1.",
       "laneAffinity": "Blockchain",
-      "effectId": "chain_badge"
+      "effectId": "chain_badge",
+      "artKey": "chain_badge",
+      "artPath": "Art/Cards/chain_badge"
     },
     {
       "id": "original_fit",
@@ -238,7 +284,9 @@
       "type": "TRAIT",
       "effectText": "Give a friendly ORIGINAL +4 Power.",
       "laneAffinity": "",
-      "effectId": "original_fit"
+      "effectId": "original_fit",
+      "artKey": "original_fit",
+      "artPath": "Art/Cards/original_fit"
     },
     {
       "id": "art_gallery",
@@ -248,7 +296,9 @@
       "type": "BACKGROUND",
       "effectText": "ORIGINALS in the Art lane gain +1 Power.",
       "laneAffinity": "Art",
-      "effectId": "art_gallery"
+      "effectId": "art_gallery",
+      "artKey": "art_gallery",
+      "artPath": "Art/Cards/art_gallery"
     },
     {
       "id": "community_rally",
@@ -258,7 +308,9 @@
       "type": "BACKGROUND",
       "effectText": "COMPANIONS in the Community lane gain +1 Power.",
       "laneAffinity": "Community",
-      "effectId": "community_rally"
+      "effectId": "community_rally",
+      "artKey": "community_rally",
+      "artPath": "Art/Cards/community_rally"
     },
     {
       "id": "blockchain_portal",
@@ -268,7 +320,9 @@
       "type": "BACKGROUND",
       "effectText": "Your first TRAIT each turn costs 1 less.",
       "laneAffinity": "Blockchain",
-      "effectId": "blockchain_portal"
+      "effectId": "blockchain_portal",
+      "artKey": "blockchain_portal",
+      "artPath": "Art/Cards/blockchain_portal"
     },
     {
       "id": "mint_day",
@@ -278,7 +332,9 @@
       "type": "BACKGROUND",
       "effectText": "Cards in Blockchain gain +1 Power.",
       "laneAffinity": "Blockchain",
-      "effectId": "mint_day"
+      "effectId": "mint_day",
+      "artKey": "mint_day",
+      "artPath": "Art/Cards/mint_day"
     },
     {
       "id": "creator_studio",
@@ -288,7 +344,9 @@
       "type": "BACKGROUND",
       "effectText": "Cards with Traits in Art gain +2 Power.",
       "laneAffinity": "Art",
-      "effectId": "creator_studio"
+      "effectId": "creator_studio",
+      "artKey": "creator_studio",
+      "artPath": "Art/Cards/creator_studio"
     },
     {
       "id": "community_space",
@@ -298,7 +356,9 @@
       "type": "BACKGROUND",
       "effectText": "At end of match, gain +1 Power here for each friendly card in this lane.",
       "laneAffinity": "Community",
-      "effectId": "community_space"
+      "effectId": "community_space",
+      "artKey": "community_space",
+      "artPath": "Art/Cards/community_space"
     }
   ]
 }

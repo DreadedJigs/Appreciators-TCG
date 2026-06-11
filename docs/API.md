@@ -27,6 +27,10 @@ Example body:
 
 Returns the Phase 1 prototype card set as JSON.
 
+## GET /api/assets/manifest
+
+Returns the expected final-art file names and Unity `Resources` paths for all prototype cards.
+
 ## POST /api/matchmaking/casual
 
 Returns a mock AI opponent assignment.

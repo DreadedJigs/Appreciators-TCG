@@ -50,11 +50,13 @@ namespace AppreciatorsTcg.UI
             UIFactory.ClearChildren(cardsContent);
             foreach (CardDefinition card in CardCatalog.AllCards)
             {
-                GameObject row = UIFactory.CreateHorizontalStack(cardsContent, card.name, new Color(0.11f, 0.12f, 0.17f), 8, 8);
-                UIFactory.CreateText(row.transform, $"{card.name}  C{card.cost} P{card.power}  {card.type}", 19, TextAnchor.MiddleLeft, UIFactory.TextColor);
                 string id = card.id;
-                Button addButton = UIFactory.CreateButton(row.transform, "Add", () => AddCard(id), UIFactory.Blue);
-                addButton.interactable = deckIds.Count < GameConstants.DeckSize;
+                GameObject cardPanel = UIFactory.CreateCardPanel(cardsContent, card, () => AddCard(id), false, "Tap to add", true);
+                Button addButton = cardPanel.GetComponent<Button>();
+                if (addButton != null)
+                {
+                    addButton.interactable = deckIds.Count < GameConstants.DeckSize;
+                }
             }
 
             UIFactory.ClearChildren(deckContent);
@@ -62,11 +64,13 @@ namespace AppreciatorsTcg.UI
             {
                 int removeIndex = i;
                 CardDefinition card = CardCatalog.GetCard(deckIds[i]);
-                string label = card == null ? deckIds[i] : $"{removeIndex + 1}. {card.name}  C{card.cost} P{card.power}";
+                if (card == null)
+                {
+                    UIFactory.CreateButton(deckContent, $"{removeIndex + 1}. {deckIds[i]}\nRemove", () => RemoveCard(removeIndex), UIFactory.Red);
+                    continue;
+                }
 
-                GameObject row = UIFactory.CreateHorizontalStack(deckContent, label, new Color(0.11f, 0.12f, 0.17f), 8, 8);
-                UIFactory.CreateText(row.transform, label, 19, TextAnchor.MiddleLeft, UIFactory.TextColor);
-                UIFactory.CreateButton(row.transform, "Remove", () => RemoveCard(removeIndex), UIFactory.Red);
+                UIFactory.CreateCardPanel(deckContent, card, () => RemoveCard(removeIndex), false, $"{removeIndex + 1}. Tap to remove", true);
             }
         }
 

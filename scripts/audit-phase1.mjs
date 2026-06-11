@@ -13,17 +13,26 @@ const requiredFiles = [
   "backend/data/cards.json",
   "backend/test/cards.test.js",
   "backend/test/api.test.js",
+  "backend/start-backend-windows.cmd",
   "unity-client/Packages/manifest.json",
   "unity-client/ProjectSettings/EditorBuildSettings.asset",
   "unity-client/Assets/Resources/prototype-cards.json",
   "unity-client/Assets/Resources/app-config.json",
+  "unity-client/Assets/Resources/Art/Cards/.gitkeep",
+  "unity-client/Assets/Resources/Art/Placeholder/placeholder_original.png",
+  "unity-client/Assets/Resources/Art/Placeholder/placeholder_companion.png",
+  "unity-client/Assets/Resources/Art/Placeholder/placeholder_trait.png",
+  "unity-client/Assets/Resources/Art/Placeholder/placeholder_background.png",
   "unity-client/Assets/Scripts/Battle/BattleGame.cs",
   "unity-client/Assets/Scripts/AI/SimpleAiPlayer.cs",
   "unity-client/Assets/Scripts/UI/MatchScreenController.cs",
+  "unity-client/Assets/Scripts/Cards/CardArtResolver.cs",
   "unity-client/Assets/Editor/AppreciatorsBuildWebGL.cs",
   "unity-client/Assets/Editor/AppreciatorsPhase1Audit.cs",
   "unity-client/Assets/Tests/EditMode/BattleRulesEditModeTests.cs",
-  "docs/DEBUG_AUDIT.md"
+  "docs/DEBUG_AUDIT.md",
+  "docs/ART_ASSET_PIPELINE.md",
+  "docs/ART_ASSET_MANIFEST.csv"
 ];
 
 const requiredScenes = [
@@ -63,6 +72,12 @@ assert.equal(counts.BACKGROUND, 6, "Phase 1 needs 6 BACKGROUNDS");
 const backendSource = readFileSync(path.join(root, "backend/src/createApp.js"), "utf8");
 for (const route of ["/health", "/api/profile", "/api/cards", "/api/matchmaking/casual", "/api/wallet/verify", "/api/nft/sync"]) {
   assert.ok(backendSource.includes(route), `Missing backend route ${route}`);
+}
+assert.ok(backendSource.includes("/api/assets/manifest"), "Missing backend route /api/assets/manifest");
+
+for (const card of backendCards) {
+  assert.equal(card.artKey, card.id, `${card.id} must have a stable artKey`);
+  assert.equal(card.artPath, `Art/Cards/${card.id}`, `${card.id} must have a Unity Resources artPath`);
 }
 
 const matchSource = [
