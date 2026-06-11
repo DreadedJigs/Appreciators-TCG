@@ -57,6 +57,16 @@ npm start
 
 The backend defaults to `http://localhost:3001`.
 
+On Windows, if PowerShell blocks `npm`, use `npm.cmd` instead:
+
+```powershell
+cd "C:\Users\12517\Documents\appreciators tgc\backend"
+npm.cmd install
+npm.cmd start
+```
+
+You can also run `backend/start-backend-windows.cmd` to install dependencies if needed and keep the local backend server open in a terminal.
+
 Useful routes:
 
 - `GET /health`
