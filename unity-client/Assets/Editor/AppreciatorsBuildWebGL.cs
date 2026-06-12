@@ -18,7 +18,17 @@ namespace AppreciatorsTcg.EditorTools
 
             BuildPlayerOptions options = new BuildPlayerOptions
             {
-                scenes = new[] { "Assets/Scenes/Main.unity" },
+                scenes = new[]
+                {
+                    "Assets/Scenes/Main.unity",
+                    "Assets/Scenes/LoginScene.unity",
+                    "Assets/Scenes/MainMenuScene.unity",
+                    "Assets/Scenes/CollectionScene.unity",
+                    "Assets/Scenes/DeckBuilderScene.unity",
+                    "Assets/Scenes/MatchScene.unity",
+                    "Assets/Scenes/ResultsScene.unity",
+                    "Assets/Scenes/Web3MockScene.unity"
+                },
                 locationPathName = output,
                 target = BuildTarget.WebGL,
                 options = BuildOptions.None
