@@ -55,7 +55,13 @@ npm install
 npm start
 ```
 
-The backend defaults to `http://localhost:3001`.
+The backend defaults to `http://localhost:3001` locally.
+
+Current Render prototype backend:
+
+```text
+https://appreciators-tcg-backend.onrender.com
+```
 
 On Windows, if PowerShell blocks `npm`, use `npm.cmd` instead:
 
@@ -135,7 +141,7 @@ The default API URL lives in:
 unity-client/Assets/Resources/app-config.json
 ```
 
-You can also change it in the prototype at `Wallet / Web3 -> Backend API Base URL`. The saved value uses Unity `PlayerPrefs`, so local gameplay still works if the backend is offline.
+The committed WebGL default points at the current Render prototype backend. You can also change it in the prototype at `Wallet / Web3 -> Backend API Base URL`. The saved value uses Unity `PlayerPrefs`, so local gameplay still works if the backend is offline.
 
 ## Add Final Art
 

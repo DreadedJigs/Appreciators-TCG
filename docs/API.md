@@ -6,6 +6,12 @@ Base URL locally:
 http://localhost:3001
 ```
 
+Live prototype backend:
+
+```text
+https://appreciators-tcg-backend.onrender.com
+```
+
 ## GET /health
 
 Returns service health and phase metadata.
