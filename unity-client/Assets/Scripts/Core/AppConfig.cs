@@ -6,6 +6,7 @@ namespace AppreciatorsTcg.Core
     public static class AppConfig
     {
         public const string DefaultApiBaseUrl = "http://localhost:3001";
+        private const int LocalBackendPort = 3001;
         private static string configuredDefault;
 
         public static string ApiBaseUrl
@@ -13,7 +14,7 @@ namespace AppreciatorsTcg.Core
             get
             {
                 string saved = LocalSaveSystem.LoadApiBaseUrl();
-                return string.IsNullOrWhiteSpace(saved) ? ConfiguredDefaultApiBaseUrl : saved;
+                return string.IsNullOrWhiteSpace(saved) ? ConfiguredDefaultApiBaseUrl : ResolveWebGlLanDefault(saved);
             }
         }
 
@@ -37,7 +38,54 @@ namespace AppreciatorsTcg.Core
                     configuredDefault = DefaultApiBaseUrl;
                 }
 
+                configuredDefault = ResolveWebGlLanDefault(configuredDefault);
                 return configuredDefault;
+            }
+        }
+
+        private static string ResolveWebGlLanDefault(string configuredUrl)
+        {
+            if (Application.platform != RuntimePlatform.WebGLPlayer)
+            {
+                return configuredUrl;
+            }
+
+            if (!IsLocalhostUrl(configuredUrl) || string.IsNullOrWhiteSpace(Application.absoluteURL))
+            {
+                return configuredUrl;
+            }
+
+            try
+            {
+                Uri pageUri = new Uri(Application.absoluteURL);
+                if (string.IsNullOrWhiteSpace(pageUri.Host))
+                {
+                    return configuredUrl;
+                }
+
+                return $"{pageUri.Scheme}://{pageUri.Host}:{LocalBackendPort}";
+            }
+            catch
+            {
+                return configuredUrl;
+            }
+        }
+
+        private static bool IsLocalhostUrl(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return true;
+            }
+
+            try
+            {
+                Uri uri = new Uri(url);
+                return uri.Host == "localhost" || uri.Host == "127.0.0.1" || uri.Host == "::1";
+            }
+            catch
+            {
+                return false;
             }
         }
     }

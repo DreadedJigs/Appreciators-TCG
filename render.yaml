@@ -1,7 +1,7 @@
 services:
   - type: web
     name: appreciators-tcg-backend
-    env: node
+    runtime: node
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
@@ -11,3 +11,9 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: INVITE_ROOM_PERSISTENCE
+        value: "true"
+      - key: INVITE_ROOM_STORE_PATH
+        value: /tmp/appreciators-invite-rooms.json
+      - key: INVITE_ROOM_TTL_MINUTES
+        value: "360"

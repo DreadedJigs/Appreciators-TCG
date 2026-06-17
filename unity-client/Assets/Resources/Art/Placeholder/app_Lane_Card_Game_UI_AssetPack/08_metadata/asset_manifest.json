@@ -1,0 +1,857 @@
+{
+  "pack_name": "Dreaded Lane Card Game UI Asset Pack",
+  "version": "prototype-v1",
+  "source_image": "00_full_mockup/ui_mockup_fullscreen.png",
+  "source_dimensions": [
+    1672,
+    941
+  ],
+  "notes": [
+    "Assets are sliced from the rendered UI mockup for rapid prototyping in Codex/Unity/Godot.",
+    "The alpha-masked card versions are approximate rounded crops, not original vector layer exports.",
+    "For final production, regenerate/redraw each asset as clean vector/PSD layer files after gameplay UI layout is locked."
+  ],
+  "assets": [
+    {
+      "name": "battlefield_midfield_wide",
+      "relative_path": "05_board/background_crops/battlefield_midfield_wide.png",
+      "source_bbox_xyxy": [
+        250,
+        185,
+        1430,
+        680
+      ],
+      "width": 1180,
+      "height": 495,
+      "category": "board",
+      "notes": "Central board crop from rendered mockup. Contains lane floor texture; some units are visible."
+    },
+    {
+      "name": "top_graffiti_backdrop",
+      "relative_path": "05_board/background_crops/top_graffiti_backdrop.png",
+      "source_bbox_xyxy": [
+        470,
+        0,
+        1425,
+        155
+      ],
+      "width": 955,
+      "height": 155,
+      "category": "board",
+      "notes": "Top alley/graffiti backdrop crop."
+    },
+    {
+      "name": "left_lane_floor_texture",
+      "relative_path": "05_board/background_crops/left_lane_floor_texture.png",
+      "source_bbox_xyxy": [
+        245,
+        200,
+        590,
+        670
+      ],
+      "width": 345,
+      "height": 470,
+      "category": "board",
+      "notes": "Left lane floor crop from mockup."
+    },
+    {
+      "name": "middle_lane_floor_texture",
+      "relative_path": "05_board/background_crops/middle_lane_floor_texture.png",
+      "source_bbox_xyxy": [
+        590,
+        200,
+        1000,
+        670
+      ],
+      "width": 410,
+      "height": 470,
+      "category": "board",
+      "notes": "Middle lane floor crop from mockup."
+    },
+    {
+      "name": "right_lane_floor_texture",
+      "relative_path": "05_board/background_crops/right_lane_floor_texture.png",
+      "source_bbox_xyxy": [
+        1000,
+        200,
+        1435,
+        670
+      ],
+      "width": 435,
+      "height": 470,
+      "category": "board",
+      "notes": "Right lane floor crop from mockup."
+    },
+    {
+      "name": "field_opponent_monke_business_card",
+      "relative_path": "01_cards/full_cards_rect/field_opponent_monke_business_card.png",
+      "source_bbox_xyxy": [
+        530,
+        142,
+        724,
+        364
+      ],
+      "width": 194,
+      "height": 222,
+      "category": "card_full",
+      "notes": "Opponent field unit: blue monkey NFT card."
+    },
+    {
+      "name": "field_opponent_monke_business_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/field_opponent_monke_business_alpha.png",
+      "source_bbox_xyxy": [
+        530,
+        142,
+        724,
+        364
+      ],
+      "width": 194,
+      "height": 222,
+      "category": "card_full_alpha",
+      "notes": "Opponent field unit: blue monkey NFT card. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "field_opponent_winged_kid_card",
+      "relative_path": "01_cards/full_cards_rect/field_opponent_winged_kid_card.png",
+      "source_bbox_xyxy": [
+        770,
+        142,
+        965,
+        364
+      ],
+      "width": 195,
+      "height": 222,
+      "category": "card_full",
+      "notes": "Opponent field unit: flower cap winged kid card."
+    },
+    {
+      "name": "field_opponent_winged_kid_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/field_opponent_winged_kid_alpha.png",
+      "source_bbox_xyxy": [
+        770,
+        142,
+        965,
+        364
+      ],
+      "width": 195,
+      "height": 222,
+      "category": "card_full_alpha",
+      "notes": "Opponent field unit: flower cap winged kid card. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "field_opponent_toxic_rex_card",
+      "relative_path": "01_cards/full_cards_rect/field_opponent_toxic_rex_card.png",
+      "source_bbox_xyxy": [
+        1013,
+        142,
+        1208,
+        365
+      ],
+      "width": 195,
+      "height": 223,
+      "category": "card_full",
+      "notes": "Opponent field unit: purple rex hoodie card."
+    },
+    {
+      "name": "field_opponent_toxic_rex_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/field_opponent_toxic_rex_alpha.png",
+      "source_bbox_xyxy": [
+        1013,
+        142,
+        1208,
+        365
+      ],
+      "width": 195,
+      "height": 223,
+      "category": "card_full_alpha",
+      "notes": "Opponent field unit: purple rex hoodie card. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "field_player_dragon_kid_card",
+      "relative_path": "01_cards/full_cards_rect/field_player_dragon_kid_card.png",
+      "source_bbox_xyxy": [
+        482,
+        432,
+        652,
+        664
+      ],
+      "width": 170,
+      "height": 232,
+      "category": "card_full",
+      "notes": "Player field unit: dragon hood/biohazard card."
+    },
+    {
+      "name": "field_player_dragon_kid_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/field_player_dragon_kid_alpha.png",
+      "source_bbox_xyxy": [
+        482,
+        432,
+        652,
+        664
+      ],
+      "width": 170,
+      "height": 232,
+      "category": "card_full_alpha",
+      "notes": "Player field unit: dragon hood/biohazard card. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "field_player_radiation_kid_card",
+      "relative_path": "01_cards/full_cards_rect/field_player_radiation_kid_card.png",
+      "source_bbox_xyxy": [
+        755,
+        432,
+        930,
+        664
+      ],
+      "width": 175,
+      "height": 232,
+      "category": "card_full",
+      "notes": "Player field unit: radiation shirt card."
+    },
+    {
+      "name": "field_player_radiation_kid_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/field_player_radiation_kid_alpha.png",
+      "source_bbox_xyxy": [
+        755,
+        432,
+        930,
+        664
+      ],
+      "width": 175,
+      "height": 232,
+      "category": "card_full_alpha",
+      "notes": "Player field unit: radiation shirt card. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "field_player_three_strikes_card",
+      "relative_path": "01_cards/full_cards_rect/field_player_three_strikes_card.png",
+      "source_bbox_xyxy": [
+        1010,
+        432,
+        1188,
+        664
+      ],
+      "width": 178,
+      "height": 232,
+      "category": "card_full",
+      "notes": "Player field unit: baseball/three strikes card."
+    },
+    {
+      "name": "field_player_three_strikes_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/field_player_three_strikes_alpha.png",
+      "source_bbox_xyxy": [
+        1010,
+        432,
+        1188,
+        664
+      ],
+      "width": 178,
+      "height": 232,
+      "category": "card_full_alpha",
+      "notes": "Player field unit: baseball/three strikes card. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "hand_winged_kid_card",
+      "relative_path": "01_cards/full_cards_rect/hand_winged_kid_card.png",
+      "source_bbox_xyxy": [
+        468,
+        674,
+        640,
+        936
+      ],
+      "width": 172,
+      "height": 262,
+      "category": "card_full",
+      "notes": "Playable hand card: Winged Kid."
+    },
+    {
+      "name": "hand_winged_kid_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/hand_winged_kid_alpha.png",
+      "source_bbox_xyxy": [
+        468,
+        674,
+        640,
+        936
+      ],
+      "width": 172,
+      "height": 262,
+      "category": "card_full_alpha",
+      "notes": "Playable hand card: Winged Kid. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "hand_monke_business_card",
+      "relative_path": "01_cards/full_cards_rect/hand_monke_business_card.png",
+      "source_bbox_xyxy": [
+        640,
+        672,
+        812,
+        936
+      ],
+      "width": 172,
+      "height": 264,
+      "category": "card_full",
+      "notes": "Playable hand card: Monke Business."
+    },
+    {
+      "name": "hand_monke_business_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/hand_monke_business_alpha.png",
+      "source_bbox_xyxy": [
+        640,
+        672,
+        812,
+        936
+      ],
+      "width": 172,
+      "height": 264,
+      "category": "card_full_alpha",
+      "notes": "Playable hand card: Monke Business. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "hand_mutant_punk_card",
+      "relative_path": "01_cards/full_cards_rect/hand_mutant_punk_card.png",
+      "source_bbox_xyxy": [
+        810,
+        672,
+        984,
+        938
+      ],
+      "width": 174,
+      "height": 266,
+      "category": "card_full",
+      "notes": "Playable hand card: Mutant Punk."
+    },
+    {
+      "name": "hand_mutant_punk_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/hand_mutant_punk_alpha.png",
+      "source_bbox_xyxy": [
+        810,
+        672,
+        984,
+        938
+      ],
+      "width": 174,
+      "height": 266,
+      "category": "card_full_alpha",
+      "notes": "Playable hand card: Mutant Punk. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "hand_cyber_beak_card",
+      "relative_path": "01_cards/full_cards_rect/hand_cyber_beak_card.png",
+      "source_bbox_xyxy": [
+        982,
+        672,
+        1154,
+        938
+      ],
+      "width": 172,
+      "height": 266,
+      "category": "card_full",
+      "notes": "Playable hand card: Cyber Beak."
+    },
+    {
+      "name": "hand_cyber_beak_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/hand_cyber_beak_alpha.png",
+      "source_bbox_xyxy": [
+        982,
+        672,
+        1154,
+        938
+      ],
+      "width": 172,
+      "height": 266,
+      "category": "card_full_alpha",
+      "notes": "Playable hand card: Cyber Beak. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "hand_toxic_rex_card",
+      "relative_path": "01_cards/full_cards_rect/hand_toxic_rex_card.png",
+      "source_bbox_xyxy": [
+        1154,
+        672,
+        1330,
+        938
+      ],
+      "width": 176,
+      "height": 266,
+      "category": "card_full",
+      "notes": "Playable hand card: Toxic Rex."
+    },
+    {
+      "name": "hand_toxic_rex_alpha",
+      "relative_path": "01_cards/full_cards_alpha_approx/hand_toxic_rex_alpha.png",
+      "source_bbox_xyxy": [
+        1154,
+        672,
+        1330,
+        938
+      ],
+      "width": 176,
+      "height": 266,
+      "category": "card_full_alpha",
+      "notes": "Playable hand card: Toxic Rex. Approximate rounded alpha mask applied."
+    },
+    {
+      "name": "portrait_opponent_monke_business",
+      "relative_path": "02_card_art/portraits/portrait_opponent_monke_business.png",
+      "source_bbox_xyxy": [
+        552,
+        160,
+        706,
+        314
+      ],
+      "width": 154,
+      "height": 154,
+      "category": "card_art",
+      "notes": "Inner character portrait from opponent monkey card."
+    },
+    {
+      "name": "portrait_opponent_winged_kid",
+      "relative_path": "02_card_art/portraits/portrait_opponent_winged_kid.png",
+      "source_bbox_xyxy": [
+        794,
+        160,
+        944,
+        314
+      ],
+      "width": 150,
+      "height": 154,
+      "category": "card_art",
+      "notes": "Inner character portrait from opponent winged kid card."
+    },
+    {
+      "name": "portrait_opponent_toxic_rex",
+      "relative_path": "02_card_art/portraits/portrait_opponent_toxic_rex.png",
+      "source_bbox_xyxy": [
+        1035,
+        160,
+        1190,
+        314
+      ],
+      "width": 155,
+      "height": 154,
+      "category": "card_art",
+      "notes": "Inner character portrait from opponent Toxic Rex card."
+    },
+    {
+      "name": "portrait_player_dragon_kid",
+      "relative_path": "02_card_art/portraits/portrait_player_dragon_kid.png",
+      "source_bbox_xyxy": [
+        502,
+        454,
+        636,
+        590
+      ],
+      "width": 134,
+      "height": 136,
+      "category": "card_art",
+      "notes": "Inner character portrait from player dragon kid card."
+    },
+    {
+      "name": "portrait_player_radiation_kid",
+      "relative_path": "02_card_art/portraits/portrait_player_radiation_kid.png",
+      "source_bbox_xyxy": [
+        779,
+        453,
+        913,
+        590
+      ],
+      "width": 134,
+      "height": 137,
+      "category": "card_art",
+      "notes": "Inner character portrait from player radiation kid card."
+    },
+    {
+      "name": "portrait_player_three_strikes",
+      "relative_path": "02_card_art/portraits/portrait_player_three_strikes.png",
+      "source_bbox_xyxy": [
+        1033,
+        453,
+        1169,
+        590
+      ],
+      "width": 136,
+      "height": 137,
+      "category": "card_art",
+      "notes": "Inner character portrait from player baseball card."
+    },
+    {
+      "name": "portrait_hand_winged_kid",
+      "relative_path": "02_card_art/portraits/portrait_hand_winged_kid.png",
+      "source_bbox_xyxy": [
+        494,
+        704,
+        628,
+        846
+      ],
+      "width": 134,
+      "height": 142,
+      "category": "card_art",
+      "notes": "Inner art from Winged Kid hand card."
+    },
+    {
+      "name": "portrait_hand_monke_business",
+      "relative_path": "02_card_art/portraits/portrait_hand_monke_business.png",
+      "source_bbox_xyxy": [
+        668,
+        704,
+        798,
+        846
+      ],
+      "width": 130,
+      "height": 142,
+      "category": "card_art",
+      "notes": "Inner art from Monke Business hand card."
+    },
+    {
+      "name": "portrait_hand_mutant_punk",
+      "relative_path": "02_card_art/portraits/portrait_hand_mutant_punk.png",
+      "source_bbox_xyxy": [
+        838,
+        704,
+        960,
+        846
+      ],
+      "width": 122,
+      "height": 142,
+      "category": "card_art",
+      "notes": "Inner art from Mutant Punk hand card."
+    },
+    {
+      "name": "portrait_hand_cyber_beak",
+      "relative_path": "02_card_art/portraits/portrait_hand_cyber_beak.png",
+      "source_bbox_xyxy": [
+        1007,
+        704,
+        1136,
+        846
+      ],
+      "width": 129,
+      "height": 142,
+      "category": "card_art",
+      "notes": "Inner art from Cyber Beak hand card."
+    },
+    {
+      "name": "portrait_hand_toxic_rex",
+      "relative_path": "02_card_art/portraits/portrait_hand_toxic_rex.png",
+      "source_bbox_xyxy": [
+        1176,
+        704,
+        1306,
+        846
+      ],
+      "width": 130,
+      "height": 142,
+      "category": "card_art",
+      "notes": "Inner art from Toxic Rex hand card."
+    },
+    {
+      "name": "opponent_hero_panel_full",
+      "relative_path": "03_hud/opponent/opponent_hero_panel_full.png",
+      "source_bbox_xyxy": [
+        18,
+        20,
+        468,
+        204
+      ],
+      "width": 450,
+      "height": 184,
+      "category": "hud",
+      "notes": "Opponent hero avatar, name, health, and resources grouped."
+    },
+    {
+      "name": "opponent_hero_avatar",
+      "relative_path": "03_hud/opponent/opponent_hero_avatar.png",
+      "source_bbox_xyxy": [
+        32,
+        30,
+        220,
+        204
+      ],
+      "width": 188,
+      "height": 174,
+      "category": "hud",
+      "notes": "Opponent profile portrait panel."
+    },
+    {
+      "name": "opponent_nameplate_chainrider",
+      "relative_path": "03_hud/opponent/opponent_nameplate_chainrider.png",
+      "source_bbox_xyxy": [
+        225,
+        38,
+        466,
+        92
+      ],
+      "width": 241,
+      "height": 54,
+      "category": "hud",
+      "notes": "Opponent nameplate."
+    },
+    {
+      "name": "opponent_health_30",
+      "relative_path": "03_hud/opponent/opponent_health_30.png",
+      "source_bbox_xyxy": [
+        226,
+        91,
+        370,
+        158
+      ],
+      "width": 144,
+      "height": 67,
+      "category": "hud",
+      "notes": "Opponent health counter."
+    },
+    {
+      "name": "opponent_resource_bar_2_of_6",
+      "relative_path": "03_hud/opponent/opponent_resource_bar_2_of_6.png",
+      "source_bbox_xyxy": [
+        228,
+        158,
+        436,
+        202
+      ],
+      "width": 208,
+      "height": 44,
+      "category": "hud",
+      "notes": "Opponent resource pips."
+    },
+    {
+      "name": "player_hero_panel_full",
+      "relative_path": "03_hud/player/player_hero_panel_full.png",
+      "source_bbox_xyxy": [
+        18,
+        600,
+        468,
+        792
+      ],
+      "width": 450,
+      "height": 192,
+      "category": "hud",
+      "notes": "Player hero avatar, name, health, and resources grouped."
+    },
+    {
+      "name": "player_hero_avatar",
+      "relative_path": "03_hud/player/player_hero_avatar.png",
+      "source_bbox_xyxy": [
+        33,
+        613,
+        220,
+        790
+      ],
+      "width": 187,
+      "height": 177,
+      "category": "hud",
+      "notes": "Player profile portrait panel."
+    },
+    {
+      "name": "player_nameplate_pixelape",
+      "relative_path": "03_hud/player/player_nameplate_pixelape.png",
+      "source_bbox_xyxy": [
+        225,
+        625,
+        468,
+        681
+      ],
+      "width": 243,
+      "height": 56,
+      "category": "hud",
+      "notes": "Player nameplate."
+    },
+    {
+      "name": "player_health_30",
+      "relative_path": "03_hud/player/player_health_30.png",
+      "source_bbox_xyxy": [
+        226,
+        674,
+        372,
+        742
+      ],
+      "width": 146,
+      "height": 68,
+      "category": "hud",
+      "notes": "Player health counter."
+    },
+    {
+      "name": "player_resource_bar_6_of_6",
+      "relative_path": "03_hud/player/player_resource_bar_6_of_6.png",
+      "source_bbox_xyxy": [
+        228,
+        748,
+        432,
+        792
+      ],
+      "width": 204,
+      "height": 44,
+      "category": "hud",
+      "notes": "Player resource pips."
+    },
+    {
+      "name": "button_end_turn",
+      "relative_path": "04_ui/buttons/button_end_turn.png",
+      "source_bbox_xyxy": [
+        1384,
+        756,
+        1642,
+        844
+      ],
+      "width": 258,
+      "height": 88,
+      "category": "button",
+      "notes": "End Turn button with lightning icon."
+    },
+    {
+      "name": "round_counter_4_12",
+      "relative_path": "04_ui/resource_panels/round_counter_4_12.png",
+      "source_bbox_xyxy": [
+        1448,
+        22,
+        1545,
+        94
+      ],
+      "width": 97,
+      "height": 72,
+      "category": "hud",
+      "notes": "Round counter."
+    },
+    {
+      "name": "settings_gear_button",
+      "relative_path": "04_ui/buttons/settings_gear_button.png",
+      "source_bbox_xyxy": [
+        1564,
+        24,
+        1644,
+        94
+      ],
+      "width": 80,
+      "height": 70,
+      "category": "button",
+      "notes": "Settings gear button."
+    },
+    {
+      "name": "right_token_stack",
+      "relative_path": "04_ui/resource_panels/right_token_stack.png",
+      "source_bbox_xyxy": [
+        1490,
+        112,
+        1642,
+        202
+      ],
+      "width": 152,
+      "height": 90,
+      "category": "hud",
+      "notes": "Right side token/currency stack."
+    },
+    {
+      "name": "left_token_panel_A",
+      "relative_path": "04_ui/resource_panels/left_token_panel_A.png",
+      "source_bbox_xyxy": [
+        18,
+        334,
+        166,
+        580
+      ],
+      "width": 148,
+      "height": 246,
+      "category": "hud",
+      "notes": "Left vertical token/objective panel."
+    },
+    {
+      "name": "right_deck_panel_skull",
+      "relative_path": "04_ui/card_backs_and_decks/right_deck_panel_skull.png",
+      "source_bbox_xyxy": [
+        1490,
+        335,
+        1642,
+        582
+      ],
+      "width": 152,
+      "height": 247,
+      "category": "deck",
+      "notes": "Right deck/discard panel with skull card back."
+    },
+    {
+      "name": "next_card_panel",
+      "relative_path": "04_ui/card_backs_and_decks/next_card_panel.png",
+      "source_bbox_xyxy": [
+        36,
+        232,
+        106,
+        326
+      ],
+      "width": 70,
+      "height": 94,
+      "category": "deck",
+      "notes": "Next card marker with spiral card back."
+    },
+    {
+      "name": "end_turn_progress_dots",
+      "relative_path": "04_ui/resource_panels/end_turn_progress_dots.png",
+      "source_bbox_xyxy": [
+        1445,
+        870,
+        1600,
+        901
+      ],
+      "width": 155,
+      "height": 31,
+      "category": "hud",
+      "notes": "Bottom-right progress indicator dots."
+    },
+    {
+      "name": "opponent_hand_card_back_01",
+      "relative_path": "04_ui/card_backs_and_decks/opponent_hand_card_back_01.png",
+      "source_bbox_xyxy": [
+        626,
+        0,
+        746,
+        112
+      ],
+      "width": 120,
+      "height": 112,
+      "category": "deck",
+      "notes": "Opponent facedown card back 1."
+    },
+    {
+      "name": "opponent_hand_card_back_02",
+      "relative_path": "04_ui/card_backs_and_decks/opponent_hand_card_back_02.png",
+      "source_bbox_xyxy": [
+        754,
+        0,
+        874,
+        112
+      ],
+      "width": 120,
+      "height": 112,
+      "category": "deck",
+      "notes": "Opponent facedown card back 2."
+    },
+    {
+      "name": "opponent_hand_card_back_03",
+      "relative_path": "04_ui/card_backs_and_decks/opponent_hand_card_back_03.png",
+      "source_bbox_xyxy": [
+        884,
+        0,
+        1004,
+        112
+      ],
+      "width": 120,
+      "height": 112,
+      "category": "deck",
+      "notes": "Opponent facedown card back 3."
+    },
+    {
+      "name": "opponent_hand_card_back_04",
+      "relative_path": "04_ui/card_backs_and_decks/opponent_hand_card_back_04.png",
+      "source_bbox_xyxy": [
+        1013,
+        0,
+        1134,
+        112
+      ],
+      "width": 121,
+      "height": 112,
+      "category": "deck",
+      "notes": "Opponent facedown card back 4."
+    }
+  ],
+  "style_reference_count": 9
+}

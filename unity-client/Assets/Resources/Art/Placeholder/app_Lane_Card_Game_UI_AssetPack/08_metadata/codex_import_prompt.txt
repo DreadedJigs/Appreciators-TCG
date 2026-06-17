@@ -1,0 +1,30 @@
+You are helping build a lane-style collectible card game using the Dreaded/Weird NFT-inspired visual identity.
+
+Use the included asset pack as the UI prototype art source. Import assets from this folder structure:
+- 00_full_mockup/ui_mockup_fullscreen.png: visual target/reference screenshot
+- 01_cards/full_cards_rect: rectangular cropped card assets
+- 01_cards/full_cards_alpha_approx: alpha-masked approximate card sprites for quick prototyping
+- 02_card_art/portraits: inner character/card art crops
+- 03_hud: player/opponent hero HUD panels, nameplates, health, resource bars
+- 04_ui: End Turn button, settings, resource panels, card backs, deck panels
+- 05_board/background_crops: board/background slices
+- 07_style_references: original style references for character/color consistency
+- 08_metadata/asset_manifest.json: coordinates, dimensions, and relative paths for each asset
+- 08_metadata/palette.json: brand color palette
+
+Implementation target:
+Create a responsive landscape game board with 3 lanes. The layout should match the full mockup:
+- opponent HUD top-left, player HUD bottom-left
+- opponent hand/card backs top-center
+- three central lanes with unit card slots
+- player hand along bottom center
+- right-side turn/resource stack and End Turn button bottom-right
+
+Game data/UI requirements:
+- Cards need cost, attack, health, rarity/trait icons, title, and card art.
+- Use ScriptableObjects or JSON data for card definitions.
+- Use prefabs/components for CardView, HeroHudView, LaneView, ResourceCounterView, and TurnButton.
+- Keep UI scaling clean for 16:9 desktop and WebGL builds.
+- Use dark navy outlines, saturated electric colors, and gold/purple collectible frames.
+
+Use the manifest coordinates only as source reference; do not hardcode layout to source pixel coordinates unless creating an initial prototype. Build a scalable UI hierarchy.

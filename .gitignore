@@ -46,6 +46,7 @@ Desktop.ini
 # Generated handoff archives
 appreciators-tcg-github-ready.zip
 appreciators-tcg-github-ready/
+.codex-tmp/
 
 # Editor folders
 .idea/

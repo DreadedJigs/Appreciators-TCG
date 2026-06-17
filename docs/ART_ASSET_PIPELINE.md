@@ -39,6 +39,8 @@ Do not include the `.png` extension in `artPath`; Unity `Resources.Load` expects
 - File names: lowercase `snake_case`, matching `docs/ART_ASSET_MANIFEST.csv`
 - One image per card
 
+Important: a few current reference files use AVIF data with a `.png` extension. Unity will not import those as PNG card art. Before final drop-in, export or convert every final image to a real PNG file.
+
 The runtime UI preserves aspect ratio and falls back to placeholder art if a card image is missing.
 
 ## Placeholder Art

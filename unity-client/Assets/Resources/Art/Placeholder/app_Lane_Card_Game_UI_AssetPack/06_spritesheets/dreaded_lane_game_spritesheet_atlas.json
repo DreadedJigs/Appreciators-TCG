@@ -1,0 +1,535 @@
+{
+  "image": "dreaded_lane_game_spritesheet.png",
+  "width": 4096,
+  "height": 512,
+  "sprites": [
+    {
+      "name": "hand_mutant_punk_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/hand_mutant_punk_alpha.png",
+      "x": 4,
+      "y": 4,
+      "width": 174,
+      "height": 266,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "hand_cyber_beak_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/hand_cyber_beak_alpha.png",
+      "x": 182,
+      "y": 4,
+      "width": 172,
+      "height": 266,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "hand_toxic_rex_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/hand_toxic_rex_alpha.png",
+      "x": 358,
+      "y": 4,
+      "width": 176,
+      "height": 266,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "hand_monke_business_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/hand_monke_business_alpha.png",
+      "x": 538,
+      "y": 4,
+      "width": 172,
+      "height": 264,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "hand_winged_kid_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/hand_winged_kid_alpha.png",
+      "x": 714,
+      "y": 4,
+      "width": 172,
+      "height": 262,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "right_deck_panel_skull",
+      "relative_source_path": "04_ui/card_backs_and_decks/right_deck_panel_skull.png",
+      "x": 890,
+      "y": 4,
+      "width": 152,
+      "height": 247,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "left_token_panel_A",
+      "relative_source_path": "04_ui/resource_panels/left_token_panel_A.png",
+      "x": 1046,
+      "y": 4,
+      "width": 148,
+      "height": 246,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "field_player_dragon_kid_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/field_player_dragon_kid_alpha.png",
+      "x": 1198,
+      "y": 4,
+      "width": 170,
+      "height": 232,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "field_player_radiation_kid_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/field_player_radiation_kid_alpha.png",
+      "x": 1372,
+      "y": 4,
+      "width": 175,
+      "height": 232,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "field_player_three_strikes_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/field_player_three_strikes_alpha.png",
+      "x": 1551,
+      "y": 4,
+      "width": 178,
+      "height": 232,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "field_opponent_toxic_rex_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/field_opponent_toxic_rex_alpha.png",
+      "x": 1733,
+      "y": 4,
+      "width": 195,
+      "height": 223,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "field_opponent_monke_business_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/field_opponent_monke_business_alpha.png",
+      "x": 1932,
+      "y": 4,
+      "width": 194,
+      "height": 222,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "field_opponent_winged_kid_alpha",
+      "relative_source_path": "01_cards/full_cards_alpha_approx/field_opponent_winged_kid_alpha.png",
+      "x": 2130,
+      "y": 4,
+      "width": 195,
+      "height": 222,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "player_hero_panel_full",
+      "relative_source_path": "03_hud/player/player_hero_panel_full.png",
+      "x": 2329,
+      "y": 4,
+      "width": 450,
+      "height": 192,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "opponent_hero_panel_full",
+      "relative_source_path": "03_hud/opponent/opponent_hero_panel_full.png",
+      "x": 2783,
+      "y": 4,
+      "width": 450,
+      "height": 184,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "player_hero_avatar",
+      "relative_source_path": "03_hud/player/player_hero_avatar.png",
+      "x": 3237,
+      "y": 4,
+      "width": 187,
+      "height": 177,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "opponent_hero_avatar",
+      "relative_source_path": "03_hud/opponent/opponent_hero_avatar.png",
+      "x": 3428,
+      "y": 4,
+      "width": 188,
+      "height": 174,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_opponent_monke_business",
+      "relative_source_path": "02_card_art/portraits/portrait_opponent_monke_business.png",
+      "x": 3620,
+      "y": 4,
+      "width": 154,
+      "height": 154,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_opponent_winged_kid",
+      "relative_source_path": "02_card_art/portraits/portrait_opponent_winged_kid.png",
+      "x": 3778,
+      "y": 4,
+      "width": 150,
+      "height": 154,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_opponent_toxic_rex",
+      "relative_source_path": "02_card_art/portraits/portrait_opponent_toxic_rex.png",
+      "x": 3932,
+      "y": 4,
+      "width": 155,
+      "height": 154,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_hand_winged_kid",
+      "relative_source_path": "02_card_art/portraits/portrait_hand_winged_kid.png",
+      "x": 4,
+      "y": 274,
+      "width": 134,
+      "height": 142,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_hand_monke_business",
+      "relative_source_path": "02_card_art/portraits/portrait_hand_monke_business.png",
+      "x": 142,
+      "y": 274,
+      "width": 130,
+      "height": 142,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_hand_mutant_punk",
+      "relative_source_path": "02_card_art/portraits/portrait_hand_mutant_punk.png",
+      "x": 276,
+      "y": 274,
+      "width": 122,
+      "height": 142,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_hand_cyber_beak",
+      "relative_source_path": "02_card_art/portraits/portrait_hand_cyber_beak.png",
+      "x": 402,
+      "y": 274,
+      "width": 129,
+      "height": 142,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_hand_toxic_rex",
+      "relative_source_path": "02_card_art/portraits/portrait_hand_toxic_rex.png",
+      "x": 535,
+      "y": 274,
+      "width": 130,
+      "height": 142,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_player_radiation_kid",
+      "relative_source_path": "02_card_art/portraits/portrait_player_radiation_kid.png",
+      "x": 669,
+      "y": 274,
+      "width": 134,
+      "height": 137,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_player_three_strikes",
+      "relative_source_path": "02_card_art/portraits/portrait_player_three_strikes.png",
+      "x": 807,
+      "y": 274,
+      "width": 136,
+      "height": 137,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "portrait_player_dragon_kid",
+      "relative_source_path": "02_card_art/portraits/portrait_player_dragon_kid.png",
+      "x": 947,
+      "y": 274,
+      "width": 134,
+      "height": 136,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "opponent_hand_card_back_01",
+      "relative_source_path": "04_ui/card_backs_and_decks/opponent_hand_card_back_01.png",
+      "x": 1085,
+      "y": 274,
+      "width": 120,
+      "height": 112,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "opponent_hand_card_back_02",
+      "relative_source_path": "04_ui/card_backs_and_decks/opponent_hand_card_back_02.png",
+      "x": 1209,
+      "y": 274,
+      "width": 120,
+      "height": 112,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "opponent_hand_card_back_03",
+      "relative_source_path": "04_ui/card_backs_and_decks/opponent_hand_card_back_03.png",
+      "x": 1333,
+      "y": 274,
+      "width": 120,
+      "height": 112,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "opponent_hand_card_back_04",
+      "relative_source_path": "04_ui/card_backs_and_decks/opponent_hand_card_back_04.png",
+      "x": 1457,
+      "y": 274,
+      "width": 121,
+      "height": 112,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "next_card_panel",
+      "relative_source_path": "04_ui/card_backs_and_decks/next_card_panel.png",
+      "x": 1582,
+      "y": 274,
+      "width": 70,
+      "height": 94,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "right_token_stack",
+      "relative_source_path": "04_ui/resource_panels/right_token_stack.png",
+      "x": 1656,
+      "y": 274,
+      "width": 152,
+      "height": 90,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "button_end_turn",
+      "relative_source_path": "04_ui/buttons/button_end_turn.png",
+      "x": 1812,
+      "y": 274,
+      "width": 258,
+      "height": 88,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "round_counter_4_12",
+      "relative_source_path": "04_ui/resource_panels/round_counter_4_12.png",
+      "x": 2074,
+      "y": 274,
+      "width": 97,
+      "height": 72,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "settings_gear_button",
+      "relative_source_path": "04_ui/buttons/settings_gear_button.png",
+      "x": 2175,
+      "y": 274,
+      "width": 80,
+      "height": 70,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "player_health_30",
+      "relative_source_path": "03_hud/player/player_health_30.png",
+      "x": 2259,
+      "y": 274,
+      "width": 146,
+      "height": 68,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "opponent_health_30",
+      "relative_source_path": "03_hud/opponent/opponent_health_30.png",
+      "x": 2409,
+      "y": 274,
+      "width": 144,
+      "height": 67,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "player_nameplate_pixelape",
+      "relative_source_path": "03_hud/player/player_nameplate_pixelape.png",
+      "x": 2557,
+      "y": 274,
+      "width": 243,
+      "height": 56,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "opponent_nameplate_chainrider",
+      "relative_source_path": "03_hud/opponent/opponent_nameplate_chainrider.png",
+      "x": 2804,
+      "y": 274,
+      "width": 241,
+      "height": 54,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "opponent_resource_bar_2_of_6",
+      "relative_source_path": "03_hud/opponent/opponent_resource_bar_2_of_6.png",
+      "x": 3049,
+      "y": 274,
+      "width": 208,
+      "height": 44,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "player_resource_bar_6_of_6",
+      "relative_source_path": "03_hud/player/player_resource_bar_6_of_6.png",
+      "x": 3261,
+      "y": 274,
+      "width": 204,
+      "height": 44,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "name": "end_turn_progress_dots",
+      "relative_source_path": "04_ui/resource_panels/end_turn_progress_dots.png",
+      "x": 3469,
+      "y": 274,
+      "width": 155,
+      "height": 31,
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    }
+  ]
+}

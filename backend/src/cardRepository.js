@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
+import { readFile as readFileAsync } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,11 +11,29 @@ let cachedCards = null;
 
 export async function getPrototypeCards() {
   if (!cachedCards) {
-    const raw = await readFile(cardsPath, "utf8");
+    const raw = await readFileAsync(cardsPath, "utf8");
     cachedCards = JSON.parse(raw);
   }
 
   return cachedCards;
+}
+
+export function getPrototypeCardsSync() {
+  if (!cachedCards) {
+    const raw = readFileSync(cardsPath, "utf8");
+    cachedCards = JSON.parse(raw);
+  }
+
+  return cachedCards;
+}
+
+export function getPrototypeCardByIdSync(cardId) {
+  const id = String(cardId || "").trim();
+  if (!id) {
+    return null;
+  }
+
+  return getPrototypeCardsSync().cards.find((card) => card.id === id) || null;
 }
 
 export async function getAssetManifest() {

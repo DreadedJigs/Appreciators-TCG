@@ -25,6 +25,7 @@ namespace AppreciatorsTcg.EditorTools
                     "Assets/Scenes/MainMenuScene.unity",
                     "Assets/Scenes/CollectionScene.unity",
                     "Assets/Scenes/DeckBuilderScene.unity",
+                    "Assets/Scenes/InviteMatchScene.unity",
                     "Assets/Scenes/MatchScene.unity",
                     "Assets/Scenes/ResultsScene.unity",
                     "Assets/Scenes/Web3MockScene.unity"

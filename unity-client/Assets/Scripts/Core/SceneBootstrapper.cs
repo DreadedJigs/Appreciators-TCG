@@ -25,6 +25,9 @@ namespace AppreciatorsTcg.Core
                 case "DeckBuilderScene":
                     gameObject.AddComponent<DeckBuilderScreenController>();
                     break;
+                case "InviteMatchScene":
+                    gameObject.AddComponent<InviteMatchController>();
+                    break;
                 case "MatchScene":
                     gameObject.AddComponent<MatchScreenController>();
                     break;

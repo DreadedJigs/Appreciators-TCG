@@ -21,6 +21,9 @@ EditorBuildSettings:
     path: Assets/Scenes/DeckBuilderScene.unity
     guid: 44444444444444444444444444444444
   - enabled: 1
+    path: Assets/Scenes/InviteMatchScene.unity
+    guid: 99999999999999999999999999999999
+  - enabled: 1
     path: Assets/Scenes/MatchScene.unity
     guid: 55555555555555555555555555555555
   - enabled: 1

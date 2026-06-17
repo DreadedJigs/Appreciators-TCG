@@ -15,21 +15,22 @@ namespace AppreciatorsTcg.UI
 
             GameObject background = UIFactory.CreatePanel(Root, "Background", UIFactory.Background);
             UIFactory.Stretch(background.GetComponent<RectTransform>());
+            UIFactory.CreateBackdrop(Root);
         }
 
         protected GameObject CreateCenteredPanel(string title, int titleSize = 44)
         {
-            GameObject panel = UIFactory.CreateVerticalStack(Root, "Content", new Color(0.09f, 0.10f, 0.14f), 12, 24);
+            GameObject panel = UIFactory.CreateVerticalStack(Root, "Content", UIFactory.GlassPanel, 12, 24);
             UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.20f, 0.04f), new Vector2(0.80f, 0.96f), Vector2.zero, Vector2.zero);
-            UIFactory.CreateText(panel.transform, title, titleSize, TextAnchor.MiddleCenter, UIFactory.TextColor, FontStyle.Bold);
+            UIFactory.CreateText(panel.transform, title, titleSize, TextAnchor.MiddleCenter, UIFactory.NeonCyan, FontStyle.Bold);
             return panel;
         }
 
         protected GameObject CreateFullScreenStack(string title)
         {
-            GameObject panel = UIFactory.CreateVerticalStack(Root, "Content", new Color(0.07f, 0.08f, 0.12f), 12, 18);
+            GameObject panel = UIFactory.CreateVerticalStack(Root, "Content", new Color(0.018f, 0.022f, 0.050f, 0.88f), 10, 16);
             UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.02f, 0.03f), new Vector2(0.98f, 0.97f), Vector2.zero, Vector2.zero);
-            UIFactory.CreateText(panel.transform, title, 38, TextAnchor.MiddleLeft, UIFactory.TextColor, FontStyle.Bold);
+            UIFactory.CreateText(panel.transform, title, 36, TextAnchor.MiddleLeft, UIFactory.NeonCyan, FontStyle.Bold);
             return panel;
         }
 

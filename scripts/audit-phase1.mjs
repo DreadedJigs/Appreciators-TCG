@@ -10,6 +10,7 @@ const requiredFiles = [
   "backend/package.json",
   "backend/src/createApp.js",
   "backend/src/index.js",
+  "backend/src/inviteRoomStore.js",
   "backend/data/cards.json",
   "backend/test/cards.test.js",
   "backend/test/api.test.js",
@@ -26,6 +27,8 @@ const requiredFiles = [
   "unity-client/Assets/Scripts/Battle/BattleGame.cs",
   "unity-client/Assets/Scripts/AI/SimpleAiPlayer.cs",
   "unity-client/Assets/Scripts/UI/MatchScreenController.cs",
+  "unity-client/Assets/Scripts/UI/InviteMatchController.cs",
+  "unity-client/Assets/Scripts/Data/InviteApiModels.cs",
   "unity-client/Assets/Scripts/Cards/CardArtResolver.cs",
   "unity-client/Assets/Editor/AppreciatorsBuildWebGL.cs",
   "unity-client/Assets/Editor/AppreciatorsPhase1Audit.cs",
@@ -41,6 +44,7 @@ const requiredScenes = [
   "MainMenuScene",
   "CollectionScene",
   "DeckBuilderScene",
+  "InviteMatchScene",
   "MatchScene",
   "ResultsScene",
   "Web3MockScene"
@@ -70,7 +74,7 @@ assert.equal(counts.ITEM, 7, "Approved trait set needs 7 ITEMS");
 assert.equal(counts.EVENT || 0, 0, "Do not invent EVENT cards outside the approved list");
 
 const backendSource = readFileSync(path.join(root, "backend/src/createApp.js"), "utf8");
-for (const route of ["/health", "/api/profile", "/api/cards", "/api/matchmaking/casual", "/api/wallet/verify", "/api/nft/sync"]) {
+for (const route of ["/health", "/api/profile", "/api/cards", "/api/matchmaking/casual", "/api/matchmaking/invite", "/api/wallet/verify", "/api/nft/sync"]) {
   assert.ok(backendSource.includes(route), `Missing backend route ${route}`);
 }
 assert.ok(backendSource.includes("/api/assets/manifest"), "Missing backend route /api/assets/manifest");

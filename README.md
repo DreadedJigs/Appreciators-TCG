@@ -74,6 +74,18 @@ Useful routes:
 - `GET /api/assets/manifest`
 - `POST /api/profile`
 - `POST /api/matchmaking/casual`
+- `POST /api/matchmaking/invite`
+- `GET /api/matchmaking/invite/new`
+- `GET /api/matchmaking/invite/:inviteCode`
+- `POST /api/matchmaking/invite/:inviteCode/join`
+- `GET /api/matchmaking/invite/:inviteCode/join-link`
+- `POST /api/matchmaking/invite/:inviteCode/reconnect`
+- `GET /api/matchmaking/invite/:inviteCode/reconnect-link`
+- `POST /api/matchmaking/invite/:inviteCode/start`
+- `GET /api/matchmaking/invite/:inviteCode/start-link`
+- `GET /api/matchmaking/invite/:inviteCode/state`
+- `GET /api/matchmaking/invite/:inviteCode/actions`
+- `GET /api/matchmaking/invite/:inviteCode/action`
 - `POST /api/wallet/verify`
 - `POST /api/nft/sync`
 
@@ -85,7 +97,9 @@ Useful routes:
 4. Render will read the root `render.yaml`.
 5. Deploy the `appreciators-tcg-backend` web service.
 
-No database is required for Phase 1. Profiles are mock/in-memory and will reset when the service restarts.
+No database is required for Phase 1. Profiles are mock/in-memory. Invite rooms are still lightweight, but `render.yaml` enables a small JSON runtime store at `/tmp/appreciators-invite-rooms.json` for best-effort invite recovery during prototype testing.
+
+For durable production multiplayer on Render, add a managed data store later. A paid Render persistent disk can also be attached and used by changing `INVITE_ROOM_STORE_PATH` to a file under the disk mount.
 
 ## Run Tests
 
@@ -121,7 +135,7 @@ The default API URL lives in:
 unity-client/Assets/Resources/app-config.json
 ```
 
-You can also change it in the prototype at `Wallet / Web3 Coming Soon -> Backend API Base URL`. The saved value uses Unity `PlayerPrefs`, so local gameplay still works if the backend is offline.
+You can also change it in the prototype at `Wallet / Web3 -> Backend API Base URL`. The saved value uses Unity `PlayerPrefs`, so local gameplay still works if the backend is offline.
 
 ## Add Final Art
 
@@ -144,6 +158,7 @@ Use the exact file names in `docs/ART_ASSET_MANIFEST.csv`, such as `ghost_compan
    - `MainMenuScene`
    - `CollectionScene`
    - `DeckBuilderScene`
+   - `InviteMatchScene`
    - `MatchScene`
    - `ResultsScene`
    - `Web3MockScene`
@@ -166,6 +181,7 @@ The match UI is designed for landscape play with large buttons and readable card
 - Higher power wins a lane
 - Best of 3 lanes decides victory, defeat, or draw
 - Offline AI opponent prioritizes playable cards and has a small preference for lanes it is losing
+- Invite 1v1 creates and joins private rooms through the backend. Phase 1.5 uses polling room state with synced card actions, QR/mobile-friendly join links, reconnect support, lane placement, and both-player end-turn advancement.
 
 ## Phase Roadmap
 
@@ -223,6 +239,8 @@ Goal: enhance gameplay through ownership without making NFTs mandatory.
 - Runtime placeholder PNGs live in `unity-client/Assets/Resources/Art/Placeholder`.
 - Wallets, NFT sync, and rewards are mocked only.
 - Backend profiles use in-memory storage.
+- Invite rooms use in-memory plus optional JSON runtime persistence. This is enough for prototype invite testing, but production should move to a database or Render Key Value.
 - AI is intentionally simple.
 - Card targeting is deterministic for prototype speed: buffs choose eligible friendly cards automatically.
 - Unity WebGL build output is not committed.
+- Reference art must be exported as real PNG files before Unity import; AVIF files renamed with `.png` are not valid Unity card art.

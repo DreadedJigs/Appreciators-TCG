@@ -1,0 +1,21 @@
+{
+  "brand_palette": {
+    "dark_navy_outline": "#07114A",
+    "electric_blue": "#005DFF",
+    "cyan": "#16C5E5",
+    "lime_green": "#38C936",
+    "bright_yellow": "#FFCC10",
+    "orange_red": "#FF2B1F",
+    "magenta_purple": "#A93FB2",
+    "deep_purple": "#4B268B",
+    "soft_pink": "#F2C2BE",
+    "cream": "#FFF7C8",
+    "gold": "#C89531",
+    "muted_blue_gradient": "#6F86D9"
+  },
+  "usage_notes": {
+    "outline": "Use dark navy for primary character and UI outlines, not pure black.",
+    "cards": "Gold/purple frames for premium collectible card feel; purple cost gems; red attack and green health counters.",
+    "backgrounds": "Keep board darker and lower contrast so NFT cards pop."
+  }
+}

@@ -7,6 +7,23 @@ namespace AppreciatorsTcg.Cards
 {
     public static class CardArtResolver
     {
+        private const string AssetPackBase = "Art/Placeholder/app_Lane_Card_Game_UI_AssetPack";
+
+        private static readonly string[] AssetPackPortraits =
+        {
+            "02_card_art/portraits/portrait_hand_winged_kid",
+            "02_card_art/portraits/portrait_hand_monke_business",
+            "02_card_art/portraits/portrait_hand_mutant_punk",
+            "02_card_art/portraits/portrait_hand_cyber_beak",
+            "02_card_art/portraits/portrait_hand_toxic_rex",
+            "02_card_art/portraits/portrait_player_dragon_kid",
+            "02_card_art/portraits/portrait_player_radiation_kid",
+            "02_card_art/portraits/portrait_player_three_strikes",
+            "02_card_art/portraits/portrait_opponent_winged_kid",
+            "02_card_art/portraits/portrait_opponent_monke_business",
+            "02_card_art/portraits/portrait_opponent_toxic_rex"
+        };
+
         private static readonly Dictionary<string, Sprite> SpriteCache = new Dictionary<string, Sprite>();
 
         public static Sprite LoadSprite(CardDefinition card)
@@ -21,6 +38,12 @@ namespace AppreciatorsTcg.Cards
             if (configured != null)
             {
                 return configured;
+            }
+
+            Sprite assetPackPlaceholder = LoadSpriteAtPath(AssetPackPortraitPath(card));
+            if (assetPackPlaceholder != null)
+            {
+                return assetPackPlaceholder;
             }
 
             return LoadSpriteAtPath(PlaceholderPath(card.type));
@@ -45,6 +68,35 @@ namespace AppreciatorsTcg.Cards
             }
 
             return $"Art/Placeholder/placeholder_{safeType}";
+        }
+
+        private static string AssetPackPortraitPath(CardDefinition card)
+        {
+            string identity = string.IsNullOrWhiteSpace(card.id) ? card.name : card.id;
+            int index = StableIndex($"{card.type}:{card.traitGroup}:{identity}", AssetPackPortraits.Length);
+            return $"{AssetPackBase}/{AssetPackPortraits[index]}";
+        }
+
+        private static int StableIndex(string value, int count)
+        {
+            if (count <= 0)
+            {
+                return 0;
+            }
+
+            unchecked
+            {
+                int hash = 17;
+                if (!string.IsNullOrEmpty(value))
+                {
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        hash = hash * 31 + value[i];
+                    }
+                }
+
+                return (hash & 0x7fffffff) % count;
+            }
         }
 
         private static Sprite LoadSpriteAtPath(string path)

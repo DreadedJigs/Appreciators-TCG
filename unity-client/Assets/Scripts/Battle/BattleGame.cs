@@ -75,6 +75,36 @@ namespace AppreciatorsTcg.Battle
             return played;
         }
 
+        public bool ApplyRemoteCard(string cardId, LaneType laneType, string remoteName, out string message)
+        {
+            CardDefinition cardDefinition = CardCatalog.GetCard(cardId);
+            if (cardDefinition == null)
+            {
+                message = "Remote card could not be found.";
+                LastMessage = message;
+                return false;
+            }
+
+            LaneState lane = GetLane(laneType);
+            if (!lane.HasSpace(OwnerSide.Opponent))
+            {
+                message = $"{laneType} lane is full for {remoteName}.";
+                LastMessage = message;
+                return false;
+            }
+
+            int ownerPowerBefore = BattleRules.CalculateLanePower(lane, OwnerSide.Opponent, false);
+            int opponentPowerBefore = BattleRules.CalculateLanePower(lane, OwnerSide.Player, false);
+            BattleCardInstance instance = new BattleCardInstance(cardDefinition, OwnerSide.Opponent);
+            lane.GetCards(OwnerSide.Opponent).Add(instance);
+            CardEffectResolver.ApplyOnPlay(this, Opponent, lane, instance, ownerPowerBefore, opponentPowerBefore);
+            CardEffectResolver.ApplyAfterCardPlayed(this, OwnerSide.Opponent, instance);
+
+            message = $"{remoteName} played {cardDefinition.name} in {laneType}.";
+            LastMessage = message;
+            return true;
+        }
+
         public void EndPlayerTurnAndRunAi()
         {
             if (IsComplete)
@@ -83,6 +113,23 @@ namespace AppreciatorsTcg.Battle
             }
 
             SimpleAiPlayer.PlayTurn(this, random);
+            if (Turn >= GameConstants.MaxTurn)
+            {
+                CompleteMatch();
+                return;
+            }
+
+            Turn += 1;
+            StartTurn();
+        }
+
+        public void EndPlayerTurnOnly()
+        {
+            if (IsComplete)
+            {
+                return;
+            }
+
             if (Turn >= GameConstants.MaxTurn)
             {
                 CompleteMatch();

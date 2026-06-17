@@ -43,6 +43,122 @@ Example body:
 }
 ```
 
+## POST /api/matchmaking/invite
+
+Creates a private invite room for 1v1 play.
+
+Example body:
+
+```json
+{
+  "username": "Host",
+  "deckIds": ["regular_body", "beer_helmet"]
+}
+```
+
+## GET /api/matchmaking/invite/:inviteCode
+
+Returns the current invite room status.
+
+## GET /api/matchmaking/invite/new
+
+Creates a private invite room with query-string inputs for WebGL-friendly links.
+
+Example:
+
+```text
+/api/matchmaking/invite/new?username=Host&deckIds=regular_body,beer_helmet
+```
+
+## POST /api/matchmaking/invite/:inviteCode/join
+
+Joins a private invite room as the second player.
+
+Example body:
+
+```json
+{
+  "username": "Guest",
+  "deckIds": ["ghost_companion"]
+}
+```
+
+## GET /api/matchmaking/invite/:inviteCode/join-link
+
+Joins a room with query-string inputs for QR codes and mobile browser links.
+
+Example:
+
+```text
+/api/matchmaking/invite/ABC123/join-link?username=Guest&deckIds=ghost_companion
+```
+
+## POST /api/matchmaking/invite/:inviteCode/reconnect
+
+Reconnects an existing host or guest after refresh or mobile tab resume.
+
+Example body:
+
+```json
+{
+  "playerId": "player-id-from-create-or-join-response"
+}
+```
+
+## GET /api/matchmaking/invite/:inviteCode/reconnect-link
+
+Reconnects through query-string inputs. This is useful for WebGL/mobile fallback flows.
+
+Example:
+
+```text
+/api/matchmaking/invite/ABC123/reconnect-link?username=Guest&role=guest
+```
+
+## POST /api/matchmaking/invite/:inviteCode/start
+
+Starts a ready invite room. The host must start the room.
+
+Example body:
+
+```json
+{
+  "username": "Host",
+  "playerId": "host-player-id-from-create-response"
+}
+```
+
+## GET /api/matchmaking/invite/:inviteCode/start-link
+
+Starts a ready invite room with query-string inputs.
+
+## GET /api/matchmaking/invite/:inviteCode/state
+
+Returns the current public match state, including turn, energy, lane cards, lane power, and result.
+
+## GET /api/matchmaking/invite/:inviteCode/actions
+
+Returns synced actions after an optional `after` sequence number.
+
+Example:
+
+```text
+/api/matchmaking/invite/ABC123/actions?after=4
+```
+
+## GET /api/matchmaking/invite/:inviteCode/action
+
+Submits a WebGL-friendly match action through query-string inputs.
+
+Examples:
+
+```text
+/api/matchmaking/invite/ABC123/action?playerId=player-id&actionId=a1&type=play-card&cardId=regular_body&lane=Art&turn=1
+/api/matchmaking/invite/ABC123/action?playerId=player-id&actionId=a2&type=end-turn&turn=1
+```
+
+The server rejects stale turns, duplicate end-turn attempts, invalid lanes, and actions from non-participants.
+
 ## POST /api/wallet/verify
 
 Returns a mock Phase 4 wallet verification response.
@@ -50,3 +166,9 @@ Returns a mock Phase 4 wallet verification response.
 ## POST /api/nft/sync
 
 Returns a mock Phase 4 NFT ownership sync response.
+
+## Invite Room Runtime Storage
+
+Invite rooms are in memory by default for local tests. On Render, `render.yaml` enables a small JSON runtime store at `/tmp/appreciators-invite-rooms.json` so invite state can survive ordinary process-level reloads when the filesystem is still available.
+
+For durable production multiplayer, move invite rooms to a database, Render Key Value, or attach a paid Render persistent disk and set `INVITE_ROOM_STORE_PATH` to a file under that disk mount.

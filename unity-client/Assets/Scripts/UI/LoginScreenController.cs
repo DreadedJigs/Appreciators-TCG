@@ -12,6 +12,12 @@ namespace AppreciatorsTcg.UI
         private void Start()
         {
             GameObject panel = CreateCenteredPanel("Appreciators TCG");
+            Image panelImage = panel.GetComponent<Image>();
+            if (panelImage != null)
+            {
+                panelImage.color = UIFactory.GlassPanel;
+            }
+
             UIFactory.CreateText(panel.transform, "Be Original", 34, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
             UIFactory.CreateText(panel.transform, "We appreciate art.\nWe appreciate community.\nWe appreciate the blockchain.", 24, TextAnchor.MiddleCenter, UIFactory.MutedTextColor);
 
