@@ -76,6 +76,36 @@ Example:
 /api/matchmaking/invite/new?username=Host&deckIds=regular_body,beer_helmet
 ```
 
+## GET /api/matchmaking/invite-lobby/announce
+
+Marks a player as available for direct 1v1 challenges and returns the current lobby view.
+
+Example:
+
+```text
+/api/matchmaking/invite-lobby/announce?username=Host&playerId=local-player-id&deckIds=regular_body,beer_helmet
+```
+
+## GET /api/matchmaking/invite-lobby
+
+Returns available players and incoming direct challenges for the requesting player.
+
+Example:
+
+```text
+/api/matchmaking/invite-lobby?username=Host&playerId=local-player-id
+```
+
+## GET /api/matchmaking/invite-lobby/challenge
+
+Creates a private invite room targeted at an available player. The challenged player can accept it from their 1v1 menu.
+
+Example:
+
+```text
+/api/matchmaking/invite-lobby/challenge?username=Host&playerId=host-id&targetPlayerId=guest-id&deckIds=regular_body
+```
+
 ## POST /api/matchmaking/invite/:inviteCode/join
 
 Joins a private invite room as the second player.

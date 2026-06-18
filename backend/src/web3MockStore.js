@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 
-const MINT_SUPPLY_CAP = 1111;
+const MINT_SUPPLY_CAP = 6666;
 const MAX_MINT_QUANTITY = 5;
-let simulatedSupplyMinted = 1001;
+let simulatedSupplyMinted = 6001;
 const walletMintCounts = new Map();
 
 function safeWalletAddress(value) {
@@ -134,7 +134,7 @@ export function simulateMockMint(input = {}) {
     txHash: mintedQuantity > 0 ? fakeTransactionHash() : "0xMOCKSOLDOUT",
     tokens,
     totalMintedByWallet,
-    collectionName: "Appreciators",
+    collectionName: "Appreciators.IO Mint Simulator",
     supplyCap: MINT_SUPPLY_CAP,
     simulatedMinted: simulatedSupplyMinted,
     remainingSupply: Math.max(0, MINT_SUPPLY_CAP - simulatedSupplyMinted),
@@ -148,6 +148,6 @@ export function simulateMockMint(input = {}) {
 }
 
 export function resetMockMintForTests() {
-  simulatedSupplyMinted = 1001;
+  simulatedSupplyMinted = 6001;
   walletMintCounts.clear();
 }

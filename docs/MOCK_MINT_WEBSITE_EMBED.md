@@ -1,4 +1,8 @@
-# Appreciators Mock Mint Website Embed
+# Appreciators.IO Mint Simulator Website Embed
+
+Mode name: **I Declare Appreciation**
+
+Description: **A minting simulator for our nostalgic and degen hearts.**
 
 Use these two deliverables for the website developer:
 
@@ -39,10 +43,13 @@ The response is explicitly mocked:
   "mock": true,
   "realTransactionSubmitted": false,
   "mintedQuantity": 1,
+  "supplyCap": 6666,
   "mintPriceEth": "0.000",
   "network": "Appreciators Mocknet"
 }
 ```
+
+When the OpenSea collection link is available, use it to wire real rarity bands into the future AI minter battle mode.
 
 ## Direct HTML Option
 

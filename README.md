@@ -82,6 +82,9 @@ Useful routes:
 - `POST /api/matchmaking/casual`
 - `POST /api/matchmaking/invite`
 - `GET /api/matchmaking/invite/new`
+- `GET /api/matchmaking/invite-lobby/announce`
+- `GET /api/matchmaking/invite-lobby`
+- `GET /api/matchmaking/invite-lobby/challenge`
 - `GET /api/matchmaking/invite/:inviteCode`
 - `POST /api/matchmaking/invite/:inviteCode/join`
 - `GET /api/matchmaking/invite/:inviteCode/join-link`
@@ -187,7 +190,7 @@ The match UI is designed for landscape play with large buttons and readable card
 - Higher power wins a lane
 - Best of 3 lanes decides victory, defeat, or draw
 - Offline AI opponent prioritizes playable cards and has a small preference for lanes it is losing
-- Invite 1v1 creates and joins private rooms through the backend. Phase 1.5 uses polling room state with synced card actions, QR/mobile-friendly join links, reconnect support, lane placement, and both-player end-turn advancement.
+- Invite 1v1 creates and joins private rooms through the backend. Phase 1.5 uses polling room state with synced card actions, available-player direct challenges, QR/mobile-friendly join links, reconnect support, lane placement, and both-player end-turn advancement.
 
 ## Phase Roadmap
 

@@ -180,6 +180,55 @@ test("invite link routes support WebGL-friendly create, join, and start", async 
   }
 });
 
+test("invite lobby exposes available players and direct challenges", async () => {
+  clearInviteRoomsForTests();
+  const server = await listen(createApp());
+  try {
+    const hostPresence = await request(
+      server,
+      "/api/matchmaking/invite-lobby/announce?username=Host&playerId=host_local&deckIds=regular_body"
+    );
+    assert.equal(hostPresence.response.status, 200);
+    assert.equal(hostPresence.body.playerId, "host_local");
+
+    const guestPresence = await request(
+      server,
+      "/api/matchmaking/invite-lobby/announce?username=Guest&playerId=guest_local&deckIds=beer_helmet"
+    );
+    assert.equal(guestPresence.response.status, 200);
+    assert.equal(guestPresence.body.players.some((player) => player.id === "host_local"), true);
+
+    const hostLobby = await request(server, "/api/matchmaking/invite-lobby?username=Host&playerId=host_local");
+    assert.equal(hostLobby.response.status, 200);
+    assert.equal(hostLobby.body.players.some((player) => player.id === "guest_local"), true);
+
+    const challenged = await request(
+      server,
+      "/api/matchmaking/invite-lobby/challenge?username=Host&playerId=host_local&targetPlayerId=guest_local&deckIds=regular_body"
+    );
+    assert.equal(challenged.response.status, 201);
+    assert.equal(challenged.body.room.status, "waiting");
+    assert.equal(challenged.body.room.challengeTargetId, "guest_local");
+    assert.equal(challenged.body.room.host.id, "host_local");
+
+    const guestLobby = await request(server, "/api/matchmaking/invite-lobby?username=Guest&playerId=guest_local");
+    assert.equal(guestLobby.response.status, 200);
+    assert.equal(guestLobby.body.challenges.length, 1);
+    assert.equal(guestLobby.body.challenges[0].inviteCode, challenged.body.room.inviteCode);
+
+    const joined = await request(
+      server,
+      `/api/matchmaking/invite/${challenged.body.room.inviteCode}/join-link?username=Guest&playerId=guest_local&deckIds=beer_helmet`
+    );
+    assert.equal(joined.response.status, 200);
+    assert.equal(joined.body.room.status, "ready");
+    assert.equal(joined.body.room.guest.id, "guest_local");
+  } finally {
+    server.close();
+    clearInviteRoomsForTests();
+  }
+});
+
 test("invite match action log records and returns synced play actions", async () => {
   clearInviteRoomsForTests();
   const server = await listen(createApp());
@@ -339,8 +388,8 @@ test("web3 routes stay explicitly mocked", async () => {
     assert.equal(mint.body.realTransactionSubmitted, false);
     assert.equal(mint.body.mintedQuantity, 2);
     assert.equal(mint.body.tokens.length, 2);
-    assert.equal(mint.body.supplyCap, 1111);
-    assert.equal(mint.body.remainingSupply, 108);
+    assert.equal(mint.body.supplyCap, 6666);
+    assert.equal(mint.body.remainingSupply, 663);
 
     const mintLink = await request(server, "/api/mint/simulate-link?walletAddress=0xMock&quantity=99");
     assert.equal(mintLink.body.requestedQuantity, 5);

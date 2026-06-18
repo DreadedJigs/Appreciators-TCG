@@ -35,6 +35,29 @@ namespace AppreciatorsTcg.Data
         public InviteRoom room;
         public InvitePlayer player;
         public InviteAssignment assignment;
+        public InviteLobbyPlayer challengedPlayer;
+        public string message;
+    }
+
+    [Serializable]
+    public class InviteLobbyResponse
+    {
+        public string playerId;
+        public InviteLobbyPlayer[] players;
+        public InviteRoom[] challenges;
+        public string message;
+    }
+
+    [Serializable]
+    public class InviteLobbyPlayer
+    {
+        public string id;
+        public string username;
+        public int deckSize;
+        public string status;
+        public string firstSeenAt;
+        public string lastSeenAt;
+        public bool self;
     }
 
     [Serializable]
@@ -92,6 +115,8 @@ namespace AppreciatorsTcg.Data
         public InvitePlayer guest;
         public InvitePlayer[] players;
         public int maxPlayers;
+        public string challengeTargetId;
+        public string challengeTargetUsername;
         public InviteMatchState matchState;
         public string message;
     }
@@ -105,6 +130,7 @@ namespace AppreciatorsTcg.Data
         public int deckSize;
         public bool connected;
         public string joinedAt;
+        public string lastSeenAt;
     }
 
     [Serializable]

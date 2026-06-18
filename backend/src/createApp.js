@@ -4,7 +4,10 @@ import express from "express";
 import cors from "cors";
 import { getAssetManifest, getPrototypeCards } from "./cardRepository.js";
 import {
+  announceInvitePresence,
+  challengeInvitePlayer,
   createInviteRoom,
+  getInviteLobby,
   getInviteActions,
   getInviteMatchState,
   getInviteRoom,
@@ -97,6 +100,30 @@ export function createApp() {
   app.get("/api/matchmaking/invite/new", (req, res, next) => {
     try {
       res.status(201).json(createInviteRoom(queryInvitePayload(req.query)));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/matchmaking/invite-lobby/announce", (req, res, next) => {
+    try {
+      res.json(announceInvitePresence(queryInvitePayload(req.query)));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/matchmaking/invite-lobby/challenge", (req, res, next) => {
+    try {
+      res.status(201).json(challengeInvitePlayer(queryInvitePayload(req.query)));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/matchmaking/invite-lobby", (req, res, next) => {
+    try {
+      res.json(getInviteLobby(queryInvitePayload(req.query)));
     } catch (error) {
       next(error);
     }
@@ -238,6 +265,7 @@ function queryInvitePayload(query) {
   return {
     username: query.username,
     playerId: query.playerId,
+    targetPlayerId: query.targetPlayerId,
     role: query.role,
     deckIds
   };

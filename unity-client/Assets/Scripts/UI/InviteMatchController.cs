@@ -1,7 +1,10 @@
+using System;
 using System.Linq;
+using System.Runtime.InteropServices;
 using AppreciatorsTcg.Core;
 using AppreciatorsTcg.Data;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -10,28 +13,42 @@ namespace AppreciatorsTcg.UI
     public class InviteMatchController : ScreenControllerBase
     {
         private const float PollIntervalSeconds = 2.5f;
+        private const float LobbyPollIntervalSeconds = 4f;
+        private const string InvitePlayerIdKey = "AppreciatorsInvitePlayerId";
         private BackendApiClient apiClient;
         private InputField codeInput;
         private Text roomText;
         private Text messageText;
+        private Text lobbySummaryText;
         private Button startButton;
         private Button copyButton;
+        private Text copyButtonLabel;
         private Button joinActionButton;
         private Button joinInlineButton;
+        private Transform lobbyListRoot;
         private RawImage qrImage;
         private Text qrLabel;
         private Texture2D qrTexture;
         private string lastQrInviteCode;
+        private string lastInviteLinkToCopy;
         private InviteRoom currentRoom;
+        private InviteLobbyPlayer[] availablePlayers = new InviteLobbyPlayer[0];
+        private InviteRoom[] incomingChallenges = new InviteRoom[0];
         private string playerId;
         private bool suppressCodeEvents;
         private bool isSubmitting;
         private bool enteringMatch;
         private string pendingRequestMessage;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern void AppreciatorsCopyText(string text, string gameObjectName, string successMethod, string errorMethod);
+#endif
+
         private void Start()
         {
             apiClient = gameObject.AddComponent<BackendApiClient>();
+            PlayerId();
 
             GameObject screen = CreateFullScreenStack("Invite 1v1");
             UIFactory.CreateText(screen.transform, "Be Original", 26, TextAnchor.MiddleLeft, UIFactory.Accent, FontStyle.Bold);
@@ -45,7 +62,7 @@ namespace AppreciatorsTcg.UI
 
             GameObject codePanel = UIFactory.CreateVerticalStack(screen.transform, "InviteCodeEntry", UIFactory.PanelAlt, 8, 14);
             LayoutElement codeLayout = codePanel.AddComponent<LayoutElement>();
-            codeLayout.preferredHeight = 225;
+            codeLayout.preferredHeight = 198;
             UIFactory.CreateText(codePanel.transform, "ENTER INVITE CODE", 26, TextAnchor.MiddleLeft, UIFactory.NeonCyan, FontStyle.Bold);
             codeInput = UIFactory.CreateInputField(codePanel.transform, "TYPE CODE HERE", string.Empty);
             codeInput.characterLimit = 6;
@@ -65,6 +82,30 @@ namespace AppreciatorsTcg.UI
             codeInput.onValueChanged.AddListener(NormalizeInviteCode);
             codeInput.onEndEdit.AddListener(_ => JoinIfCodeReady());
             joinInlineButton = UIFactory.CreateButton(codePanel.transform, "Join This Code", JoinInvite, UIFactory.Blue);
+
+            GameObject lobbyPanel = UIFactory.CreateVerticalStack(screen.transform, "AvailablePlayers", UIFactory.Panel, 6, 12);
+            LayoutElement lobbyLayout = lobbyPanel.AddComponent<LayoutElement>();
+            lobbyLayout.preferredHeight = 176;
+            lobbyLayout.flexibleHeight = 0;
+            GameObject lobbyHeader = UIFactory.CreateHorizontalStack(lobbyPanel.transform, "AvailablePlayersHeader", Color.clear, 8, 0);
+            HorizontalLayoutGroup lobbyHeaderGroup = lobbyHeader.GetComponent<HorizontalLayoutGroup>();
+            lobbyHeaderGroup.childForceExpandWidth = false;
+            LayoutElement lobbyHeaderLayout = lobbyHeader.AddComponent<LayoutElement>();
+            lobbyHeaderLayout.preferredHeight = 34;
+            lobbySummaryText = UIFactory.CreateText(lobbyHeader.transform, "AVAILABLE PLAYERS", 22, TextAnchor.MiddleLeft, UIFactory.NeonCyan, FontStyle.Bold);
+            LayoutElement summaryLayout = lobbySummaryText.gameObject.AddComponent<LayoutElement>();
+            summaryLayout.flexibleWidth = 1;
+            Button refreshPlayersButton = UIFactory.CreateButton(lobbyHeader.transform, "Refresh", PollInviteLobby, UIFactory.PanelAlt);
+            LayoutElement refreshLayout = refreshPlayersButton.gameObject.GetComponent<LayoutElement>();
+            refreshLayout.minWidth = 150;
+            refreshLayout.preferredWidth = 160;
+            refreshLayout.minHeight = 34;
+            refreshLayout.preferredHeight = 38;
+
+            GameObject lobbyList = UIFactory.CreateVerticalStack(lobbyPanel.transform, "AvailablePlayersList", Color.clear, 4, 0);
+            LayoutElement lobbyListLayout = lobbyList.AddComponent<LayoutElement>();
+            lobbyListLayout.flexibleHeight = 1;
+            lobbyListRoot = lobbyList.transform;
 
             GameObject roomPanel = UIFactory.CreateVerticalStack(screen.transform, "RoomStatus", UIFactory.Panel, 10, 16);
             LayoutElement roomLayout = roomPanel.AddComponent<LayoutElement>();
@@ -103,9 +144,13 @@ namespace AppreciatorsTcg.UI
             footerLayout.preferredHeight = 86;
             startButton = UIFactory.CreateButton(footer.transform, "Start 1v1", StartInvite, UIFactory.Accent);
             copyButton = UIFactory.CreateButton(footer.transform, "Copy Invite Link", CopyCode, UIFactory.PanelAlt);
+            copyButtonLabel = copyButton.GetComponentInChildren<Text>();
             UIFactory.CreateButton(footer.transform, "Back", () => SceneManager.LoadScene("MainMenuScene"), UIFactory.PanelAlt);
 
+            RenderLobby();
             UpdateRoomView("Create an invite or enter a code to join.");
+            AnnounceInvitePresence();
+            InvokeRepeating(nameof(PollInviteLobby), LobbyPollIntervalSeconds, LobbyPollIntervalSeconds);
             LoadInviteCodeFromUrl();
         }
 
@@ -114,7 +159,7 @@ namespace AppreciatorsTcg.UI
             SetBusy($"Creating invite room...\nBackend: {AppConfig.ApiBaseUrl}");
             try
             {
-                StartCoroutine(apiClient.CreateInviteMatch(PlayerName(), DeckIds(), response =>
+                StartCoroutine(apiClient.CreateInviteMatch(PlayerName(), DeckIds(), PlayerId(), response =>
                 {
                     if (ApplyMutationResponse(response, "Backend returned no invite code."))
                     {
@@ -140,7 +185,7 @@ namespace AppreciatorsTcg.UI
             SetBusy($"Joining invite room...\nBackend: {AppConfig.ApiBaseUrl}");
             try
             {
-                StartCoroutine(apiClient.JoinInviteMatch(inviteCode, PlayerName(), DeckIds(), response =>
+                StartCoroutine(apiClient.JoinInviteMatch(inviteCode, PlayerName(), DeckIds(), PlayerId(), response =>
                 {
                     if (ApplyMutationResponse(response, "Backend returned no joined invite room."))
                     {
@@ -202,7 +247,7 @@ namespace AppreciatorsTcg.UI
             SetBusy($"Starting invite match...\nBackend: {AppConfig.ApiBaseUrl}");
             try
             {
-                StartCoroutine(apiClient.StartInviteMatch(currentRoom.inviteCode, PlayerName(), playerId, response =>
+                StartCoroutine(apiClient.StartInviteMatch(currentRoom.inviteCode, PlayerName(), PlayerId(), response =>
                 {
                     if (ApplyMutationResponse(response, "Backend returned no started invite room."))
                     {
@@ -225,8 +270,56 @@ namespace AppreciatorsTcg.UI
                 return;
             }
 
-            GUIUtility.systemCopyBuffer = BuildInviteLink(inviteCode);
-            UpdateRoomView("Invite link copied.");
+            lastInviteLinkToCopy = BuildInviteLink(inviteCode);
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            try
+            {
+                AppreciatorsCopyText(lastInviteLinkToCopy, gameObject.name, nameof(OnCopySucceeded), nameof(OnCopyFailed));
+            }
+            catch (Exception exception)
+            {
+                OnCopyFailed(exception.Message);
+            }
+#else
+            GUIUtility.systemCopyBuffer = lastInviteLinkToCopy;
+            OnCopySucceeded(string.Empty);
+#endif
+        }
+
+        public void OnCopySucceeded(string _)
+        {
+            GUIUtility.systemCopyBuffer = lastInviteLinkToCopy;
+            ShowCopyFeedback("COPIED", $"Invite link copied.\n{lastInviteLinkToCopy}");
+        }
+
+        public void OnCopyFailed(string error)
+        {
+            UpdateRoomView($"Copy failed: {error}\nInvite link: {lastInviteLinkToCopy}");
+        }
+
+        private void ShowCopyFeedback(string label, string message)
+        {
+            if (copyButtonLabel != null)
+            {
+                copyButtonLabel.text = label;
+            }
+
+            if (messageText != null)
+            {
+                messageText.text = message;
+            }
+
+            CancelInvoke(nameof(ResetCopyButtonLabel));
+            Invoke(nameof(ResetCopyButtonLabel), 1.4f);
+        }
+
+        private void ResetCopyButtonLabel()
+        {
+            if (copyButtonLabel != null)
+            {
+                copyButtonLabel.text = "Copy Invite Link";
+            }
         }
 
         private void SetBusy(string message)
@@ -271,8 +364,9 @@ namespace AppreciatorsTcg.UI
             CancelInvoke(nameof(ShowRequestTimeout));
             bool hasRoom = currentRoom != null;
             bool canStart = hasRoom && currentRoom.status == "ready";
+            bool canCopy = hasRoom || CleanCode().Length == 6;
             startButton.interactable = canStart;
-            copyButton.interactable = hasRoom;
+            copyButton.interactable = canCopy;
             SetJoinButtons(true);
 
             if (hasRoom && currentRoom.status == "waiting" && currentRoom.host != null && currentRoom.host.id == playerId)
@@ -310,8 +404,9 @@ namespace AppreciatorsTcg.UI
             }
 
             currentRoom = response.room;
-            playerId = response.player?.id ?? playerId;
+            SetPlayerId(response.player?.id ?? playerId);
             SetInviteCodeText(currentRoom.inviteCode);
+            AnnounceInvitePresence();
             return true;
         }
 
@@ -359,6 +454,156 @@ namespace AppreciatorsTcg.UI
             }, _ => { }));
         }
 
+        private void AnnounceInvitePresence()
+        {
+            if (apiClient == null || enteringMatch)
+            {
+                return;
+            }
+
+            StartCoroutine(apiClient.AnnounceInvitePresence(PlayerName(), DeckIds(), PlayerId(), ApplyLobbyResponse, _ => { }));
+        }
+
+        private void PollInviteLobby()
+        {
+            if (apiClient == null || enteringMatch)
+            {
+                return;
+            }
+
+            StartCoroutine(apiClient.GetInviteLobby(PlayerName(), PlayerId(), ApplyLobbyResponse, _ => { }));
+        }
+
+        private void ApplyLobbyResponse(InviteLobbyResponse response)
+        {
+            if (response == null)
+            {
+                return;
+            }
+
+            SetPlayerId(response.playerId);
+            availablePlayers = response.players ?? new InviteLobbyPlayer[0];
+            incomingChallenges = response.challenges ?? new InviteRoom[0];
+            RenderLobby();
+        }
+
+        private void RenderLobby()
+        {
+            if (lobbyListRoot == null || lobbySummaryText == null)
+            {
+                return;
+            }
+
+            UIFactory.ClearChildren(lobbyListRoot);
+            int challengeCount = incomingChallenges?.Length ?? 0;
+            int playerCount = availablePlayers?.Length ?? 0;
+            lobbySummaryText.text = challengeCount > 0
+                ? $"AVAILABLE PLAYERS - {challengeCount} CHALLENGE"
+                : $"AVAILABLE PLAYERS - {playerCount} ONLINE";
+
+            int rows = 0;
+            if (challengeCount > 0)
+            {
+                foreach (InviteRoom challenge in incomingChallenges.Take(2))
+                {
+                    InviteRoom captured = challenge;
+                    string challenger = captured?.host?.username ?? "Player";
+                    AddLobbyRow(
+                        $"Incoming from {challenger} ({captured?.inviteCode})",
+                        "Accept",
+                        () => AcceptChallenge(captured),
+                        UIFactory.Green);
+                    rows += 1;
+                }
+            }
+
+            int maxPlayerRows = challengeCount > 0 ? 2 : 3;
+            foreach (InviteLobbyPlayer player in (availablePlayers ?? new InviteLobbyPlayer[0]).Take(maxPlayerRows))
+            {
+                InviteLobbyPlayer captured = player;
+                AddLobbyRow(
+                    $"{captured.username} - {captured.status} - deck {captured.deckSize}",
+                    "Challenge",
+                    () => ChallengePlayer(captured),
+                    UIFactory.Blue);
+                rows += 1;
+            }
+
+            if (rows == 0)
+            {
+                Text emptyText = UIFactory.CreateText(
+                    lobbyListRoot,
+                    "No available players yet. Ask another player to open Invite 1v1.",
+                    17,
+                    TextAnchor.MiddleLeft,
+                    UIFactory.MutedTextColor);
+                LayoutElement emptyLayout = emptyText.gameObject.AddComponent<LayoutElement>();
+                emptyLayout.preferredHeight = 44;
+            }
+        }
+
+        private void AddLobbyRow(string label, string buttonLabel, UnityAction action, Color buttonColor)
+        {
+            GameObject row = UIFactory.CreateHorizontalStack(lobbyListRoot, buttonLabel, new Color(0.02f, 0.035f, 0.070f, 0.72f), 8, 6);
+            HorizontalLayoutGroup group = row.GetComponent<HorizontalLayoutGroup>();
+            group.childForceExpandWidth = false;
+            LayoutElement rowLayout = row.AddComponent<LayoutElement>();
+            rowLayout.minHeight = 42;
+            rowLayout.preferredHeight = 46;
+            rowLayout.flexibleHeight = 0;
+
+            Text labelText = UIFactory.CreateText(row.transform, label, 17, TextAnchor.MiddleLeft, UIFactory.TextColor, FontStyle.Bold);
+            LayoutElement labelLayout = labelText.gameObject.AddComponent<LayoutElement>();
+            labelLayout.flexibleWidth = 1;
+
+            Button rowButton = UIFactory.CreateButton(row.transform, buttonLabel, action, buttonColor);
+            LayoutElement buttonLayout = rowButton.gameObject.GetComponent<LayoutElement>();
+            buttonLayout.minWidth = 152;
+            buttonLayout.preferredWidth = 164;
+            buttonLayout.minHeight = 38;
+            buttonLayout.preferredHeight = 42;
+            buttonLayout.flexibleWidth = 0;
+        }
+
+        private void ChallengePlayer(InviteLobbyPlayer target)
+        {
+            if (target == null || string.IsNullOrWhiteSpace(target.id))
+            {
+                UpdateRoomView("That player is no longer available.");
+                return;
+            }
+
+            SetBusy($"Challenging {target.username}...\nBackend: {AppConfig.ApiBaseUrl}");
+            try
+            {
+                StartCoroutine(apiClient.ChallengeInvitePlayer(target.id, PlayerName(), DeckIds(), PlayerId(), response =>
+                {
+                    if (ApplyMutationResponse(response, "Backend returned no challenge room."))
+                    {
+                        string challenged = response.challengedPlayer?.username ?? target.username;
+                        UpdateRoomView($"Challenge sent to {challenged}.\nShare fallback: {BuildInviteLink(currentRoom.inviteCode)}");
+                    }
+                }, ShowError));
+            }
+            catch (Exception exception)
+            {
+                ShowError(exception.Message);
+            }
+        }
+
+        private void AcceptChallenge(InviteRoom challenge)
+        {
+            if (challenge == null || string.IsNullOrWhiteSpace(challenge.inviteCode))
+            {
+                UpdateRoomView("That challenge is no longer available.");
+                return;
+            }
+
+            currentRoom = challenge;
+            SetInviteCodeText(challenge.inviteCode);
+            JoinInvite();
+        }
+
         private void EnterStartedMatch(string message)
         {
             if (enteringMatch || currentRoom == null)
@@ -378,6 +623,36 @@ namespace AppreciatorsTcg.UI
 
             UpdateRoomView($"{message}\nLoading match scene...");
             Invoke(nameof(LoadMatchScene), 0.75f);
+        }
+
+        private string PlayerId()
+        {
+            if (!string.IsNullOrWhiteSpace(playerId))
+            {
+                return playerId;
+            }
+
+            playerId = PlayerPrefs.GetString(InvitePlayerIdKey, string.Empty);
+            if (string.IsNullOrWhiteSpace(playerId))
+            {
+                playerId = Guid.NewGuid().ToString("N");
+                PlayerPrefs.SetString(InvitePlayerIdKey, playerId);
+                PlayerPrefs.Save();
+            }
+
+            return playerId;
+        }
+
+        private void SetPlayerId(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            playerId = value;
+            PlayerPrefs.SetString(InvitePlayerIdKey, playerId);
+            PlayerPrefs.Save();
         }
 
         private void LoadMatchScene()
@@ -606,6 +881,11 @@ namespace AppreciatorsTcg.UI
 
         private void OnDestroy()
         {
+            CancelInvoke(nameof(PollInviteStatus));
+            CancelInvoke(nameof(PollInviteLobby));
+            CancelInvoke(nameof(ShowRequestTimeout));
+            CancelInvoke(nameof(ResetCopyButtonLabel));
+
             if (qrTexture != null)
             {
                 Destroy(qrTexture);

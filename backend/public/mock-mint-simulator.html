@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Appreciators Mock Mint Simulator</title>
+  <title>Appreciators.IO Mint Simulator</title>
   <style>
     :root {
       color-scheme: dark;
@@ -327,9 +327,9 @@
     <section class="mint-shell" aria-labelledby="mint-title">
       <div class="mint-content">
         <div class="mint-copy">
-          <div class="mint-kicker">Appreciators.io</div>
-          <h1 id="mint-title">Mock Mint</h1>
-          <p class="mint-lede">A minting simulator for the community while the real mint gets close. It reveals mock Appreciators, updates simulated supply, and never submits a real transaction.</p>
+          <div class="mint-kicker">I Declare Appreciation</div>
+          <h1 id="mint-title">Appreciators.IO Mint Simulator</h1>
+          <p class="mint-lede">A minting simulator for our nostalgic and degen hearts.</p>
 
           <form class="mint-form" data-mint-form>
             <label>
@@ -353,7 +353,7 @@
         <aside class="mint-panel" aria-live="polite">
           <div class="supply-head">
             <span data-supply-label>Supply: ready</span>
-            <span data-remaining-label>110 left</span>
+            <span data-remaining-label>665 left</span>
           </div>
           <div class="supply-bar" aria-hidden="true">
             <div class="supply-fill" data-supply-fill></div>
@@ -464,7 +464,7 @@
 
       function renderResult(data) {
         const minted = Number(data.simulatedMinted || 0);
-        const cap = Number(data.supplyCap || 1111);
+        const cap = Number(data.supplyCap || 6666);
         const remaining = Number(data.remainingSupply || 0);
         const percent = cap > 0 ? Math.min(100, Math.max(0, minted / cap * 100)) : 0;
 

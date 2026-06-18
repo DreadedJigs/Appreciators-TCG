@@ -35,9 +35,10 @@ namespace AppreciatorsTcg.Data
             yield return Get("/health", onSuccess, onError);
         }
 
-        public IEnumerator CreateInviteMatch(string username, string[] deckIds, System.Action<InviteRoomMutationResponse> onSuccess, System.Action<string> onError)
+        public IEnumerator CreateInviteMatch(string username, string[] deckIds, string playerId, System.Action<InviteRoomMutationResponse> onSuccess, System.Action<string> onError)
         {
-            yield return GetJson($"/api/matchmaking/invite/new?{BuildInviteQuery(username, deckIds)}", onSuccess, onError);
+            string query = $"{BuildInviteQuery(username, deckIds)}&playerId={UnityWebRequest.EscapeURL(playerId ?? string.Empty)}";
+            yield return GetJson($"/api/matchmaking/invite/new?{query}", onSuccess, onError);
         }
 
         public IEnumerator GetInviteMatch(string inviteCode, System.Action<InviteRoomStatusResponse> onSuccess, System.Action<string> onError)
@@ -45,9 +46,31 @@ namespace AppreciatorsTcg.Data
             yield return GetJson($"/api/matchmaking/invite/{UnityWebRequest.EscapeURL(inviteCode)}", onSuccess, onError);
         }
 
-        public IEnumerator JoinInviteMatch(string inviteCode, string username, string[] deckIds, System.Action<InviteRoomMutationResponse> onSuccess, System.Action<string> onError)
+        public IEnumerator JoinInviteMatch(string inviteCode, string username, string[] deckIds, string playerId, System.Action<InviteRoomMutationResponse> onSuccess, System.Action<string> onError)
         {
-            yield return GetJson($"/api/matchmaking/invite/{UnityWebRequest.EscapeURL(inviteCode)}/join-link?{BuildInviteQuery(username, deckIds)}", onSuccess, onError);
+            string query = $"{BuildInviteQuery(username, deckIds)}&playerId={UnityWebRequest.EscapeURL(playerId ?? string.Empty)}";
+            yield return GetJson($"/api/matchmaking/invite/{UnityWebRequest.EscapeURL(inviteCode)}/join-link?{query}", onSuccess, onError);
+        }
+
+        public IEnumerator AnnounceInvitePresence(string username, string[] deckIds, string playerId, System.Action<InviteLobbyResponse> onSuccess, System.Action<string> onError)
+        {
+            string query = $"{BuildInviteQuery(username, deckIds)}&playerId={UnityWebRequest.EscapeURL(playerId ?? string.Empty)}";
+            yield return GetJson($"/api/matchmaking/invite-lobby/announce?{query}", onSuccess, onError);
+        }
+
+        public IEnumerator GetInviteLobby(string username, string playerId, System.Action<InviteLobbyResponse> onSuccess, System.Action<string> onError)
+        {
+            string query = $"username={UnityWebRequest.EscapeURL(username ?? "Guest")}&playerId={UnityWebRequest.EscapeURL(playerId ?? string.Empty)}";
+            yield return GetJson($"/api/matchmaking/invite-lobby?{query}", onSuccess, onError);
+        }
+
+        public IEnumerator ChallengeInvitePlayer(string targetPlayerId, string username, string[] deckIds, string playerId, System.Action<InviteRoomMutationResponse> onSuccess, System.Action<string> onError)
+        {
+            string query =
+                $"{BuildInviteQuery(username, deckIds)}" +
+                $"&playerId={UnityWebRequest.EscapeURL(playerId ?? string.Empty)}" +
+                $"&targetPlayerId={UnityWebRequest.EscapeURL(targetPlayerId ?? string.Empty)}";
+            yield return GetJson($"/api/matchmaking/invite-lobby/challenge?{query}", onSuccess, onError);
         }
 
         public IEnumerator StartInviteMatch(string inviteCode, string username, string playerId, System.Action<InviteRoomMutationResponse> onSuccess, System.Action<string> onError)

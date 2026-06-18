@@ -4,11 +4,13 @@ import { dirname, resolve } from "node:path";
 import { getPrototypeCardByIdSync } from "./cardRepository.js";
 
 const rooms = new Map();
+const lobbyPlayers = new Map();
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const MAX_DECK_IDS = 12;
 const LANES = ["Art", "Community", "Blockchain"];
 const MAX_TURN = 6;
 const MAX_CARDS_PER_LANE = 4;
+const LOBBY_PLAYER_TTL_MS = 75 * 1000;
 const DEFAULT_ROOM_TTL_MINUTES = 360;
 const roomTtlMinutes = Math.max(
   15,
@@ -98,6 +100,14 @@ function safeUsername(value) {
   return username || "Guest";
 }
 
+function safePlayerId(value) {
+  const playerId = String(value || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 64);
+  return playerId;
+}
+
 function safeDeckIds(value) {
   if (!Array.isArray(value)) {
     return [];
@@ -128,7 +138,7 @@ function createInviteCode() {
 function createPlayer(input, role) {
   const now = new Date().toISOString();
   return {
-    id: crypto.randomUUID(),
+    id: safePlayerId(input?.playerId) || crypto.randomUUID(),
     role,
     username: safeUsername(input?.username),
     deckIds: safeDeckIds(input?.deckIds),
@@ -154,6 +164,22 @@ function publicPlayer(player) {
   };
 }
 
+function publicLobbyPlayer(player, selfId = "") {
+  if (!player) {
+    return null;
+  }
+
+  return {
+    id: player.id,
+    username: player.username,
+    deckSize: player.deckIds.length,
+    status: player.status,
+    firstSeenAt: player.firstSeenAt,
+    lastSeenAt: player.lastSeenAt,
+    self: Boolean(selfId && player.id === selfId)
+  };
+}
+
 function publicRoom(room) {
   return {
     inviteCode: room.inviteCode,
@@ -167,9 +193,38 @@ function publicRoom(room) {
     guest: publicPlayer(room.guest),
     players: [publicPlayer(room.host), publicPlayer(room.guest)].filter(Boolean),
     maxPlayers: 2,
+    challengeTargetId: room.challengeTargetId || "",
+    challengeTargetUsername: room.challengeTargetUsername || "",
     matchState: publicMatchState(room.matchState),
     message: room.message
   };
+}
+
+function pruneLobbyPlayers(nowMs = Date.now()) {
+  for (const [id, player] of lobbyPlayers.entries()) {
+    const lastSeenMs = Date.parse(player?.lastSeenAt || "");
+    if (!Number.isFinite(lastSeenMs) || nowMs - lastSeenMs > LOBBY_PLAYER_TTL_MS) {
+      lobbyPlayers.delete(id);
+    }
+  }
+}
+
+function upsertLobbyPlayer(input = {}) {
+  pruneLobbyPlayers();
+  const now = new Date().toISOString();
+  const id = safePlayerId(input.playerId) || crypto.randomUUID();
+  const existing = lobbyPlayers.get(id);
+  const player = {
+    id,
+    username: safeUsername(input.username || existing?.username),
+    deckIds: safeDeckIds(input.deckIds || existing?.deckIds),
+    status: "available",
+    firstSeenAt: existing?.firstSeenAt || now,
+    lastSeenAt: now
+  };
+
+  lobbyPlayers.set(id, player);
+  return player;
 }
 
 function publicAction(action) {
@@ -413,6 +468,66 @@ export function getInviteMatchState(inviteCode) {
   };
 }
 
+export function announceInvitePresence(input = {}) {
+  const player = upsertLobbyPlayer(input);
+  return getInviteLobby({ ...input, playerId: player.id });
+}
+
+export function getInviteLobby(input = {}) {
+  loadRoomsIfNeeded();
+  pruneExpiredRooms();
+  pruneLobbyPlayers();
+
+  const shouldTrackSelf = Boolean(safePlayerId(input.playerId) || input.username);
+  const player = shouldTrackSelf ? upsertLobbyPlayer(input) : null;
+  const selfId = player?.id || safePlayerId(input.playerId);
+
+  const players = [...lobbyPlayers.values()]
+    .filter((candidate) => candidate.id !== selfId)
+    .sort((a, b) => a.username.localeCompare(b.username))
+    .map((candidate) => publicLobbyPlayer(candidate, selfId));
+
+  const challenges = [...rooms.values()]
+    .filter((room) => room.challengeTargetId === selfId && room.status !== "started")
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    .map(publicRoom);
+
+  return {
+    playerId: selfId,
+    players,
+    challenges,
+    message: "Invite lobby synced."
+  };
+}
+
+export function challengeInvitePlayer(input = {}) {
+  loadRoomsIfNeeded();
+  pruneExpiredRooms();
+  pruneLobbyPlayers();
+
+  const targetId = safePlayerId(input.targetPlayerId);
+  const target = lobbyPlayers.get(targetId);
+  if (!target) {
+    throw Object.assign(new Error("Target player is no longer available."), { statusCode: 404 });
+  }
+
+  const created = createInviteRoom(input);
+  const room = getRoomOrThrow(created.room.inviteCode);
+  const now = new Date().toISOString();
+  room.challengeTargetId = target.id;
+  room.challengeTargetUsername = target.username;
+  room.updatedAt = now;
+  room.message = `${room.host.username} challenged ${target.username}.`;
+  saveRoomsIfNeeded();
+
+  return {
+    room: publicRoom(room),
+    player: publicPlayer(room.host),
+    challengedPlayer: publicLobbyPlayer(target, room.host.id),
+    message: room.message
+  };
+}
+
 export function joinInviteRoom(inviteCode, input = {}) {
   const room = getRoomOrThrow(inviteCode);
   if (room.status === "started") {
@@ -617,5 +732,6 @@ export function getInviteActions(inviteCode, afterSequence = 0) {
 export function clearInviteRoomsForTests() {
   roomsLoaded = true;
   rooms.clear();
+  lobbyPlayers.clear();
   saveRoomsIfNeeded();
 }
