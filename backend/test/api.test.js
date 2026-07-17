@@ -38,7 +38,38 @@ test("cards route serves the prototype card list", async () => {
   try {
     const { response, body } = await request(server, "/api/cards");
     assert.equal(response.status, 200);
-    assert.equal(body.cards.length, 29);
+    assert.equal(body.cards.length, 23);
+  } finally {
+    server.close();
+  }
+});
+
+test("card meta routes expose the validated 6,666 identity system", async () => {
+  const server = await listen(createApp());
+  try {
+    const summary = await request(server, "/api/card-meta/summary");
+    assert.equal(summary.response.status, 200);
+    assert.equal(summary.body.cards, 6666);
+    assert.equal(summary.body.abilities, 432);
+    assert.equal(summary.body.seasons, 22);
+    assert.equal(summary.body.crowns, 22);
+    assert.equal(summary.body.rarityCounts.Common, 3102);
+    assert.equal(summary.body.rarityCounts.Crown, 22);
+
+    const season = await request(server, "/api/card-meta/cards?season=1&limit=303");
+    assert.equal(season.response.status, 200);
+    assert.equal(season.body.total, 303);
+    assert.equal(season.body.items.length, 303);
+    assert.equal(season.body.items.filter((card) => card.physicalRarity === "Crown").length, 1);
+
+    const card = await request(server, "/api/card-meta/cards/1");
+    assert.equal(card.body.card.cardName, "Appreciators Original #1");
+    assert.equal(card.body.card.metadataStatus, "Metadata pending");
+
+    const abilities = await request(server, "/api/card-meta/abilities?type=Board&domain=Art&pillar=Learn&limit=303");
+    assert.equal(abilities.response.status, 200);
+    assert.ok(abilities.body.items.length > 0);
+    assert.ok(abilities.body.items.every((ability) => ability.completeRulesText));
   } finally {
     server.close();
   }
@@ -50,8 +81,26 @@ test("asset manifest exposes expected card art slots", async () => {
     const { response, body } = await request(server, "/api/assets/manifest");
     assert.equal(response.status, 200);
     assert.equal(body.version, "phase-1");
-    assert.equal(body.cards.length, 29);
+    assert.equal(body.cards.length, 23);
     assert.equal(body.cards[0].expectedFile.endsWith(".png"), true);
+  } finally {
+    server.close();
+  }
+});
+
+test("release plan publishes the complete 6,666-card seasonal structure", async () => {
+  const server = await listen(createApp());
+  try {
+    const { response, body } = await request(server, "/api/releases/plan");
+    assert.equal(response.status, 200);
+    assert.equal(body.universeSize, 6666);
+    assert.equal(body.seasonCount, 22);
+    assert.equal(body.cardsPerSeason, 303);
+    assert.equal(Object.values(body.rarityPerSeason).reduce((sum, count) => sum + count, 0), 303);
+    assert.equal(Object.values(body.setOneDistribution).reduce((sum, count) => sum + count, 0), 303);
+    assert.equal(body.gameplay.deckSize, 30);
+    assert.equal(body.gameplay.victoryGrowth, 200);
+    assert.equal(body.crownCompetitiveParity.required, true);
   } finally {
     server.close();
   }
@@ -88,7 +137,7 @@ test("invite matchmaking creates, joins, reports, and starts 1v1 rooms", async (
       method: "POST",
       body: JSON.stringify({
         username: "Host",
-        deckIds: ["regular_body", "beer_helmet"]
+        deckIds: ["regular_body", "no_head_body"]
       })
     });
 
@@ -104,7 +153,7 @@ test("invite matchmaking creates, joins, reports, and starts 1v1 rooms", async (
       method: "POST",
       body: JSON.stringify({
         username: "Guest",
-        deckIds: ["ghost_companion"]
+        deckIds: ["purple_skin"]
       })
     });
 
@@ -138,7 +187,7 @@ test("invite link routes support WebGL-friendly create, join, and start", async 
   clearInviteRoomsForTests();
   const server = await listen(createApp());
   try {
-    const created = await request(server, "/api/matchmaking/invite/new?username=LinkHost&deckIds=regular_body,beer_helmet");
+    const created = await request(server, "/api/matchmaking/invite/new?username=LinkHost&deckIds=regular_body,no_head_body");
 
     assert.equal(created.response.status, 201);
     assert.equal(created.body.room.status, "waiting");
@@ -146,7 +195,7 @@ test("invite link routes support WebGL-friendly create, join, and start", async 
     assert.equal(created.body.room.host.deckSize, 2);
 
     const inviteCode = created.body.room.inviteCode;
-    const joined = await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=LinkGuest&deckIds=ghost_companion`);
+    const joined = await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=LinkGuest&deckIds=purple_skin`);
 
     assert.equal(joined.response.status, 200);
     assert.equal(joined.body.room.status, "ready");
@@ -193,7 +242,7 @@ test("invite lobby exposes available players and direct challenges", async () =>
 
     const guestPresence = await request(
       server,
-      "/api/matchmaking/invite-lobby/announce?username=Guest&playerId=guest_local&deckIds=beer_helmet"
+      "/api/matchmaking/invite-lobby/announce?username=Guest&playerId=guest_local&deckIds=no_head_body"
     );
     assert.equal(guestPresence.response.status, 200);
     assert.equal(guestPresence.body.players.some((player) => player.id === "host_local"), true);
@@ -218,7 +267,7 @@ test("invite lobby exposes available players and direct challenges", async () =>
 
     const joined = await request(
       server,
-      `/api/matchmaking/invite/${challenged.body.room.inviteCode}/join-link?username=Guest&playerId=guest_local&deckIds=beer_helmet`
+      `/api/matchmaking/invite/${challenged.body.room.inviteCode}/join-link?username=Guest&playerId=guest_local&deckIds=no_head_body`
     );
     assert.equal(joined.response.status, 200);
     assert.equal(joined.body.room.status, "ready");
@@ -235,7 +284,7 @@ test("invite match action log records and returns synced play actions", async ()
   try {
     const created = await request(server, "/api/matchmaking/invite/new?username=ActionHost&deckIds=regular_body");
     const inviteCode = created.body.room.inviteCode;
-    const joined = await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=ActionGuest&deckIds=beer_helmet`);
+    const joined = await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=ActionGuest&deckIds=no_head_body`);
     await request(server, `/api/matchmaking/invite/${inviteCode}/start-link?username=ActionHost&playerId=${created.body.player.id}`);
 
     const logged = await request(
@@ -276,13 +325,137 @@ test("invite match action log records and returns synced play actions", async ()
   }
 });
 
+test("invite matches accept the public discard-card event", async () => {
+  clearInviteRoomsForTests();
+  const server = await listen(createApp());
+  try {
+    const created = await request(server, "/api/matchmaking/invite/new?username=ActionHost&deckIds=regular_body");
+    const inviteCode = created.body.room.inviteCode;
+    await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=ActionGuest&deckIds=no_head_body`);
+    await request(server, `/api/matchmaking/invite/${inviteCode}/start-link?username=ActionHost&playerId=${created.body.player.id}`);
+
+    const acted = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${created.body.player.id}&actionId=discard-1&type=discard-card&cardId=regular_body&turn=1`
+    );
+
+    assert.equal(acted.response.status, 200);
+    assert.equal(acted.body.action.type, "discard-card");
+    assert.equal(acted.body.action.cardId, "regular_body");
+    assert.match(acted.body.room.matchState.message, /revealed and discarded/);
+    assert.equal(acted.body.room.matchState.maxTurn, 11);
+  } finally {
+    server.close();
+    clearInviteRoomsForTests();
+  }
+});
+
+test("invite Community resources spend, reset, and regenerate authoritatively", async () => {
+  clearInviteRoomsForTests();
+  const server = await listen(createApp());
+  try {
+    const created = await request(server, "/api/matchmaking/invite/new?username=ShardHost&deckIds=regular_body");
+    const inviteCode = created.body.room.inviteCode;
+    const joined = await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=ShardGuest&deckIds=no_head_body`);
+    await request(server, `/api/matchmaking/invite/${inviteCode}/start-link?username=ShardHost&playerId=${created.body.player.id}`);
+
+    const defense = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${created.body.player.id}&actionId=host-defense&type=spend-community-defense&lane=Community&turn=1`
+    );
+    assert.equal(defense.response.status, 200);
+    assert.deepEqual(defense.body.room.matchState.resources.host, {
+      art: 0,
+      blockchain: 1,
+      shield: 1,
+      rally: 0
+    });
+
+    const rally = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${created.body.player.id}&actionId=host-rally&type=spend-community-rally&lane=Community&turn=1`
+    );
+    assert.equal(rally.response.status, 200);
+    assert.deepEqual(rally.body.room.matchState.resources.host, {
+      art: 0,
+      blockchain: 0,
+      shield: 1,
+      rally: 1
+    });
+
+    const overspend = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${created.body.player.id}&actionId=host-defense-2&type=spend-community-defense&lane=Community&turn=1`
+    );
+    assert.equal(overspend.response.status, 409);
+
+    await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${created.body.player.id}&actionId=host-end-shards&type=end-turn&turn=1`
+    );
+    const advanced = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${joined.body.player.id}&actionId=guest-end-shards&type=end-turn&turn=1`
+    );
+    assert.equal(advanced.body.room.matchState.currentTurn, 2);
+    assert.deepEqual(advanced.body.room.matchState.resources.host, {
+      art: 1,
+      blockchain: 1,
+      shield: 0,
+      rally: 0
+    });
+    assert.deepEqual(advanced.body.room.matchState.resources.guest, {
+      art: 2,
+      blockchain: 2,
+      shield: 0,
+      rally: 0
+    });
+  } finally {
+    server.close();
+    clearInviteRoomsForTests();
+  }
+});
+
+test("invite shard salvage accepts only configured cards and matching lanes", async () => {
+  clearInviteRoomsForTests();
+  const server = await listen(createApp());
+  try {
+    const created = await request(server, "/api/matchmaking/invite/new?username=SalvageHost&deckIds=tropical_background");
+    const inviteCode = created.body.room.inviteCode;
+    const joined = await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=SalvageGuest&deckIds=regular_body`);
+    await request(server, `/api/matchmaking/invite/${inviteCode}/start-link?username=SalvageHost&playerId=${created.body.player.id}`);
+
+    const salvaged = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${created.body.player.id}&actionId=host-salvage&type=discard-card-for-shard&cardId=tropical_background&lane=Art&turn=1`
+    );
+    assert.equal(salvaged.response.status, 200);
+    assert.equal(salvaged.body.room.matchState.resources.host.art, 2);
+
+    const wrongLane = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${joined.body.player.id}&actionId=guest-salvage&type=discard-card-for-shard&cardId=tropical_background&lane=Blockchain&turn=1`
+    );
+    assert.equal(wrongLane.response.status, 400);
+
+    const ineligible = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${joined.body.player.id}&actionId=guest-salvage-2&type=discard-card-for-shard&cardId=regular_body&lane=Art&turn=1`
+    );
+    assert.equal(ineligible.response.status, 400);
+  } finally {
+    server.close();
+    clearInviteRoomsForTests();
+  }
+});
+
 test("invite match state advances turns after both players end", async () => {
   clearInviteRoomsForTests();
   const server = await listen(createApp());
   try {
     const created = await request(server, "/api/matchmaking/invite/new?username=TurnHost&deckIds=regular_body");
     const inviteCode = created.body.room.inviteCode;
-    const joined = await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=TurnGuest&deckIds=beer_helmet`);
+    const joined = await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=TurnGuest&deckIds=no_head_body`);
     await request(server, `/api/matchmaking/invite/${inviteCode}/start-link?username=TurnHost&playerId=${created.body.player.id}`);
 
     const hostEnded = await request(
@@ -313,13 +486,60 @@ test("invite match state advances turns after both players end", async () => {
 
     const stalePlay = await request(
       server,
-      `/api/matchmaking/invite/${inviteCode}/action?playerId=${joined.body.player.id}&actionId=guest-stale&type=play-card&cardId=beer_helmet&lane=Art&turn=1`
+      `/api/matchmaking/invite/${inviteCode}/action?playerId=${joined.body.player.id}&actionId=guest-stale&type=play-card&cardId=no_head_body&lane=Art&turn=1`
     );
     assert.equal(stalePlay.response.status, 409);
 
     const state = await request(server, `/api/matchmaking/invite/${inviteCode}/state`);
     assert.equal(state.response.status, 200);
     assert.equal(state.body.matchState.currentTurn, 2);
+  } finally {
+    server.close();
+    clearInviteRoomsForTests();
+  }
+});
+
+test("invite match requires both players to agree before termination", async () => {
+  clearInviteRoomsForTests();
+  const server = await listen(createApp());
+  try {
+    const created = await request(server, "/api/matchmaking/invite/new?username=ExitHost&deckIds=regular_body");
+    const inviteCode = created.body.room.inviteCode;
+    const joined = await request(server, `/api/matchmaking/invite/${inviteCode}/join-link?username=ExitGuest&deckIds=no_head_body`);
+    await request(server, `/api/matchmaking/invite/${inviteCode}/start-link?username=ExitHost&playerId=${created.body.player.id}`);
+
+    const requested = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/termination-link?playerId=${created.body.player.id}&decision=request`
+    );
+    assert.equal(requested.response.status, 200);
+    assert.equal(requested.body.room.status, "started");
+    assert.equal(requested.body.matchState.status, "active");
+    assert.equal(requested.body.matchState.termination.status, "pending");
+    assert.equal(requested.body.matchState.termination.hostAccepted, true);
+    assert.equal(requested.body.matchState.termination.guestAccepted, false);
+
+    const declined = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/termination-link?playerId=${joined.body.player.id}&decision=decline`
+    );
+    assert.equal(declined.body.room.status, "started");
+    assert.equal(declined.body.matchState.termination.status, "declined");
+
+    await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/termination-link?playerId=${created.body.player.id}&decision=request`
+    );
+    const accepted = await request(
+      server,
+      `/api/matchmaking/invite/${inviteCode}/termination-link?playerId=${joined.body.player.id}&decision=accept`
+    );
+    assert.equal(accepted.response.status, 200);
+    assert.equal(accepted.body.room.status, "terminated");
+    assert.equal(accepted.body.matchState.status, "terminated");
+    assert.equal(accepted.body.matchState.termination.status, "agreed");
+    assert.equal(accepted.body.matchState.termination.hostAccepted, true);
+    assert.equal(accepted.body.matchState.termination.guestAccepted, true);
   } finally {
     server.close();
     clearInviteRoomsForTests();
@@ -390,11 +610,32 @@ test("web3 routes stay explicitly mocked", async () => {
     assert.equal(mint.body.tokens.length, 2);
     assert.equal(mint.body.supplyCap, 6666);
     assert.equal(mint.body.remainingSupply, 663);
+    assert.equal(mint.body.selectionMode, "random-non-sequential");
+    assert.equal(typeof mint.body.tokens[0].tokenNumber, "number");
+    assert.equal(typeof mint.body.tokens[0].rarity, "string");
+    assert.equal(typeof mint.body.tokens[0].warPower, "number");
+    assert.equal(new Set(mint.body.tokens.map((token) => token.tokenId)).size, 2);
+    assert.notEqual(Math.abs(mint.body.tokens[0].tokenNumber - mint.body.tokens[1].tokenNumber), 1);
 
     const mintLink = await request(server, "/api/mint/simulate-link?walletAddress=0xMock&quantity=99");
     assert.equal(mintLink.body.requestedQuantity, 5);
     assert.equal(mintLink.body.mintedQuantity, 5);
     assert.equal(mintLink.body.totalMintedByWallet, 7);
+
+    const war = await request(server, `/api/mint/war-link?walletAddress=0xMock&tokenId=${mint.body.tokens[0].tokenId}`);
+    assert.equal(war.response.status, 200);
+    assert.equal(war.body.mock, true);
+    assert.equal(war.body.mode, "I Declare War vs AI");
+    assert.ok(["win", "loss", "draw"].includes(war.body.result));
+    assert.equal(typeof war.body.playerScore, "number");
+    assert.equal(typeof war.body.aiScore, "number");
+    assert.equal(war.body.leaderboard.length > 0, true);
+
+    const leaderboard = await request(server, "/api/mint/leaderboard-link");
+    assert.equal(leaderboard.response.status, 200);
+    assert.equal(leaderboard.body.mode, "Community Leaderboard");
+    assert.equal(leaderboard.body.leaderboard[0].displayAddress, "0xMock");
+    assert.equal(leaderboard.body.leaderboard[0].mintedCount, 7);
   } finally {
     server.close();
     resetMockMintForTests();

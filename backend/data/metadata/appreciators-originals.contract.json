@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-20T22:32:52.858Z",
+  "collection": {
+    "name": "Appreciators Originals",
+    "symbol": "OG",
+    "chain": "ApeChain Mainnet",
+    "chainId": 33139,
+    "contractAddress": "0xd92b263b48f74d0cd21f9d2c01b6cd06f2ab96cd",
+    "standard": "ERC-721",
+    "totalSupply": 6666,
+    "tokenIdStart": 1,
+    "tokenIdEnd": 6666,
+    "explorerUrl": "https://apescan.io/address/0xd92b263b48f74d0cd21f9d2c01b6cd06f2ab96cd",
+    "metadataBaseUrl": "https://originals-metadata.s3.us-east-2.amazonaws.com/metadata",
+    "imageBaseUrl": "https://originals-metadata.s3.us-east-2.amazonaws.com/images"
+  },
+  "importPolicy": {
+    "metadataOnly": true,
+    "imagesDownloaded": false,
+    "excludedTerms": [
+      "Dreaded Ape"
+    ],
+    "gameplayTraitsRestrictedToApprovedList": true
+  }
+}

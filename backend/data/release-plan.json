@@ -1,0 +1,73 @@
+{
+  "version": "seasonal-universe-v1",
+  "universeSize": 6666,
+  "seasonCount": 22,
+  "cardsPerSeason": 303,
+  "seasonsPerYear": 4,
+  "rarityPerSeason": {
+    "common": 141,
+    "uncommon": 90,
+    "rare": 48,
+    "epic": 18,
+    "legendary": 5,
+    "crown": 1
+  },
+  "crownCompetitiveParity": {
+    "required": true,
+    "equivalentType": "EchoOrAvatar",
+    "rulesTextMustMatch": true
+  },
+  "strategicPaths": [
+    "Learn",
+    "Build",
+    "Grow"
+  ],
+  "hybridArchetypes": [
+    "Curators",
+    "Amplifiers",
+    "Spotlighters",
+    "Visionaries"
+  ],
+  "setOneDistribution": {
+    "learn": 54,
+    "build": 54,
+    "grow": 54,
+    "learnBuild": 36,
+    "buildGrow": 36,
+    "growLearn": 36,
+    "neutralCommunity": 32,
+    "crown": 1
+  },
+  "gameplay": {
+    "deckSize": 30,
+    "leaderOutsideDeck": true,
+    "normalCopyLimit": 2,
+    "premiumCopyLimit": 1,
+    "hiddenCardsKeptBetweenTurns": 1,
+    "boardCardLimit": 5,
+    "structureLimit": 2,
+    "spotlightGrowth": 150,
+    "victoryGrowth": 200,
+    "turnLoop": [
+      "Refresh",
+      "Draw",
+      "Learn",
+      "Build or Discard Effect Action",
+      "Field Battle",
+      "Gather Growth",
+      "Tally",
+      "End Turn"
+    ]
+  },
+  "pack": {
+    "cards": 12,
+    "usesChassisSystem": true
+  },
+  "formats": [
+    "Standard",
+    "Seasonal",
+    "Singleton",
+    "Draft",
+    "Sealed"
+  ]
+}

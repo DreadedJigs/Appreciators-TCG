@@ -14,14 +14,14 @@ test("prototype card set has the required Phase 1 shape", async () => {
     return result;
   }, {});
 
-  assert.equal(cards.length, 29);
-  assert.equal(counts.ORIGINAL, 17);
-  assert.equal(counts.COMPANION, 5);
+  assert.equal(cards.length, 23);
+  assert.equal(counts.ORIGINAL, 16);
+  assert.equal(counts.COMPANION || 0, 0);
   assert.equal(counts.ITEM, 7);
   assert.equal(counts.EVENT || 0, 0);
 });
 
-test("every card has editable gameplay fields", async () => {
+test("every card exposes Attack and Defense as its required stats", async () => {
   const cards = await loadCards();
   const ids = new Set();
 
@@ -32,9 +32,10 @@ test("every card has editable gameplay fields", async () => {
     assert.equal(typeof card.effectId, "string");
     assert.equal(typeof card.rarity, "string");
     assert.equal(typeof card.traitGroup, "string");
-    assert.ok(Number.isInteger(card.cost), `${card.name} cost must be an integer`);
-    assert.ok(Number.isInteger(card.power), `${card.name} power must be an integer`);
-    assert.ok(Number.isInteger(card.appreciation), `${card.name} appreciation must be an integer`);
+    assert.ok(Number.isInteger(card.attack), `${card.name} attack must be an integer`);
+    assert.ok(Number.isInteger(card.defense), `${card.name} defense must be an integer`);
+    assert.ok(card.attack >= 0, `${card.name} attack must be non-negative`);
+    assert.ok(card.defense > 0, `${card.name} defense must be positive`);
     assert.ok(["ORIGINAL", "COMPANION", "ITEM", "EVENT"].includes(card.type));
     assert.equal(/dreaded ape/i.test(`${card.id} ${card.name} ${card.artPath}`), false);
     assert.ok(!ids.has(card.id), `Duplicate card id ${card.id}`);
@@ -47,6 +48,9 @@ test("every card has a final-art drop slot", async () => {
 
   for (const card of cards) {
     assert.equal(card.artKey, card.id, `${card.id} artKey should match its stable card id`);
-    assert.equal(card.artPath, `Art/Cards/${card.id}`, `${card.id} artPath should target Unity Resources`);
+    assert.ok(
+      [`Art/Cards/${card.id}`, `Art/Official/GeneratedCards/${card.id}`].includes(card.artPath),
+      `${card.id} artPath should target a Unity Resources card-art location`
+    );
   }
 });

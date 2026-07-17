@@ -1,0 +1,700 @@
+{
+  "packs": [
+    {
+      "id": "starter_appreciation_pack",
+      "name": "Starter Appreciation Pack",
+      "displayName": "Starter Appreciation Pack",
+      "description": "One of three free Neutral packs granted to every new player.",
+      "packArtReference": "Art/Official/Cards/app_card_reverse",
+      "attunementEnabled": false,
+      "validAttunements": [],
+      "isActive": true,
+      "isTestPack": true,
+      "mysteryProfile": "starter",
+      "featuredLane": 3,
+      "featuredLaneLabel": "Neutral",
+      "displayedOddsText": "Three starter packs are granted free. All openings are Neutral. Final Mystery: Rare 85%, Epic 13%, Legendary 2%.",
+      "slots": [
+        {
+          "slotIndex": 1,
+          "label": "First Seal",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 100
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "label": "Second Seal",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 70
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 30
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "label": "Third Seal",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 75
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 25
+            }
+          ]
+        },
+        {
+          "slotIndex": 4,
+          "label": "Wild Card",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 60
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 32
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 8
+            }
+          ]
+        },
+        {
+          "slotIndex": 5,
+          "label": "Final Mystery",
+          "isLaneAttuned": false,
+          "isMystery": true,
+          "rarityOdds": [
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 85
+            },
+            {
+              "rarity": 3,
+              "rarityLabel": "Epic",
+              "weight": 13
+            },
+            {
+              "rarity": 4,
+              "rarityLabel": "Legendary",
+              "weight": 2
+            }
+          ]
+        }
+      ],
+      "shardCost": 0,
+      "purchasable": false,
+      "storeTierLabel": "STARTER GIFT",
+      "minimumMysteryRarity": "Rare"
+    },
+    {
+      "id": "random_appreciation_pack",
+      "name": "Random Appreciation Pack",
+      "displayName": "Random Appreciation Pack",
+      "description": "A five-card Neutral pack funded with earned Appreciation Shards.",
+      "packArtReference": "Art/Official/Cards/app_card_reverse",
+      "attunementEnabled": false,
+      "validAttunements": [],
+      "isActive": true,
+      "isTestPack": true,
+      "mysteryProfile": "standard",
+      "featuredLane": 3,
+      "featuredLaneLabel": "Neutral",
+      "displayedOddsText": "Costs 300 shards. All lanes are random. Final Mystery: Common 50%, Uncommon 30%, Rare 15%, Epic 4%, Legendary 1%.",
+      "slots": [
+        {
+          "slotIndex": 1,
+          "label": "Art Seal I",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 100
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "label": "Art Seal II",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 70
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 30
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "label": "Curator Seal",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 75
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 25
+            }
+          ]
+        },
+        {
+          "slotIndex": 4,
+          "label": "Wild Card",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 60
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 32
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 8
+            }
+          ]
+        },
+        {
+          "slotIndex": 5,
+          "label": "Final Mystery",
+          "isLaneAttuned": false,
+          "isMystery": true,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 50
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 30
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 15
+            },
+            {
+              "rarity": 3,
+              "rarityLabel": "Epic",
+              "weight": 4
+            },
+            {
+              "rarity": 4,
+              "rarityLabel": "Legendary",
+              "weight": 1
+            }
+          ]
+        }
+      ],
+      "shardCost": 300,
+      "purchasable": true,
+      "storeTierLabel": "RANDOM",
+      "minimumMysteryRarity": "Common"
+    },
+    {
+      "id": "uncommon_guaranteed_pack",
+      "name": "Uncommon Guarantee Pack",
+      "displayName": "Uncommon Guarantee Pack",
+      "description": "The final Mystery card is guaranteed Uncommon or better.",
+      "packArtReference": "Art/Official/Cards/app_card_reverse",
+      "attunementEnabled": false,
+      "validAttunements": [],
+      "isActive": true,
+      "isTestPack": true,
+      "mysteryProfile": "guaranteed_uncommon",
+      "featuredLane": 3,
+      "featuredLaneLabel": "Neutral",
+      "displayedOddsText": "Costs 900 shards. Final Mystery: Uncommon 70%, Rare 20%, Mythic 8%, Legendary 2%.",
+      "slots": [
+        {
+          "slotIndex": 1,
+          "label": "Art Seal I",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 100
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "label": "Art Seal II",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 70
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 30
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "label": "Curator Seal",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 75
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 25
+            }
+          ]
+        },
+        {
+          "slotIndex": 4,
+          "label": "Wild Card",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 60
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 32
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 8
+            }
+          ]
+        },
+        {
+          "slotIndex": 5,
+          "label": "Final Mystery",
+          "isLaneAttuned": false,
+          "isMystery": true,
+          "rarityOdds": [
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 70
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 20
+            },
+            {
+              "rarity": 3,
+              "rarityLabel": "Epic",
+              "weight": 8
+            },
+            {
+              "rarity": 4,
+              "rarityLabel": "Legendary",
+              "weight": 2
+            }
+          ]
+        }
+      ],
+      "shardCost": 900,
+      "purchasable": true,
+      "storeTierLabel": "GUARANTEED",
+      "minimumMysteryRarity": "Uncommon"
+    },
+    {
+      "id": "rare_guaranteed_pack",
+      "name": "Rare Guarantee Pack",
+      "displayName": "Rare Guarantee Pack",
+      "description": "The final Mystery card is guaranteed Rare or better.",
+      "packArtReference": "Art/Official/Cards/app_card_reverse",
+      "attunementEnabled": false,
+      "validAttunements": [],
+      "isActive": true,
+      "isTestPack": true,
+      "mysteryProfile": "guaranteed_rare",
+      "featuredLane": 3,
+      "featuredLaneLabel": "Neutral",
+      "displayedOddsText": "Costs 1,200 shards. Final Mystery: Rare 82%, Mythic 15%, Legendary 3%.",
+      "slots": [
+        {
+          "slotIndex": 1,
+          "label": "Art Seal I",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 100
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "label": "Art Seal II",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 70
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 30
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "label": "Curator Seal",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 75
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 25
+            }
+          ]
+        },
+        {
+          "slotIndex": 4,
+          "label": "Wild Card",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 60
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 32
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 8
+            }
+          ]
+        },
+        {
+          "slotIndex": 5,
+          "label": "Final Mystery",
+          "isLaneAttuned": false,
+          "isMystery": true,
+          "rarityOdds": [
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 82
+            },
+            {
+              "rarity": 3,
+              "rarityLabel": "Epic",
+              "weight": 15
+            },
+            {
+              "rarity": 4,
+              "rarityLabel": "Legendary",
+              "weight": 3
+            }
+          ]
+        }
+      ],
+      "shardCost": 1200,
+      "purchasable": true,
+      "storeTierLabel": "GUARANTEED",
+      "minimumMysteryRarity": "Rare"
+    },
+    {
+      "id": "mythic_guaranteed_pack",
+      "name": "Mythic Guarantee Pack",
+      "displayName": "Mythic Guarantee Pack",
+      "description": "The final Mystery card is guaranteed Mythic or Legendary. Mythic maps to the current Epic data tier.",
+      "packArtReference": "Art/Official/Cards/app_card_reverse",
+      "attunementEnabled": false,
+      "validAttunements": [],
+      "isActive": true,
+      "isTestPack": true,
+      "mysteryProfile": "guaranteed_epic",
+      "featuredLane": 3,
+      "featuredLaneLabel": "Neutral",
+      "displayedOddsText": "Costs 1,500 shards. Final Mystery: Mythic 90%, Legendary 10%.",
+      "slots": [
+        {
+          "slotIndex": 1,
+          "label": "Art Seal I",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 100
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "label": "Art Seal II",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 70
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 30
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "label": "Curator Seal",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 75
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 25
+            }
+          ]
+        },
+        {
+          "slotIndex": 4,
+          "label": "Wild Card",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 60
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 32
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 8
+            }
+          ]
+        },
+        {
+          "slotIndex": 5,
+          "label": "Final Mystery",
+          "isLaneAttuned": false,
+          "isMystery": true,
+          "rarityOdds": [
+            {
+              "rarity": 3,
+              "rarityLabel": "Epic",
+              "weight": 90
+            },
+            {
+              "rarity": 4,
+              "rarityLabel": "Legendary",
+              "weight": 10
+            }
+          ]
+        }
+      ],
+      "shardCost": 1500,
+      "purchasable": true,
+      "storeTierLabel": "GUARANTEED",
+      "minimumMysteryRarity": "Mythic"
+    },
+    {
+      "id": "legendary_guaranteed_pack",
+      "name": "Legendary Guarantee Pack",
+      "displayName": "Legendary Guarantee Pack",
+      "description": "The final Mystery card is guaranteed Legendary.",
+      "packArtReference": "Art/Official/Cards/app_card_reverse",
+      "attunementEnabled": false,
+      "validAttunements": [],
+      "isActive": true,
+      "isTestPack": true,
+      "mysteryProfile": "guaranteed_legendary",
+      "featuredLane": 3,
+      "featuredLaneLabel": "Neutral",
+      "displayedOddsText": "Costs 1,800 shards. Final Mystery: Legendary 100%.",
+      "slots": [
+        {
+          "slotIndex": 1,
+          "label": "Art Seal I",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 100
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "label": "Art Seal II",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 70
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 30
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "label": "Curator Seal",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 75
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 25
+            }
+          ]
+        },
+        {
+          "slotIndex": 4,
+          "label": "Wild Card",
+          "isLaneAttuned": false,
+          "isMystery": false,
+          "rarityOdds": [
+            {
+              "rarity": 0,
+              "rarityLabel": "Common",
+              "weight": 60
+            },
+            {
+              "rarity": 1,
+              "rarityLabel": "Uncommon",
+              "weight": 32
+            },
+            {
+              "rarity": 2,
+              "rarityLabel": "Rare",
+              "weight": 8
+            }
+          ]
+        },
+        {
+          "slotIndex": 5,
+          "label": "Final Mystery",
+          "isLaneAttuned": false,
+          "isMystery": true,
+          "rarityOdds": [
+            {
+              "rarity": 4,
+              "rarityLabel": "Legendary",
+              "weight": 100
+            }
+          ]
+        }
+      ],
+      "shardCost": 1800,
+      "purchasable": true,
+      "storeTierLabel": "GUARANTEED",
+      "minimumMysteryRarity": "Legendary"
+    }
+  ]
+}

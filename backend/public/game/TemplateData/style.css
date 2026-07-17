@@ -1,0 +1,70 @@
+body { padding: 0; margin: 0 }
+#unity-container { position: absolute }
+#unity-container.unity-desktop { left: 50%; top: 50%; transform: translate(-50%, -50%) }
+#unity-container.unity-mobile { position: fixed; width: 100%; height: 100% }
+#unity-canvas { background: #1F1F20 }
+.unity-mobile #unity-canvas { width: 100%; height: 100% }
+#unity-loading-bar { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: none }
+#unity-logo { width: 154px; height: 130px; background: url('unity-logo-dark.png') no-repeat center }
+#unity-progress-bar-empty { width: 141px; height: 18px; margin-top: 10px; margin-left: 6.5px; background: url('progress-bar-empty-dark.png') no-repeat center }
+#unity-progress-bar-full { width: 0%; height: 18px; margin-top: 10px; background: url('progress-bar-full-dark.png') no-repeat center }
+#unity-footer { position: relative }
+.unity-mobile #unity-footer { display: none }
+#unity-webgl-logo { float:left; width: 204px; height: 38px; background: url('webgl-logo.png') no-repeat center }
+#unity-build-title { float: right; margin-right: 10px; line-height: 38px; font-family: arial; font-size: 18px }
+#unity-fullscreen-button { cursor:pointer; float: right; width: 38px; height: 38px; background: url('fullscreen-button.png') no-repeat center }
+#unity-warning { position: absolute; left: 50%; top: 5%; transform: translate(-50%); background: white; padding: 10px; display: none }
+
+html, body { width: 100%; height: 100%; min-height: 100dvh; overflow: hidden; background: #050515; }
+#unity-container.unity-desktop {
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+}
+#unity-container.unity-desktop #unity-canvas { width: 100%; height: 100%; }
+#unity-container.unity-desktop #unity-footer { display: none; }
+#unity-container.unity-mobile {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+}
+#unity-container.unity-mobile #unity-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#appreciators-rotate-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(5, 5, 21, 0.92);
+  color: #ffffff;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+#appreciators-rotate-overlay .rotate-card {
+  width: min(82vw, 440px);
+  border: 3px solid #10d8ff;
+  border-radius: 18px;
+  padding: 26px 22px;
+  background: linear-gradient(155deg, rgba(15, 10, 70, 0.96), rgba(137, 72, 255, 0.82));
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42), 0 0 36px rgba(16, 216, 255, 0.30);
+}
+#appreciators-rotate-overlay strong {
+  display: block;
+  margin-bottom: 12px;
+  color: #ffd22a;
+  font-size: clamp(22px, 6vw, 34px);
+  letter-spacing: 0;
+}
+#appreciators-rotate-overlay span {
+  display: block;
+  color: #e9f8ff;
+  font-size: clamp(16px, 4vw, 22px);
+  line-height: 1.35;
+}

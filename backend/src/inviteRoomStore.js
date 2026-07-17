@@ -8,8 +8,8 @@ const lobbyPlayers = new Map();
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const MAX_DECK_IDS = 12;
 const LANES = ["Art", "Community", "Blockchain"];
-const MAX_TURN = 6;
-const MAX_CARDS_PER_LANE = 4;
+const MAX_TURN = 11;
+const MAX_CARDS_PER_LANE = 8;
 const LOBBY_PLAYER_TTL_MS = 75 * 1000;
 const DEFAULT_ROOM_TTL_MINUTES = 360;
 const roomTtlMinutes = Math.max(
@@ -242,6 +242,18 @@ function publicAction(action) {
   };
 }
 
+function ensureMatchResources(matchState) {
+  if (!matchState) {
+    return null;
+  }
+
+  const startingStock = Math.max(1, Number.parseInt(matchState.currentTurn, 10) || 1);
+  matchState.resources ||= {};
+  matchState.resources.host ||= { art: startingStock, blockchain: startingStock, shield: 0, rally: 0 };
+  matchState.resources.guest ||= { art: startingStock, blockchain: startingStock, shield: 0, rally: 0 };
+  return matchState.resources;
+}
+
 function createMatchState() {
   return {
     status: "waiting",
@@ -250,6 +262,10 @@ function createMatchState() {
     energy: {
       host: 1,
       guest: 1
+    },
+    resources: {
+      host: { art: 1, blockchain: 1, shield: 0, rally: 0 },
+      guest: { art: 1, blockchain: 1, shield: 0, rally: 0 }
     },
     endedTurn: {
       host: false,
@@ -262,9 +278,47 @@ function createMatchState() {
         guest: []
       }
     ])),
+    termination: createTerminationState(),
     result: null,
     version: 0,
     message: "Waiting for both players."
+  };
+}
+
+function createTerminationState() {
+  return {
+    status: "none",
+    requestedByPlayerId: "",
+    requestedByRole: "",
+    requestedByUsername: "",
+    hostAccepted: false,
+    guestAccepted: false,
+    requestedAt: null,
+    resolvedAt: null,
+    declinedByUsername: ""
+  };
+}
+
+function ensureTerminationState(matchState) {
+  if (!matchState.termination) {
+    matchState.termination = createTerminationState();
+  }
+
+  return matchState.termination;
+}
+
+function publicTerminationState(termination) {
+  const state = termination || createTerminationState();
+  return {
+    status: state.status || "none",
+    requestedByPlayerId: state.requestedByPlayerId || "",
+    requestedByRole: state.requestedByRole || "",
+    requestedByUsername: state.requestedByUsername || "",
+    hostAccepted: Boolean(state.hostAccepted),
+    guestAccepted: Boolean(state.guestAccepted),
+    requestedAt: state.requestedAt || null,
+    resolvedAt: state.resolvedAt || null,
+    declinedByUsername: state.declinedByUsername || ""
   };
 }
 
@@ -310,13 +364,16 @@ function publicMatchState(matchState) {
     return null;
   }
 
+  const resources = ensureMatchResources(matchState);
   return {
     status: matchState.status,
     currentTurn: matchState.currentTurn,
     maxTurn: matchState.maxTurn,
     energy: matchState.energy,
+    resources,
     endedTurn: matchState.endedTurn,
     lanes: LANES.map((lane) => publicLaneState(matchState, lane)),
+    termination: publicTerminationState(matchState.termination),
     result: matchState.result,
     version: matchState.version,
     message: matchState.message
@@ -372,6 +429,8 @@ function applyActionToMatchState(room, action) {
     return;
   }
 
+  ensureMatchResources(matchState);
+
   if (action.type === "play-card") {
     const lane = normalizeLane(action.lane);
     const laneState = matchState.lanes[lane];
@@ -393,11 +452,56 @@ function applyActionToMatchState(room, action) {
     matchState.message = `${action.username} played a card in ${lane}.`;
   }
 
+  if (action.type === "discard-card") {
+    const card = getPrototypeCardByIdSync(action.cardId);
+    matchState.message = `${action.username} revealed and discarded ${card?.name || action.cardId}.`;
+  }
+
+  if (action.type === "discard-card-for-shard") {
+    const card = getPrototypeCardByIdSync(action.cardId);
+    const shardLane = normalizeLane(card?.discardShardLane);
+    const shardValue = Math.max(0, Number(card?.discardShardValue || 0));
+    const resourceKey = shardLane.toLowerCase();
+    const resources = matchState.resources[action.role];
+    if (!resources || !["art", "blockchain"].includes(resourceKey) || shardValue <= 0) {
+      throw Object.assign(new Error("Card cannot be discarded for shards."), { statusCode: 409 });
+    }
+
+    resources[resourceKey] += shardValue;
+    matchState.message = `${action.username} discarded ${card.name} for +${shardValue} ${shardLane} shard.`;
+  }
+
+  if (action.type === "spend-community-defense") {
+    const resources = matchState.resources[action.role];
+    if (!resources || resources.art <= 0 || resources.shield >= 3) {
+      throw Object.assign(new Error("Art shard cannot be invested in Community defense."), { statusCode: 409 });
+    }
+
+    resources.art -= 1;
+    resources.shield += 1;
+    matchState.message = `${action.username} invested an Art shard in Community defense.`;
+  }
+
+  if (action.type === "spend-community-rally") {
+    const resources = matchState.resources[action.role];
+    if (!resources || resources.blockchain <= 0 || resources.rally >= 3) {
+      throw Object.assign(new Error("Blockchain shard cannot be invested in Community rally."), { statusCode: 409 });
+    }
+
+    resources.blockchain -= 1;
+    resources.rally += 1;
+    matchState.message = `${action.username} invested a Blockchain shard in Community rally.`;
+  }
+
   if (action.type === "end-turn") {
     matchState.endedTurn[action.role] = true;
     matchState.message = `${action.username} ended turn ${matchState.currentTurn}.`;
 
     if (matchState.endedTurn.host && matchState.endedTurn.guest) {
+      matchState.resources.host.shield = 0;
+      matchState.resources.host.rally = 0;
+      matchState.resources.guest.shield = 0;
+      matchState.resources.guest.rally = 0;
       if (matchState.currentTurn >= matchState.maxTurn) {
         matchState.status = "complete";
         matchState.result = scoreMatch(matchState);
@@ -406,6 +510,10 @@ function applyActionToMatchState(room, action) {
         matchState.currentTurn += 1;
         matchState.energy.host = matchState.currentTurn;
         matchState.energy.guest = matchState.currentTurn;
+        matchState.resources.host.art += 1;
+        matchState.resources.host.blockchain += 1;
+        matchState.resources.guest.art += 1;
+        matchState.resources.guest.blockchain += 1;
         matchState.endedTurn.host = false;
         matchState.endedTurn.guest = false;
         matchState.message = `Turn ${matchState.currentTurn} started.`;
@@ -639,6 +747,82 @@ export function startInviteRoom(inviteCode, input = {}) {
   };
 }
 
+export function respondToInviteTermination(inviteCode, input = {}) {
+  const room = getRoomOrThrow(inviteCode);
+  const requester = safePlayerId(input?.playerId);
+  const player = [room.host, room.guest].find((candidate) => candidate?.id === requester);
+  if (!player) {
+    throw Object.assign(new Error("Only a room participant can respond to match termination."), { statusCode: 403 });
+  }
+
+  if (room.status === "terminated" || room.matchState?.status === "terminated") {
+    return {
+      room: publicRoom(room),
+      matchState: publicMatchState(room.matchState),
+      message: "Invite match was already terminated by agreement."
+    };
+  }
+
+  if (room.status !== "started" || room.matchState?.status !== "active") {
+    throw Object.assign(new Error("Only an active invite match can be terminated by agreement."), { statusCode: 409 });
+  }
+
+  const decision = String(input?.decision || "request").trim().toLowerCase();
+  if (!["request", "accept", "decline"].includes(decision)) {
+    throw Object.assign(new Error("Termination decision must be request, accept, or decline."), { statusCode: 400 });
+  }
+
+  const now = new Date().toISOString();
+  let termination = ensureTerminationState(room.matchState);
+  if (decision === "decline") {
+    if (termination.status !== "pending") {
+      throw Object.assign(new Error("There is no pending termination request to decline."), { statusCode: 409 });
+    }
+
+    room.matchState.termination = {
+      ...createTerminationState(),
+      status: "declined",
+      resolvedAt: now,
+      declinedByUsername: player.username
+    };
+    room.matchState.message = `${player.username} chose to continue the match.`;
+    room.message = room.matchState.message;
+  } else {
+    if (termination.status !== "pending") {
+      termination = createTerminationState();
+      termination.status = "pending";
+      termination.requestedByPlayerId = player.id;
+      termination.requestedByRole = player.role;
+      termination.requestedByUsername = player.username;
+      termination.requestedAt = now;
+      room.matchState.termination = termination;
+    }
+
+    termination[`${player.role}Accepted`] = true;
+    if (termination.hostAccepted && termination.guestAccepted) {
+      termination.status = "agreed";
+      termination.resolvedAt = now;
+      room.status = "terminated";
+      room.matchState.status = "terminated";
+      room.matchState.message = "Both players agreed to terminate the match.";
+      room.message = room.matchState.message;
+    } else {
+      room.matchState.message = `${player.username} requested mutual match termination.`;
+      room.message = room.matchState.message;
+    }
+  }
+
+  room.matchState.version += 1;
+  room.updatedAt = now;
+  player.lastSeenAt = now;
+  saveRoomsIfNeeded();
+  return {
+    room: publicRoom(room),
+    matchState: publicMatchState(room.matchState),
+    message: room.message
+  };
+}
+
 export function recordInviteAction(inviteCode, input = {}) {
   const room = getRoomOrThrow(inviteCode);
   if (room.status !== "started") {
@@ -652,7 +836,15 @@ export function recordInviteAction(inviteCode, input = {}) {
   }
 
   const type = String(input?.type || "").trim();
-  if (type !== "play-card" && type !== "end-turn") {
+  const allowedTypes = [
+    "play-card",
+    "discard-card",
+    "discard-card-for-shard",
+    "end-turn",
+    "spend-community-defense",
+    "spend-community-rally"
+  ];
+  if (!allowedTypes.includes(type)) {
     throw Object.assign(new Error("Unsupported invite match action."), { statusCode: 400 });
   }
 
@@ -682,13 +874,28 @@ export function recordInviteAction(inviteCode, input = {}) {
 
   const lane = normalizeLane(input?.lane);
   const cardId = String(input?.cardId || "").trim();
+  if (type === "play-card" || type === "discard-card") {
+    if (!getPrototypeCardByIdSync(cardId)) {
+      throw Object.assign(new Error("Invite action card is not in the prototype card set."), { statusCode: 400 });
+    }
+  }
+
   if (type === "play-card") {
     if (!lane) {
       throw Object.assign(new Error("Invite action lane is required."), { statusCode: 400 });
     }
+  }
 
-    if (!getPrototypeCardByIdSync(cardId)) {
-      throw Object.assign(new Error("Invite action card is not in the prototype card set."), { statusCode: 400 });
+  if (type === "discard-card-for-shard") {
+    const card = getPrototypeCardByIdSync(cardId);
+    const configuredLane = normalizeLane(card?.discardShardLane);
+    const shardValue = Math.max(0, Number(card?.discardShardValue || 0));
+    if (!card || shardValue <= 0 || !["Art", "Blockchain"].includes(configuredLane)) {
+      throw Object.assign(new Error("Invite action card cannot be discarded for shards."), { statusCode: 400 });
+    }
+
+    if (lane !== configuredLane) {
+      throw Object.assign(new Error("Invite shard lane does not match the card configuration."), { statusCode: 400 });
     }
   }
 

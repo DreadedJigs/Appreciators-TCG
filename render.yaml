@@ -7,13 +7,29 @@ services:
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
-    plan: free
+    plan: starter
+    disk:
+      name: appreciators-persistent-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: INVITE_ROOM_PERSISTENCE
         value: "true"
       - key: INVITE_ROOM_STORE_PATH
-        value: /tmp/appreciators-invite-rooms.json
+        value: /var/data/appreciators-invite-rooms.json
       - key: INVITE_ROOM_TTL_MINUTES
         value: "360"
+      - key: PACK_REWARD_SIGNING_SECRET
+        generateValue: true
+      - key: PACK_REWARD_SIGNING_KEY_ID
+        value: render-alpha-v1
+      - key: PACK_INVENTORY_PERSISTENCE
+        value: "true"
+      - key: PACK_INVENTORY_STORE_PATH
+        value: /var/data/appreciators-pack-inventory.json
+      - key: PACK_TEST_GRANTS_ENABLED
+        value: "true"
+      - key: PACK_TEST_ADMIN_KEY
+        generateValue: true

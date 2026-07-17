@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "node --test"
+    "test": "node --test",
+    "metadata:originals": "node ../scripts/import-apechain-originals.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

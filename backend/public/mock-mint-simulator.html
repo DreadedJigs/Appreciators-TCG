@@ -311,6 +311,132 @@
       font-size: 12px;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
+    .action-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .war-button,
+    .secondary-button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 6px;
+      color: var(--app-text);
+      cursor: pointer;
+      font: inherit;
+      font-weight: 900;
+    }
+
+    .war-button {
+      background: linear-gradient(135deg, var(--app-pink), var(--app-gold));
+      color: var(--app-ink);
+    }
+
+    .secondary-button {
+      border: 1px solid rgba(157, 175, 200, 0.28);
+      background: var(--app-panel-2);
+    }
+
+    .war-panel,
+    .leaderboard-panel {
+      border: 1px solid rgba(255, 194, 71, 0.24);
+      border-radius: 8px;
+      background: rgba(5, 7, 17, 0.48);
+      padding: 14px;
+    }
+
+    .war-panel h2,
+    .leaderboard-panel h2 {
+      margin: 0 0 10px;
+      color: var(--app-gold);
+      font-size: 19px;
+    }
+
+    .card-versus {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 12px;
+    }
+
+    .versus-mark {
+      display: grid;
+      place-items: center;
+      color: var(--app-pink);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .battle-card {
+      min-width: 0;
+      border: 1px solid rgba(33, 232, 255, 0.20);
+      border-radius: 7px;
+      background: rgba(24, 33, 57, 0.72);
+      padding: 10px;
+    }
+
+    .battle-card strong {
+      display: block;
+      color: var(--app-text);
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .battle-card span {
+      display: block;
+      margin-top: 5px;
+      color: var(--app-muted);
+      font-size: 12px;
+    }
+
+    .leaderboard-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .leaderboard-entry {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 9px;
+      align-items: center;
+      border: 1px solid rgba(157, 175, 200, 0.16);
+      border-radius: 6px;
+      background: rgba(24, 33, 57, 0.54);
+      padding: 8px;
+      color: var(--app-muted);
+      font-size: 12px;
+    }
+
+    .leaderboard-entry strong {
+      color: var(--app-text);
+      font-size: 13px;
+    }
+
+    .leaderboard-rank {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(255, 194, 71, 0.18);
+      color: var(--app-gold);
+      font-weight: 900;
+    }
+
+    .leaderboard-score {
+      color: var(--app-cyan);
+      font-weight: 900;
+    }
+
     .is-error h2 {
       color: var(--app-red);
     }
@@ -318,6 +444,15 @@
     @media (max-width: 720px) {
       .mint-content {
         grid-template-columns: 1fr;
+      }
+
+      .action-strip,
+      .card-versus {
+        grid-template-columns: 1fr;
+      }
+
+      .versus-mark {
+        min-height: 16px;
       }
     }
   </style>
@@ -363,6 +498,27 @@
             <h2>Ready to Mint</h2>
             <p>Choose a quantity and press Mock Mint to reveal simulated tokens.</p>
           </div>
+
+          <div class="action-strip" data-post-mint-actions hidden>
+            <button class="war-button" type="button" data-war-button>Play I Declare War vs AI</button>
+            <button class="secondary-button" type="button" data-refresh-leaderboard>Refresh Leaderboard</button>
+          </div>
+
+          <div class="war-panel" data-war-panel hidden>
+            <h2>I Declare Appreciation</h2>
+            <p class="mint-note">Mint first, then battle your strongest reveal against the AI minter.</p>
+          </div>
+
+          <div class="leaderboard-panel">
+            <h2>Community Leaderboard</h2>
+            <ol class="leaderboard-list" data-leaderboard-list>
+              <li class="leaderboard-entry">
+                <span class="leaderboard-rank">-</span>
+                <strong>Waiting for the first minter</strong>
+                <span class="leaderboard-score">0</span>
+              </li>
+            </ol>
+          </div>
         </aside>
       </div>
     </section>
@@ -389,13 +545,21 @@
       const supplyLabel = root.querySelector("[data-supply-label]");
       const remainingLabel = root.querySelector("[data-remaining-label]");
       const supplyFill = root.querySelector("[data-supply-fill]");
+      const postMintActions = root.querySelector("[data-post-mint-actions]");
+      const warButton = root.querySelector("[data-war-button]");
+      const refreshLeaderboardButton = root.querySelector("[data-refresh-leaderboard]");
+      const warPanel = root.querySelector("[data-war-panel]");
+      const leaderboardList = root.querySelector("[data-leaderboard-list]");
       let quantity = clampQuantity(params.get("quantity") || 1);
+      let latestWalletAddress = "";
+      let latestMintedTokens = [];
 
       if (params.get("walletAddress")) {
         walletInput.value = params.get("walletAddress");
       }
 
       renderQuantity();
+      refreshLeaderboard();
       postHeight();
 
       minus.addEventListener("click", () => {
@@ -411,6 +575,14 @@
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         await simulateMint();
+      });
+
+      warButton.addEventListener("click", async () => {
+        await playWar();
+      });
+
+      refreshLeaderboardButton.addEventListener("click", async () => {
+        await refreshLeaderboard();
       });
 
       function clampQuantity(value) {
@@ -440,7 +612,10 @@
           }
 
           const data = await response.json();
+          latestWalletAddress = data.walletAddress || walletAddress;
+          latestMintedTokens = Array.isArray(data.tokens) ? data.tokens : [];
           renderResult(data);
+          renderLeaderboard(data.leaderboard);
         } catch (error) {
           renderError(error);
         } finally {
@@ -478,10 +653,12 @@
               "<div class=\"token-mark\">APP</div>",
               "<strong>", escapeHtml(token.name || "Mock Appreciator"), "</strong>",
               "<span>", escapeHtml(token.tokenId || "mock-token"), "</span>",
+              "<span>", escapeHtml(token.rarity || "Common"), " · Power ", escapeHtml(token.warPower || 0), "</span>",
               "</article>"
             ].join("")).join("")
           : "<p>No tokens revealed. The simulator supply may be sold out.</p>";
 
+        postMintActions.hidden = !data.minted;
         resultCard.classList.remove("is-error");
         resultCard.innerHTML = [
           "<h2>", escapeHtml(data.minted ? "Mint Complete" : "Mint Closed"), "</h2>",
@@ -493,6 +670,135 @@
           "</div>",
           "<div class=\"token-grid\">", tokenHtml, "</div>"
         ].join("");
+      }
+
+      async function playWar() {
+        const playerToken = strongestToken(latestMintedTokens);
+        if (!playerToken || !latestWalletAddress) {
+          warPanel.hidden = false;
+          warPanel.innerHTML = [
+            "<h2>I Declare Appreciation</h2>",
+            "<p class=\"mint-note\">Mint first, then challenge the AI minter.</p>"
+          ].join("");
+          postHeight();
+          return;
+        }
+
+        const url = apiBase + "/api/mint/war-link?walletAddress=" +
+          encodeURIComponent(latestWalletAddress) + "&tokenId=" + encodeURIComponent(playerToken.tokenId);
+
+        warButton.disabled = true;
+        warButton.textContent = "Declaring...";
+        warPanel.hidden = false;
+        warPanel.innerHTML = [
+          "<h2>I Declare Appreciation</h2>",
+          "<p class=\"mint-note\">The AI minter is flipping a card...</p>"
+        ].join("");
+
+        try {
+          const response = await fetch(url, { headers: { "accept": "application/json" } });
+          if (!response.ok) {
+            throw new Error("AI battle returned HTTP " + response.status);
+          }
+
+          const data = await response.json();
+          renderWar(data);
+          renderLeaderboard(data.leaderboard);
+        } catch (error) {
+          warPanel.innerHTML = [
+            "<h2>I Declare Appreciation</h2>",
+            "<p class=\"mint-note\">", escapeHtml(error.message || "The AI minter could not be reached."), "</p>"
+          ].join("");
+        } finally {
+          warButton.disabled = false;
+          warButton.textContent = "Play I Declare War vs AI";
+          postHeight();
+        }
+      }
+
+      async function refreshLeaderboard() {
+        try {
+          const response = await fetch(apiBase + "/api/mint/leaderboard-link", {
+            headers: { "accept": "application/json" }
+          });
+          if (!response.ok) {
+            throw new Error("Leaderboard returned HTTP " + response.status);
+          }
+
+          const data = await response.json();
+          renderLeaderboard(data.leaderboard);
+        } catch {
+          renderLeaderboard([]);
+        } finally {
+          postHeight();
+        }
+      }
+
+      function renderWar(data) {
+        const resultLabel = data.result === "win"
+          ? "You Win"
+          : data.result === "loss"
+            ? "AI Wins"
+            : "War Tie";
+
+        warPanel.hidden = false;
+        warPanel.innerHTML = [
+          "<h2>I Declare Appreciation: ", escapeHtml(resultLabel), "</h2>",
+          "<p class=\"mint-note\">", escapeHtml(data.message || "Battle complete."), "</p>",
+          "<div class=\"card-versus\">",
+          renderBattleCard("You", data.playerCard, data.playerScore),
+          "<div class=\"versus-mark\">VS</div>",
+          renderBattleCard("AI Minter", data.aiCard, data.aiScore),
+          "</div>"
+        ].join("");
+      }
+
+      function renderBattleCard(owner, card, score) {
+        const safeCard = card || {};
+        return [
+          "<article class=\"battle-card\">",
+          "<strong>", escapeHtml(owner), "</strong>",
+          "<span>", escapeHtml(safeCard.name || "Unknown card"), "</span>",
+          "<span>", escapeHtml(safeCard.rarity || "Common"), " · Power ", escapeHtml(score || safeCard.warPower || 0), "</span>",
+          "</article>"
+        ].join("");
+      }
+
+      function renderLeaderboard(entries) {
+        if (!Array.isArray(entries) || entries.length === 0) {
+          leaderboardList.innerHTML = [
+            "<li class=\"leaderboard-entry\">",
+            "<span class=\"leaderboard-rank\">-</span>",
+            "<strong>Waiting for the first minter</strong>",
+            "<span class=\"leaderboard-score\">0</span>",
+            "</li>"
+          ].join("");
+          return;
+        }
+
+        leaderboardList.innerHTML = entries.map((entry) => [
+          "<li class=\"leaderboard-entry\">",
+          "<span class=\"leaderboard-rank\">", escapeHtml(entry.rank), "</span>",
+          "<span><strong>", escapeHtml(entry.displayAddress), "</strong><br>",
+          escapeHtml(entry.wins || 0), "W / ", escapeHtml(entry.losses || 0), "L / ",
+          escapeHtml(entry.draws || 0), "D · ", escapeHtml(entry.mintedCount || 0), " minted</span>",
+          "<span class=\"leaderboard-score\">", escapeHtml(entry.score || 0), "</span>",
+          "</li>"
+        ].join("")).join("");
+      }
+
+      function strongestToken(tokens) {
+        if (!Array.isArray(tokens) || tokens.length === 0) {
+          return null;
+        }
+
+        return tokens.reduce((best, token) => {
+          if (!best || Number(token.warPower || 0) > Number(best.warPower || 0)) {
+            return token;
+          }
+
+          return best;
+        }, null);
       }
 
       function renderError(error) {
