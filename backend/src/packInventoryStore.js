@@ -21,9 +21,10 @@ export const BOSS_BATTLE_UNLOCK_COST = 2000;
 const STARTER_GRANT_VERSION = 1;
 const runtimeFallbackSigningSecret = crypto.randomBytes(32).toString("hex");
 let warnedAboutRuntimeSigningSecret = false;
-const TEST_PACK_MODE =
-  process.env.PACK_TEST_MODE_ALWAYS_STOCKED !== "false" &&
-  (process.env.NODE_ENV !== "production" || process.env.PACK_TEST_GRANTS_ENABLED === "true");
+// The current public release is an alpha ritual test: every account must always
+// have three starter packs available. Protected developer grant endpoints still
+// require their separate admin-key checks below.
+const TEST_PACK_MODE = process.env.PACK_TEST_MODE_ALWAYS_STOCKED !== "false";
 let loaded = false;
 
 export function getPackInventory(playerId) {
