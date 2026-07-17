@@ -19,6 +19,8 @@ export const MATCH_WIN_SHARD_REWARD = 69;
 export const RANKED_LOSS_SHARD_PENALTY = 5;
 export const BOSS_BATTLE_UNLOCK_COST = 2000;
 const STARTER_GRANT_VERSION = 1;
+const runtimeFallbackSigningSecret = crypto.randomBytes(32).toString("hex");
+let warnedAboutRuntimeSigningSecret = false;
 const TEST_PACK_MODE =
   process.env.PACK_TEST_MODE_ALWAYS_STOCKED !== "false" &&
   (process.env.NODE_ENV !== "production" || process.env.PACK_TEST_GRANTS_ENABLED === "true");
@@ -489,11 +491,14 @@ function signReward(playerId, requestId, reward) {
 
 function signPayload(payloadBase64) {
   const configured = String(process.env.PACK_REWARD_SIGNING_SECRET || "");
-  if (!configured && process.env.NODE_ENV === "production") {
-    throw Object.assign(new Error("PACK_REWARD_SIGNING_SECRET is not configured."), { statusCode: 503 });
+  if (!configured && !warnedAboutRuntimeSigningSecret) {
+    warnedAboutRuntimeSigningSecret = true;
+    console.warn(
+      "PACK_REWARD_SIGNING_SECRET is not configured; using a process-local cryptographic signer so pack opening remains available. Configure the Render secret for signatures that survive restarts."
+    );
   }
 
-  const secret = configured || "appreciators-local-dev-pack-signing-secret";
+  const secret = configured || runtimeFallbackSigningSecret;
   return crypto.createHmac("sha256", secret).update(payloadBase64).digest("hex");
 }
 

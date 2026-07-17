@@ -226,6 +226,36 @@ test("open-pack route validates ownership and returns a signed authoritative rew
   }
 });
 
+test("pack opening stays available when a Render signing secret has not been provisioned", async () => {
+  const previousSecret = process.env.PACK_REWARD_SIGNING_SECRET;
+  delete process.env.PACK_REWARD_SIGNING_SECRET;
+  resetPackInventoryForTests();
+  const server = await listen(createApp());
+
+  try {
+    const opened = await request(server, "/api/packs/open", {
+      method: "POST",
+      body: JSON.stringify({
+        requestId: "open-runtime-signer-1",
+        playerId: "runtime_signer_player",
+        packId: "starter_appreciation_pack",
+        attunement: "Neutral"
+      })
+    });
+
+    assert.equal(opened.response.status, 200);
+    assert.equal(opened.body.success, true);
+    assert.equal(opened.body.reward.cards.length, 5);
+    assert.equal(typeof opened.body.signature, "string");
+    assert.equal(opened.body.signature.length, 64);
+    assert.equal(verifySignedReward(opened.body.payloadBase64, opened.body.signature), true);
+  } finally {
+    server.close();
+    if (previousSecret === undefined) delete process.env.PACK_REWARD_SIGNING_SECRET;
+    else process.env.PACK_REWARD_SIGNING_SECRET = previousSecret;
+  }
+});
+
 test("unique match wins award 69 shards and fund idempotent pack purchases", async () => {
   resetPackInventoryForTests();
   const server = await listen(createApp());
