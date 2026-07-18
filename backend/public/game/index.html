@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity WebGL Player | unity-client</title>
+    <title>Unity Web Player | unity-client</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
   </head>
@@ -18,19 +18,13 @@
       </div>
       <div id="unity-warning"> </div>
       <div id="unity-footer">
-        <div id="unity-webgl-logo"></div>
+        <div id="unity-logo-title-footer"></div>
         <div id="unity-fullscreen-button"></div>
         <div id="unity-build-title">unity-client</div>
       </div>
     </div>
     <script>
-
-      var container = document.querySelector("#unity-container");
       var canvas = document.querySelector("#unity-canvas");
-      var loadingBar = document.querySelector("#unity-loading-bar");
-      var progressBarFull = document.querySelector("#unity-progress-bar-full");
-      var fullscreenButton = document.querySelector("#unity-fullscreen-button");
-      var warningBanner = document.querySelector("#unity-warning");
 
       // Shows a temporary message banner/ribbon for a few seconds, or
       // a permanent error message on top of the canvas if type=='error'.
@@ -39,6 +33,7 @@
       // way that non-critical warnings and error messages are presented to the
       // user.
       function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
         function updateBannerVisibility() {
           warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
         }
@@ -59,14 +54,21 @@
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/WebGL.loader.js";
       var config = {
-        dataUrl: buildUrl + "/WebGL.data.unityweb?v=20260718004824",
-        frameworkUrl: buildUrl + "/WebGL.framework.js.unityweb?v=20260718004824",
-        codeUrl: buildUrl + "/WebGL.wasm.unityweb?v=20260718004824",
+        arguments: [],
+        dataUrl: buildUrl + "/WebGL.data.unityweb?v=20260718133153",
+        frameworkUrl: buildUrl + "/WebGL.framework.js.unityweb?v=20260718133153",
+        codeUrl: buildUrl + "/WebGL.wasm.unityweb?v=20260718133153",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "unity-client",
-        productVersion: "alpha-20260718004824",
+        productVersion: "alpha-20260718133153",
         showBanner: unityShowBanner,
+        // errorHandler: function(err, url, line) {
+        //    alert("error " + err + " occurred at line " + line);
+        //    // Return 'true' if you handled this error and don't want Unity
+        //    // to process it further, 'false' otherwise.
+        //    return true;
+        // },
       };
 
       // By default, Unity keeps WebGL canvas render target size matched with
@@ -92,7 +94,7 @@
         meta.name = 'viewport';
         meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
-        container.className = "unity-mobile";
+        document.querySelector("#unity-container").className = "unity-mobile";
         canvas.className = "unity-mobile";
 
         // To lower canvas resolution on mobile devices to gain some
@@ -102,23 +104,23 @@
 
       } else {
         // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-
         canvas.style.width = "100%";
         canvas.style.height = "100%";
       }
 
-      loadingBar.style.display = "block";
+      document.querySelector("#unity-loading-bar").style.display = "block";
 
       var script = document.createElement("script");
       script.src = loaderUrl;
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
-          progressBarFull.style.width = 100 * progress + "%";
+          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
               }).then((unityInstance) => {
-                loadingBar.style.display = "none";
-                fullscreenButton.onclick = () => {
+                document.querySelector("#unity-loading-bar").style.display = "none";
+                document.querySelector("#unity-fullscreen-button").onclick = () => {
                   unityInstance.SetFullscreen(1);
                 };
+
               }).catch((message) => {
                 alert(message);
               });
@@ -127,5 +129,21 @@
       document.body.appendChild(script);
 
     </script>
-  </body>
+  
+<script>
+(function () {
+  function isMobileLandscape() { return navigator.maxTouchPoints > 0 && matchMedia('(orientation: landscape) and (max-height: 900px)').matches; }
+  function enterGameFullscreen() {
+    if (!isMobileLandscape() || document.fullscreenElement) return;
+    var root = document.documentElement;
+    var request = root.requestFullscreen || root.webkitRequestFullscreen;
+    if (!request) return;
+    Promise.resolve(request.call(root)).then(function () {
+      if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
+    }).catch(function () {});
+  }
+  document.addEventListener('pointerup', enterGameFullscreen, { passive: true });
+})();
+</script>
+</body>
 </html>
