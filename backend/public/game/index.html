@@ -31,19 +31,6 @@
       var progressBarFull = document.querySelector("#unity-progress-bar-full");
       var fullscreenButton = document.querySelector("#unity-fullscreen-button");
       var warningBanner = document.querySelector("#unity-warning");
-      var rotateOverlay = document.createElement('div');
-      rotateOverlay.id = 'appreciators-rotate-overlay';
-      rotateOverlay.innerHTML = '<div class="rotate-card"><strong>LANDSCAPE BATTLE MODE</strong><span>Turn your phone sideways to fit the Appreciators playmat.</span></div>';
-      document.body.appendChild(rotateOverlay);
-
-      function updateOrientationOverlay() {
-        var portrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches && window.innerWidth <= 900;
-        rotateOverlay.style.display = portrait ? 'flex' : 'none';
-      }
-
-      window.addEventListener('resize', updateOrientationOverlay);
-      window.addEventListener('orientationchange', updateOrientationOverlay);
-      updateOrientationOverlay();
 
       // Shows a temporary message banner/ribbon for a few seconds, or
       // a permanent error message on top of the canvas if type=='error'.
