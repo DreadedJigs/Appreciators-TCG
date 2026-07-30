@@ -1928,6 +1928,20 @@ namespace AppreciatorsTcg.UI
             image.uvRect = uv;
             image.color = Color.white;
             image.raycastTarget = false;
+            if (name == "OpponentHandMotif" || name == "PlayerHandMotif")
+            {
+                Shader silhouetteShader = Resources.Load<Shader>("Shaders/AppreciatorsSilhouette");
+                if (silhouetteShader != null)
+                {
+                    Material silhouetteMaterial = new Material(silhouetteShader)
+                    {
+                        name = name + "Material"
+                    };
+                    silhouetteMaterial.SetFloat("_Threshold", 0.42f);
+                    silhouetteMaterial.SetFloat("_Softness", 0.08f);
+                    image.material = silhouetteMaterial;
+                }
+            }
             artwork.transform.SetAsFirstSibling();
         }
 
@@ -1978,8 +1992,8 @@ namespace AppreciatorsTcg.UI
             StyleNativePanel("OpponentDeckWell", dark ? Brand("073844") : Brand("C8FAFA"), wave, dark ? chalk : navy);
             StyleNativePanel("PlayerDeckWell", dark ? Brand("073844") : Brand("C8FAFA"), wave, dark ? chalk : navy);
             StyleNativePanel("NativePhaseRail", dark ? Brand("25105A") : navy, dark ? wave : grape, cream);
-            StyleNativeArtwork("OpponentHandMotif", dark ? 0.92f : 0.78f);
-            StyleNativeArtwork("PlayerHandMotif", dark ? 0.92f : 0.78f);
+            StyleNativeArtwork("OpponentHandMotif", dark ? cream : navy, dark ? 0.22f : 0.16f);
+            StyleNativeArtwork("PlayerHandMotif", dark ? cream : navy, dark ? 0.22f : 0.16f);
             StyleNativeArtwork("BattlefieldStarfield", dark ? 0.94f : 0.72f);
 
             StyleThemeButton(phaseNextButton, dark ? cream : navy, dark ? navy : chalk);
@@ -2011,6 +2025,13 @@ namespace AppreciatorsTcg.UI
             RawImage artwork = matchTableRoot.GetComponentsInChildren<RawImage>(true).FirstOrDefault(image => image.name == name);
             if (artwork == null) return;
             artwork.color = new Color(1f, 1f, 1f, alpha);
+        }
+
+        private void StyleNativeArtwork(string name, Color color, float alpha)
+        {
+            RawImage artwork = matchTableRoot.GetComponentsInChildren<RawImage>(true).FirstOrDefault(image => image.name == name);
+            if (artwork == null) return;
+            artwork.color = new Color(color.r, color.g, color.b, alpha);
         }
 
         private static void StyleThemeButton(Button button, Color background, Color foreground)
