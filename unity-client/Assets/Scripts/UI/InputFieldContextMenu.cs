@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -5,10 +6,16 @@ using UnityEngine.UI;
 namespace AppreciatorsTcg.UI
 {
     [RequireComponent(typeof(InputField))]
-    public class InputFieldContextMenu : MonoBehaviour, IPointerClickHandler
+    public class InputFieldContextMenu : MonoBehaviour, IPointerDownHandler, IPointerClickHandler
     {
         private static GameObject activeMenu;
         private InputField input;
+        private bool rightPressHandled;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern void AppreciatorsPasteText(string gameObjectName, string successMethod, string errorMethod);
+#endif
 
         private void Awake()
         {
@@ -18,8 +25,25 @@ namespace AppreciatorsTcg.UI
         public void OnPointerClick(PointerEventData eventData)
         {
             if (eventData == null || eventData.button != PointerEventData.InputButton.Right) return;
+            if (rightPressHandled) return;
             eventData.Use();
             ShowMenu(eventData.position);
+        }
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (eventData == null || eventData.button != PointerEventData.InputButton.Right) return;
+            rightPressHandled = true;
+            input?.ActivateInputField();
+            eventData.Use();
+            ShowMenu(eventData.position);
+        }
+
+        private void LateUpdate()
+        {
+            // PointerDown is used because some WebGL browsers do not dispatch a
+            // right-button PointerClick to Unity's InputField.
+            rightPressHandled = false;
         }
 
         private void ShowMenu(Vector2 screenPosition)
@@ -81,8 +105,27 @@ namespace AppreciatorsTcg.UI
         private void Paste()
         {
             if (input == null || input.readOnly) return;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            AppreciatorsPasteText(gameObject.name, nameof(PasteFromBrowserClipboard), nameof(PasteFromBrowserClipboardError));
+            CloseMenu();
+#else
             ReplaceSelection(GUIUtility.systemCopyBuffer ?? string.Empty);
             CloseMenu();
+#endif
+        }
+
+        // Invoked from the WebGL clipboard bridge after the user selects Paste
+        // from the right-click menu. This uses the browser's real clipboard,
+        // not a Unity-only buffer.
+        public void PasteFromBrowserClipboard(string value)
+        {
+            if (input == null || input.readOnly) return;
+            ReplaceSelection(value ?? string.Empty);
+        }
+
+        public void PasteFromBrowserClipboardError(string error)
+        {
+            Debug.LogWarning($"Browser clipboard paste failed: {error}");
         }
 
         private void Cut()

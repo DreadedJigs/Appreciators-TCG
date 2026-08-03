@@ -738,11 +738,13 @@ namespace AppreciatorsTcg.UI
             Stretch(text.rectTransform);
             text.rectTransform.offsetMin = new Vector2(16, 0);
             text.rectTransform.offsetMax = new Vector2(-16, 0);
+            text.raycastTarget = false;
 
             Text placeholderText = CreateText(fieldObject.transform, placeholder, 26, TextAnchor.MiddleLeft, MutedTextColor);
             Stretch(placeholderText.rectTransform);
             placeholderText.rectTransform.offsetMin = new Vector2(16, 0);
             placeholderText.rectTransform.offsetMax = new Vector2(-16, 0);
+            placeholderText.raycastTarget = false;
 
             input.textComponent = text;
             input.placeholder = placeholderText;

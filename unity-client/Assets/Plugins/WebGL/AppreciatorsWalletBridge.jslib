@@ -62,5 +62,26 @@ mergeInto(LibraryManager.library, {
         send("OnInjectedWalletError", error && error.message ? error.message : String(error));
       }
     })();
+  },
+
+  AppreciatorsPasteText: function (gameObjectNamePtr, successMethodPtr, errorMethodPtr) {
+    var target = UTF8ToString(gameObjectNamePtr);
+    var successMethod = UTF8ToString(successMethodPtr);
+    var errorMethod = UTF8ToString(errorMethodPtr);
+    var send = function (method, value) {
+      if (typeof SendMessage === "function") SendMessage(target, method, value || "");
+    };
+
+    (async function () {
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+          throw new Error("Clipboard access is not available in this browser.");
+        }
+        var value = await navigator.clipboard.readText();
+        send(successMethod, String(value || ""));
+      } catch (error) {
+        send(errorMethod, error && error.message ? error.message : String(error));
+      }
+    })();
   }
 });
