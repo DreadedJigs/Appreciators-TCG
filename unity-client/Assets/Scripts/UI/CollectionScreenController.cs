@@ -10,12 +10,12 @@ namespace AppreciatorsTcg.UI
         private void Start()
         {
             GameObject screen = CreateFullScreenStack("Collection");
-            UIFactory.CreateText(screen.transform, "All Phase 1 prototype cards", 22, TextAnchor.MiddleLeft, UIFactory.MutedTextColor);
+            UIFactory.CreateText(screen.transform, "Official metadata card collection", 22, TextAnchor.MiddleLeft, UIFactory.MutedTextColor);
 
-            RectTransform content = UIFactory.CreateScrollContent(screen.transform, "CollectionScroll", false, out _);
+            RectTransform content = UIFactory.CreateGridScrollContent(screen.transform, "CollectionScroll", new Vector2(210f, 270f), 6, out _);
             foreach (CardDefinition card in CardCatalog.AllCards)
             {
-                UIFactory.CreateCardPanel(content, card);
+                UIFactory.CreateCardPanel(content, card, compact: true);
             }
 
             BackButton(screen.transform);

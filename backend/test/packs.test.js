@@ -9,6 +9,8 @@ import {
   generatePackReward,
   getMysteryOdds
 } from "../src/packRewardService.js";
+import { resetBossBattlesForTests } from "../src/bossBattleStore.js";
+import { resetWalletChallengesForTests } from "../src/walletAuthStore.js";
 
 function listen(app) {
   return new Promise((resolve) => {
@@ -366,6 +368,35 @@ test("account login restores inventory and ranked losses remove five Appreciatio
   }
 });
 
+test("tutorial completion grants exactly fifty Appreciation Shards once", async () => {
+  resetPackInventoryForTests();
+  const server = await listen(createApp());
+  const playerId = "tutorial_reward_player";
+
+  try {
+    const firstClaim = await request(server, "/api/economy/tutorial-complete", {
+      method: "POST",
+      body: JSON.stringify({ playerId })
+    });
+    assert.equal(firstClaim.response.status, 200);
+    assert.equal(firstClaim.body.shardsAwarded, 50);
+    assert.equal(firstClaim.body.totalShardBalance, 50);
+    assert.equal(firstClaim.body.idempotentReplay, false);
+
+    const replay = await request(server, "/api/economy/tutorial-complete", {
+      method: "POST",
+      body: JSON.stringify({ playerId })
+    });
+    assert.equal(replay.response.status, 200);
+    assert.equal(replay.body.idempotentReplay, true);
+    assert.equal(replay.body.totalShardBalance, 50);
+    assert.equal(replay.body.inventory.appreciationShards, 50);
+  } finally {
+    server.close();
+    resetPackInventoryForTests();
+  }
+});
+
 test("players can pool shards or fund the remainder to unlock the 2000-shard Boss Vault", async () => {
   resetPackInventoryForTests();
   const server = await listen(createApp());
@@ -407,6 +438,150 @@ test("players can pool shards or fund the remainder to unlock the 2000-shard Bos
   } finally {
     server.close();
     resetPackInventoryForTests();
+  }
+});
+
+test("summoned boss battles enforce solo defeat while two and three members can win", async () => {
+  resetPackInventoryForTests();
+  resetBossBattlesForTests();
+  const server = await listen(createApp());
+  try {
+    for (let index = 0; index < 29; index += 1) {
+      const reward = await request(server, "/api/economy/match-win", {
+        method: "POST",
+        body: JSON.stringify({ playerId: "raid_funder", matchId: `raid-fund-${index}`, result: "Victory" })
+      });
+      assert.equal(reward.response.status, 200);
+    }
+    const funded = await request(server, "/api/economy/boss-contribute", {
+      method: "POST",
+      body: JSON.stringify({ requestId: "raid-fund-all", playerId: "raid_funder", poolId: "alpha_boss", amount: 2000 })
+    });
+    assert.equal(funded.body.pool.unlocked, true);
+
+    const joinedSolo = await request(server, "/api/boss-battles/alpha_boss/join", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "member_one", displayName: "Member One" })
+    });
+    assert.equal(joinedSolo.body.battle.partySize, 1);
+    assert.equal(joinedSolo.body.battle.rules.soloAlwaysLoses, true);
+
+    const solo = await request(server, "/api/boss-battles/alpha_boss/challenge", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "member_one" })
+    });
+    assert.equal(solo.response.status, 200);
+    assert.equal(solo.body.battle.lastBattle.result, "boss-victory");
+    assert.equal(solo.body.battle.lastBattle.difficulty, "impossible-solo");
+
+    await request(server, "/api/boss-battles/alpha_boss/join", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "member_two", displayName: "Member Two" })
+    });
+    for (const playerId of ["member_one", "member_two"]) {
+      const ready = await request(server, "/api/boss-battles/alpha_boss/ready", {
+        method: "POST",
+        body: JSON.stringify({ playerId, ready: true })
+      });
+      assert.equal(ready.response.status, 200);
+    }
+    const duo = await request(server, "/api/boss-battles/alpha_boss/challenge", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "member_two" })
+    });
+    assert.equal(duo.body.battle.lastBattle.result, "member-victory");
+    assert.equal(duo.body.battle.lastBattle.difficulty, "hard");
+
+    await request(server, "/api/boss-battles/alpha_boss/join", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "member_three", displayName: "Member Three" })
+    });
+    for (const playerId of ["member_one", "member_two", "member_three"]) {
+      await request(server, "/api/boss-battles/alpha_boss/ready", {
+        method: "POST",
+        body: JSON.stringify({ playerId, ready: true })
+      });
+    }
+    const trio = await request(server, "/api/boss-battles/alpha_boss/challenge", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "member_three" })
+    });
+    assert.equal(trio.body.battle.lastBattle.result, "member-victory");
+    assert.equal(trio.body.battle.lastBattle.difficulty, "nominal");
+    assert.equal(trio.body.battle.partySize, 3);
+  } finally {
+    server.close();
+    resetBossBattlesForTests();
+    resetPackInventoryForTests();
+  }
+});
+
+test("wallet account status never grants boss eligibility from the client", async () => {
+  resetBossBattlesForTests();
+  const server = await listen(createApp());
+  try {
+    const ordinary = await request(server, "/api/wallet/account/link", {
+      method: "POST",
+      body: JSON.stringify({
+        playerId: "wallet_member",
+        walletAddress: "0x2222222222222222222222222222222222222222"
+      })
+    });
+    assert.equal(ordinary.response.status, 200);
+    assert.equal(ordinary.body.wallet.signatureVerified, false);
+    assert.equal(ordinary.body.wallet.oneOfOneEligible, false);
+    assert.equal(ordinary.body.wallet.holderRole, "Member");
+
+    const testHolder = await request(server, "/api/wallet/account/link", {
+      method: "POST",
+      body: JSON.stringify({
+        playerId: "wallet_boss",
+        walletAddress: "0x1111111111111111111111111111111111110001"
+      })
+    });
+    assert.equal(testHolder.body.wallet.oneOfOneEligible, true);
+    assert.equal(testHolder.body.wallet.ownershipVerified, true);
+
+    const forged = await request(server, "/api/wallet/account/link", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "forged", walletAddress: "not-a-wallet", oneOfOneEligible: true })
+    });
+    assert.equal(forged.response.status, 400);
+  } finally {
+    server.close();
+    resetBossBattlesForTests();
+  }
+});
+
+test("wallet connection requires a one-time signed challenge", async () => {
+  resetBossBattlesForTests();
+  resetWalletChallengesForTests();
+  const server = await listen(createApp());
+  try {
+    const walletAddress = "0x2222222222222222222222222222222222222222";
+    const challenge = await request(server, "/api/wallet/account/challenge", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "signed_wallet", walletAddress })
+    });
+    assert.equal(challenge.response.status, 200);
+    assert.equal(challenge.body.walletAddress.toLowerCase(), walletAddress);
+    assert.match(challenge.body.message, /does not authorize a transaction/i);
+
+    const forged = await request(server, "/api/wallet/account/verify", {
+      method: "POST",
+      body: JSON.stringify({
+        playerId: "signed_wallet",
+        walletAddress,
+        challengeId: challenge.body.challengeId,
+        signature: "0xdeadbeef"
+      })
+    });
+    assert.equal(forged.response.status, 401);
+    assert.equal(forged.body.errorCode, "INVALID_WALLET_SIGNATURE");
+  } finally {
+    server.close();
+    resetWalletChallengesForTests();
+    resetBossBattlesForTests();
   }
 });
 

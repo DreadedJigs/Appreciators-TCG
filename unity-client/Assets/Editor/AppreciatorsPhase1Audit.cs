@@ -36,9 +36,9 @@ namespace AppreciatorsTcg.EditorTools
 
         private static void AuditCards()
         {
-            Require(CardCatalog.AllCards.Count == 29, "Approved trait set must contain 29 cards.");
+            Require(CardCatalog.AllCards.Count == 24, "Active card set must contain 24 cards after Companion retirement.");
             Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Original) == 17, "Approved trait set must contain 17 ORIGINALS.");
-            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Companion) == 5, "Approved trait set must contain 5 COMPANIONS.");
+            Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Companion) == 0, "Companion cards must be absent from the active game.");
             Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Item) == 7, "Approved trait set must contain 7 ITEMS.");
             Require(CardCatalog.AllCards.Count(card => card.type == GameConstants.Event) == 0, "Phase 1 should not invent EVENT cards outside the approved list.");
             Require(CardCatalog.AllCards.Select(card => card.id).Distinct().Count() == CardCatalog.AllCards.Count, "Card ids must be unique.");

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using AppreciatorsTcg.Cards;
 using AppreciatorsTcg.Core;
 using UnityEngine;
@@ -9,30 +10,41 @@ namespace AppreciatorsTcg.UI
 {
     public static class UIFactory
     {
-        public static readonly Color Background = new Color(0.010f, 0.014f, 0.030f);
-        public static readonly Color Panel = new Color(0.030f, 0.026f, 0.070f, 0.92f);
-        public static readonly Color PanelAlt = new Color(0.040f, 0.054f, 0.120f, 0.86f);
-        public static readonly Color GlassPanel = new Color(0.025f, 0.030f, 0.060f, 0.52f);
-        public static readonly Color BoardPanel = new Color(0.020f, 0.044f, 0.070f, 0.88f);
+        private const string OfficialPlaymatResourcePath = "Art/Official/Board/app_playmat_native_no_appreciation_stars";
+        private const string BrandStarfieldResourcePath = "Art/Official/Backgrounds/appreciators_starfield_motif_v2_8k";
+        private static Font cachedDefaultFont;
+        private static Sprite cachedBrandStarfieldPanelSprite;
+        private static readonly Dictionary<string, Sprite> playmatSpriteCache = new Dictionary<string, Sprite>();
+        // Official alpha palette. Keep these centralized so final art drops do not
+        // require scene-by-scene color edits.
+        public static Color Background => ThemeService.Surface(Hex("0F0A46"), Hex("ECE9FA"));
+        public static Color Panel => ThemeService.Surface(WithAlpha(Hex("0F0A46"), 0.92f), WithAlpha(Hex("FAFAD2"), 0.96f));
+        public static Color PanelAlt => ThemeService.Surface(WithAlpha(Hex("7841AA"), 0.90f), WithAlpha(Hex("D7C3EB"), 0.96f));
+        public static Color GlassPanel => ThemeService.Surface(WithAlpha(Hex("0F0A46"), 0.72f), WithAlpha(Hex("FFFFFF"), 0.82f));
+        public static Color MenuInset => ThemeService.Surface(WithAlpha(Hex("7841AA"), 0.30f), WithAlpha(Hex("7841AA"), 0.14f));
+        public static Color BoardPanel => ThemeService.Surface(WithAlpha(Hex("FAFAD2"), 0.94f), WithAlpha(Hex("FFFFFF"), 0.96f));
         public static readonly Color AlleyFloor = new Color(0.025f, 0.145f, 0.235f, 0.88f);
         public static readonly Color AlleyWall = new Color(0.180f, 0.050f, 0.180f, 0.78f);
-        public static readonly Color Ink = new Color(0.015f, 0.010f, 0.028f, 0.95f);
-        public static readonly Color Cream = new Color(1.00f, 0.88f, 0.58f);
-        public static readonly Color HeartRed = new Color(1.00f, 0.18f, 0.34f);
-        public static readonly Color Accent = new Color(1.00f, 0.74f, 0.20f);
-        public static readonly Color Blue = new Color(0.06f, 0.54f, 0.96f);
-        public static readonly Color Green = new Color(0.05f, 0.78f, 0.36f);
-        public static readonly Color Red = new Color(1.00f, 0.24f, 0.38f);
-        public static readonly Color Parchment = new Color(0.96f, 0.84f, 0.62f);
-        public static readonly Color CreamInk = new Color(0.20f, 0.10f, 0.075f);
+        public static readonly Color Ink = WithAlpha(Hex("0F0A46"), 0.98f);
+        public static readonly Color Cream = Hex("FAFAD2");
+        public static readonly Color HeartRed = Hex("FF2314");
+        public static readonly Color Accent = Hex("FFC700");
+        public static readonly Color Blue = Hex("00BEE1");
+        public static readonly Color Green = Hex("46CB37");
+        public static readonly Color Red = Hex("FF2314");
+        public static readonly Color Parchment = Hex("FAFAD2");
+        public static readonly Color CreamInk = Hex("0F0A46");
         public static readonly Color WoodDark = new Color(0.23f, 0.105f, 0.085f);
-        public static readonly Color IceBadge = new Color(0.25f, 0.78f, 1.00f);
-        public static readonly Color NeonCyan = new Color(0.04f, 0.92f, 1.00f);
-        public static readonly Color NeonPink = new Color(1.00f, 0.16f, 0.64f);
-        public static readonly Color PortalViolet = new Color(0.34f, 0.15f, 0.74f);
-        public static readonly Color CardBack = new Color(0.105f, 0.055f, 0.022f);
-        public static readonly Color TextColor = new Color(0.97f, 0.98f, 1.00f);
-        public static readonly Color MutedTextColor = new Color(0.67f, 0.77f, 0.90f);
+        public static readonly Color IceBadge = Hex("C8FAFA");
+        public static readonly Color Mouthwash = Hex("C8FAC3");
+        public static readonly Color Blush = Hex("FAD7FA");
+        public static readonly Color Bruise = Hex("D7C3EB");
+        public static readonly Color NeonCyan = Hex("00BEE1");
+        public static readonly Color NeonPink = Hex("FAD7FA");
+        public static readonly Color PortalViolet = Hex("7841AA");
+        public static readonly Color CardBack = Hex("7841AA");
+        public static Color TextColor => ThemeService.Surface(Hex("FFFFFF"), Hex("0F0A46"));
+        public static Color MutedTextColor => ThemeService.Surface(Hex("C8FAFA"), Hex("57317F"));
 
         public static Font DefaultFont => LoadDefaultFont();
 
@@ -44,8 +56,11 @@ namespace AppreciatorsTcg.UI
 
             CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            // The 16:9 design reference scales cleanly to 1080p and 2160p while
+            // retaining touch-sized controls on narrower browser canvases.
             scaler.referenceResolution = new Vector2(1600, 900);
             scaler.matchWidthOrHeight = 0.5f;
+            canvasObject.AddComponent<ResponsiveCanvasScaler>();
 
             EnsureEventSystem();
             return canvas;
@@ -96,6 +111,233 @@ namespace AppreciatorsTcg.UI
             graffiti.raycastTarget = false;
         }
 
+        public static bool CreateOfficialPlaymatBackdrop(Transform parent)
+        {
+            return CreateResourceBackdropImage(
+                parent,
+                "OfficialAppreciatorsPlaymat",
+                OfficialPlaymatResourcePath,
+                Vector2.zero,
+                Vector2.one,
+                Color.white,
+                true);
+        }
+
+        public static RectTransform CreateOfficialPlaymatRoot(Transform parent)
+        {
+            GameObject root = new GameObject("OfficialPlaymatRoot", typeof(RectTransform), typeof(AspectRatioFitter));
+            root.transform.SetParent(parent, false);
+            RectTransform rootRect = root.GetComponent<RectTransform>();
+            rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+            rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+            rootRect.pivot = new Vector2(0.5f, 0.5f);
+
+            Texture2D texture = Resources.Load<Texture2D>(OfficialPlaymatResourcePath);
+            AspectRatioFitter fitter = root.GetComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = texture == null ? 16f / 9f : (float)texture.width / texture.height;
+
+            GameObject imageObject = new GameObject("PlaymatArt", typeof(RectTransform), typeof(Image));
+            imageObject.transform.SetParent(root.transform, false);
+            Image image = imageObject.GetComponent<Image>();
+            image.raycastTarget = false;
+            image.color = ThemeService.IsDark ? new Color(0.58f, 0.50f, 0.68f, 1f) : Color.white;
+            image.sprite = LoadPlaymatSprite(new Rect(0f, 0f, 1f, 1f));
+            image.preserveAspect = false;
+            Stretch(imageObject.GetComponent<RectTransform>());
+
+            if (ThemeService.IsDark)
+            {
+                CreateDarkPlaymatCover(root.transform, "DarkModeWash", new Rect(0f, 0f, 1f, 1f), new Color(0.018f, 0.012f, 0.085f, 0.26f));
+            }
+            return rootRect;
+        }
+
+        public static RectTransform CreateDeckBackMenuRoot(Transform parent)
+        {
+            GameObject root = new GameObject("DeckBackMenuRoot", typeof(RectTransform));
+            root.transform.SetParent(parent, false);
+            RectTransform rootRect = root.GetComponent<RectTransform>();
+            Stretch(rootRect);
+
+            GameObject basePanel = CreatePanel(root.transform, "DeckBackBase", new Color(0.012f, 0.010f, 0.055f, 1f));
+            Stretch(basePanel.GetComponent<RectTransform>());
+
+            for (int index = 0; index < 3; index++)
+            {
+                GameObject artObject = new GameObject($"DeckBackArt_{index + 1}", typeof(RectTransform), typeof(Image));
+                artObject.transform.SetParent(root.transform, false);
+                RectTransform artRect = artObject.GetComponent<RectTransform>();
+                float left = index / 3f;
+                float right = (index + 1) / 3f;
+                SetAnchors(artRect, new Vector2(left, 0.025f), new Vector2(right, 0.975f), new Vector2(8f, 8f), new Vector2(-8f, -8f));
+                Image art = artObject.GetComponent<Image>();
+                art.raycastTarget = false;
+                if (UIAssetPack.ApplyResource(art, "Art/Official/Cards/app_card_reverse", true))
+                {
+                    art.color = new Color(0.86f, 0.90f, 1f, index == 1 ? 0.78f : 0.62f);
+                }
+            }
+
+            GameObject wash = CreatePanel(root.transform, "MenuReadabilityWash", new Color(0.010f, 0.008f, 0.045f, 0.48f));
+            Stretch(wash.GetComponent<RectTransform>());
+            return rootRect;
+        }
+
+        public static RectTransform CreateBrandMenuRoot(Transform parent)
+        {
+            GameObject root = new GameObject("BrandMenuRoot", typeof(RectTransform), typeof(AspectRatioFitter));
+            root.transform.SetParent(parent, false);
+            RectTransform rootRect = root.GetComponent<RectTransform>();
+            rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+            rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+            rootRect.pivot = new Vector2(0.5f, 0.5f);
+
+            Texture2D texture = Resources.Load<Texture2D>(BrandStarfieldResourcePath);
+            AspectRatioFitter fitter = root.GetComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = texture == null ? 16f / 9f : (float)texture.width / texture.height;
+
+            GameObject artObject = new GameObject("BrandStarfieldArt", typeof(RectTransform), typeof(Image));
+            artObject.transform.SetParent(root.transform, false);
+            Image art = artObject.GetComponent<Image>();
+            art.raycastTarget = false;
+            if (!UIAssetPack.ApplyResource(art, BrandStarfieldResourcePath, false))
+            {
+                art.color = Background;
+            }
+            Stretch(artObject.GetComponent<RectTransform>());
+            return rootRect;
+        }
+
+        public static void ApplyBrandStarfield(GameObject target)
+        {
+            Image image = target == null ? null : target.GetComponent<Image>();
+            if (image == null)
+            {
+                return;
+            }
+
+            if (cachedBrandStarfieldPanelSprite == null)
+            {
+                Texture2D texture = Resources.Load<Texture2D>(BrandStarfieldResourcePath);
+                if (texture != null)
+                {
+                    Rect crop = new Rect(0f, texture.height * 0.40f, texture.width, texture.height * 0.58f);
+                    cachedBrandStarfieldPanelSprite = Sprite.Create(texture, crop, new Vector2(0.5f, 0.5f), 100f);
+                }
+            }
+
+            if (cachedBrandStarfieldPanelSprite != null)
+            {
+                image.sprite = cachedBrandStarfieldPanelSprite;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+                image.color = ThemeService.IsDark
+                    ? new Color(0.66f, 0.76f, 1f, 0.98f)
+                    : new Color(0.88f, 0.94f, 1f, 0.98f);
+            }
+        }
+
+        public static void MakePanelTransparent(GameObject target, bool keepOutline = false)
+        {
+            Image image = target == null ? null : target.GetComponent<Image>();
+            if (image == null)
+            {
+                return;
+            }
+
+            image.sprite = null;
+            image.color = Color.clear;
+
+            UiGradientEffect gradient = target.GetComponent<UiGradientEffect>();
+            if (gradient != null)
+            {
+                gradient.enabled = false;
+            }
+
+            Shadow shadow = target.GetComponent<Shadow>();
+            if (shadow != null)
+            {
+                shadow.enabled = false;
+            }
+
+            Outline outline = target.GetComponent<Outline>();
+            if (outline != null)
+            {
+                outline.enabled = keepOutline;
+                outline.useGraphicAlpha = false;
+            }
+        }
+
+        private static void CreateDarkPlaymatCover(Transform parent, string name, Rect normalizedRect, Color color)
+        {
+            GameObject cover = new GameObject(name, typeof(RectTransform), typeof(Image));
+            cover.transform.SetParent(parent, false);
+            RectTransform rect = cover.GetComponent<RectTransform>();
+            SetAnchors(
+                rect,
+                new Vector2(normalizedRect.xMin, normalizedRect.yMin),
+                new Vector2(normalizedRect.xMax, normalizedRect.yMax),
+                Vector2.zero,
+                Vector2.zero);
+            Image coverImage = cover.GetComponent<Image>();
+            coverImage.color = color;
+            coverImage.raycastTarget = false;
+        }
+
+        public static GameObject CreatePlaymatZoneButton(Transform parent, string name, Rect normalizedRect, UnityAction action)
+        {
+            GameObject zone = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(PlaymatZoneMotion));
+            zone.transform.SetParent(parent, false);
+            RectTransform rect = zone.GetComponent<RectTransform>();
+            SetAnchors(
+                rect,
+                new Vector2(normalizedRect.xMin, normalizedRect.yMin),
+                new Vector2(normalizedRect.xMax, normalizedRect.yMax),
+                Vector2.zero,
+                Vector2.zero);
+
+            // The full playmat already contains the zone art. A transparent hit area
+            // avoids sub-pixel crop seams and keeps the printed box edges intact.
+            Image image = zone.GetComponent<Image>();
+            image.color = Color.clear;
+
+            PlaymatZoneMotion motion = zone.GetComponent<PlaymatZoneMotion>();
+            // Interaction zones must never paint over the printed playmat artwork.
+            motion.Configure(false, Color.clear);
+
+            Button button = zone.GetComponent<Button>();
+            button.targetGraphic = image;
+            if (action != null)
+            {
+                button.onClick.AddListener(action);
+            }
+
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = Color.white;
+            colors.pressedColor = Color.white;
+            colors.selectedColor = Color.white;
+            colors.disabledColor = new Color(1f, 1f, 1f, 0.36f);
+            button.colors = colors;
+            return zone;
+        }
+
+        public static bool ApplyPlaymatCrop(Image image, Rect normalizedRect)
+        {
+            Sprite sprite = LoadPlaymatSprite(normalizedRect);
+            if (image == null || sprite == null)
+            {
+                return false;
+            }
+
+            image.sprite = sprite;
+            image.color = Color.white;
+            image.preserveAspect = false;
+            return true;
+        }
+
         public static GameObject CreateVerticalStack(Transform parent, string name, Color color, int spacing = 12, int padding = 16)
         {
             GameObject stack = CreatePanel(parent, name, color);
@@ -144,6 +386,9 @@ namespace AppreciatorsTcg.UI
         public static Button CreateButton(Transform parent, string label, UnityAction action, Color color)
         {
             GameObject buttonObject = CreatePanel(parent, label, color);
+            AddDimensionalGradient(buttonObject, true);
+            buttonObject.AddComponent<UiButtonMotion>();
+            buttonObject.AddComponent<UiButtonSfx>();
             Button button = buttonObject.AddComponent<Button>();
             button.targetGraphic = buttonObject.GetComponent<Image>();
             button.onClick.AddListener(action);
@@ -152,23 +397,20 @@ namespace AppreciatorsTcg.UI
             colors.normalColor = color;
             colors.highlightedColor = Color.Lerp(color, Color.white, 0.12f);
             colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
-            colors.disabledColor = new Color(0.20f, 0.21f, 0.25f);
+            colors.disabledColor = ThemeService.IsDark
+                ? new Color(0.20f, 0.21f, 0.25f)
+                : new Color(0.82f, 0.79f, 0.90f, 1f);
             button.colors = colors;
             AddNeonFrame(buttonObject, Color.Lerp(color, NeonCyan, 0.35f), 0.52f);
 
-            bool endTurnArtApplied = label == "END TURN" && UIAssetPack.Apply(buttonObject.GetComponent<Image>(), "04_ui/buttons/button_end_turn.png", false);
-            if (endTurnArtApplied)
-            {
-                ColorBlock artColors = button.colors;
-                artColors.normalColor = Color.white;
-                artColors.highlightedColor = new Color(1f, 1f, 1f, 0.92f);
-                artColors.pressedColor = new Color(0.86f, 0.78f, 0.68f, 1f);
-                artColors.disabledColor = new Color(0.55f, 0.50f, 0.45f, 0.70f);
-                button.colors = artColors;
-            }
-
             bool isLongLabel = label.Length > 28 || label.Contains("\n");
-            Text labelText = CreateText(buttonObject.transform, endTurnArtApplied ? string.Empty : label, isLongLabel ? 18 : 23, TextAnchor.MiddleCenter, TextColor, FontStyle.Bold);
+            Text labelText = CreateText(
+                buttonObject.transform,
+                label,
+                isLongLabel ? 20 : 25,
+                TextAnchor.MiddleCenter,
+                ReadableTextColor(color),
+                FontStyle.Bold);
             Stretch(labelText.rectTransform);
 
             LayoutElement layout = buttonObject.AddComponent<LayoutElement>();
@@ -178,7 +420,124 @@ namespace AppreciatorsTcg.UI
             return button;
         }
 
-        public static GameObject CreateHudPlate(Transform parent, string playerName, int health, int energy, int maxEnergy, bool opponent)
+        public static void MakeDimensionalPanel(GameObject target, Color accent)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            AddDimensionalGradient(target, false);
+            Shadow shadow = target.GetComponent<Shadow>() ?? target.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.48f);
+            shadow.effectDistance = new Vector2(7f, -9f);
+            shadow.useGraphicAlpha = true;
+            AddNeonFrame(target, accent, 0.90f);
+        }
+
+        private static void AddDimensionalGradient(GameObject target, bool addBevelBands)
+        {
+            Image image = target == null ? null : target.GetComponent<Image>();
+            if (image == null)
+            {
+                return;
+            }
+
+            UiGradientEffect gradient = target.GetComponent<UiGradientEffect>() ?? target.AddComponent<UiGradientEffect>();
+            gradient.Configure(Color.white, ThemeService.IsDark
+                ? new Color(0.52f, 0.60f, 0.78f, 1f)
+                : new Color(0.72f, 0.76f, 0.88f, 1f));
+
+            if (!addBevelBands)
+            {
+                return;
+            }
+
+            GameObject shine = new GameObject("TopBevel", typeof(RectTransform), typeof(Image));
+            shine.transform.SetParent(target.transform, false);
+            SetAnchors(shine.GetComponent<RectTransform>(), new Vector2(0.02f, 0.88f), new Vector2(0.98f, 0.98f), Vector2.zero, Vector2.zero);
+            Image shineImage = shine.GetComponent<Image>();
+            shineImage.color = new Color(1f, 1f, 1f, 0.18f);
+            shineImage.raycastTarget = false;
+
+            GameObject lip = new GameObject("BottomBevel", typeof(RectTransform), typeof(Image));
+            lip.transform.SetParent(target.transform, false);
+            SetAnchors(lip.GetComponent<RectTransform>(), new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.10f), Vector2.zero, Vector2.zero);
+            Image lipImage = lip.GetComponent<Image>();
+            lipImage.color = new Color(0.02f, 0.01f, 0.08f, 0.32f);
+            lipImage.raycastTarget = false;
+        }
+
+        public static GameObject CreateShardStackButton(
+            Transform parent,
+            string name,
+            string laneLabel,
+            int available,
+            string actionLabel,
+            Color color,
+            UnityAction action)
+        {
+            GameObject root = CreatePanel(parent, name, new Color(0.02f, 0.02f, 0.08f, 0.78f));
+            AddNeonFrame(root, color, 0.90f);
+            LayoutElement layout = root.AddComponent<LayoutElement>();
+            layout.minWidth = 78;
+            layout.preferredWidth = 86;
+            layout.flexibleWidth = 1;
+            layout.minHeight = 50;
+            layout.preferredHeight = 56;
+            layout.flexibleHeight = 1;
+
+            for (int i = 0; i < 3; i++)
+            {
+                GameObject shard = new GameObject($"Shard_{i + 1}", typeof(RectTransform), typeof(Image));
+                shard.transform.SetParent(root.transform, false);
+                RectTransform shardRect = shard.GetComponent<RectTransform>();
+                shardRect.anchorMin = new Vector2(0.18f, 0.5f);
+                shardRect.anchorMax = new Vector2(0.18f, 0.5f);
+                shardRect.pivot = new Vector2(0.5f, 0.5f);
+                shardRect.sizeDelta = new Vector2(24f, 24f);
+                shardRect.anchoredPosition = new Vector2(i * 5f, (i - 1) * 3f);
+                shardRect.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                Image shardImage = shard.GetComponent<Image>();
+                shardImage.color = new Color(color.r, color.g, color.b, 0.34f + i * 0.20f);
+                shardImage.raycastTarget = false;
+            }
+
+            Text label = CreateText(
+                root.transform,
+                $"{laneLabel} {available}\n{actionLabel}",
+                13,
+                TextAnchor.MiddleCenter,
+                Color.white,
+                FontStyle.Bold);
+            label.rectTransform.anchorMin = new Vector2(0.28f, 0f);
+            label.rectTransform.anchorMax = Vector2.one;
+            label.rectTransform.offsetMin = new Vector2(2f, 2f);
+            label.rectTransform.offsetMax = new Vector2(-3f, -2f);
+            label.raycastTarget = false;
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = 9;
+            label.resizeTextMaxSize = 13;
+
+            if (action != null)
+            {
+                Button button = root.AddComponent<Button>();
+                button.targetGraphic = root.GetComponent<Image>();
+                button.interactable = available > 0;
+                button.onClick.AddListener(action);
+                ColorBlock colors = button.colors;
+                colors.normalColor = Color.white;
+                colors.highlightedColor = new Color(1f, 1f, 1f, 0.94f);
+                colors.pressedColor = new Color(0.72f, 0.72f, 0.82f, 1f);
+                colors.disabledColor = new Color(0.42f, 0.42f, 0.48f, 0.64f);
+                button.colors = colors;
+                root.AddComponent<PlaymatZoneMotion>();
+            }
+
+            return root;
+        }
+
+        public static GameObject CreateHudPlate(Transform parent, string playerName, int health, int appreciation, int maxAppreciation, bool opponent)
         {
             GameObject hud = CreateHorizontalStack(parent, opponent ? "OpponentHud" : "PlayerHud", new Color(0.014f, 0.018f, 0.040f, 0.94f), 8, 8);
             AddNeonFrame(hud, opponent ? NeonPink : Accent, 0.62f);
@@ -210,8 +569,49 @@ namespace AppreciatorsTcg.UI
             statsLayout.flexibleWidth = 1;
             CreateNamePlate(stats.transform, playerName);
             CreateHealthPlate(stats.transform, health);
-            CreateEnergyPips(stats.transform, energy, maxEnergy, opponent);
+            CreateAppreciationPips(stats.transform, appreciation, maxAppreciation, opponent);
             return hud;
+        }
+
+        public static GameObject CreateCompactMatchHud(Transform parent, string playerName, int health, int appreciation, int turn, bool opponent)
+        {
+            Color surface = ThemeService.IsDark ? new Color(0.025f, 0.020f, 0.095f, 0.94f) : new Color(0.96f, 0.94f, 0.84f, 0.94f);
+            GameObject hud = CreateHorizontalStack(parent, opponent ? "OpponentHud" : "PlayerHud", surface, 2, 2);
+            AddNeonFrame(hud, opponent ? Red : NeonCyan, 0.72f);
+            Shadow hudShadow = hud.AddComponent<Shadow>();
+            hudShadow.effectColor = new Color(0f, 0f, 0f, 0.52f);
+            hudShadow.effectDistance = new Vector2(3f, -3f);
+            HorizontalLayoutGroup group = hud.GetComponent<HorizontalLayoutGroup>();
+            group.childControlWidth = true;
+            group.childForceExpandWidth = true;
+            group.childAlignment = TextAnchor.MiddleCenter;
+            LayoutElement hudLayout = hud.AddComponent<LayoutElement>();
+            hudLayout.flexibleWidth = 1f;
+            hudLayout.minHeight = 42f;
+            hudLayout.preferredHeight = 48f;
+
+            Text name = CreateText(hud.transform, string.IsNullOrWhiteSpace(playerName) ? "PLAYER" : playerName.ToUpperInvariant(), 13, TextAnchor.MiddleCenter, Cream, FontStyle.Bold);
+            LayoutElement nameLayout = name.gameObject.AddComponent<LayoutElement>();
+            nameLayout.flexibleWidth = 1f;
+            nameLayout.minWidth = 72f;
+            nameLayout.preferredWidth = 90f;
+            CreateCompactStat(hud.transform, "HP", health, HeartRed);
+            CreateCompactStat(hud.transform, appreciation >= GameConstants.SpotlightGrowthThreshold ? "APPRECIATION ★" : "APPRECIATION", appreciation, opponent ? Blue : Accent);
+            CreateCompactStat(hud.transform, "TURN", turn, PortalViolet);
+            return hud;
+        }
+
+        private static void CreateCompactStat(Transform parent, string label, int value, Color color)
+        {
+            GameObject stat = CreateHorizontalStack(parent, label, new Color(color.r, color.g, color.b, 0.22f), 3, 3);
+            LayoutElement layout = stat.AddComponent<LayoutElement>();
+            bool isAppreciation = label.StartsWith("APPRECIATION", System.StringComparison.Ordinal);
+            layout.minWidth = isAppreciation ? 96f : 62f;
+            layout.preferredWidth = isAppreciation ? 106f : 72f;
+            layout.flexibleWidth = 1f;
+            Text text = CreateText(stat.transform, $"{label} {value}", 12, TextAnchor.MiddleCenter, Cream, FontStyle.Bold);
+            LayoutElement textLayout = text.gameObject.AddComponent<LayoutElement>();
+            textLayout.flexibleWidth = 1f;
         }
 
         public static GameObject CreateNamePlate(Transform parent, string playerName)
@@ -247,27 +647,33 @@ namespace AppreciatorsTcg.UI
             return plate;
         }
 
-        public static GameObject CreateEnergyPips(Transform parent, int energy, int maxEnergy, bool opponent)
+        public static GameObject CreateAppreciationPips(Transform parent, int appreciation, int maxAppreciation, bool opponent)
         {
-            GameObject row = CreateHorizontalStack(parent, "EnergyPips", Color.clear, 4, 0);
+            GameObject row = CreateHorizontalStack(parent, "AppreciationPips", Color.clear, 4, 0);
             HorizontalLayoutGroup group = row.GetComponent<HorizontalLayoutGroup>();
             group.childForceExpandWidth = false;
             LayoutElement layout = row.AddComponent<LayoutElement>();
             layout.minHeight = 22;
             layout.preferredHeight = 26;
-            Text count = CreateText(row.transform, $"{energy}/{maxEnergy}", 17, TextAnchor.MiddleLeft, TextColor, FontStyle.Bold);
+            Text count = CreateText(row.transform, $"{appreciation}/{maxAppreciation}", 17, TextAnchor.MiddleCenter, Ink, FontStyle.Bold);
             LayoutElement countLayout = count.gameObject.AddComponent<LayoutElement>();
-            countLayout.minWidth = 52;
-            countLayout.preferredWidth = 58;
-            int pipCount = Mathf.Max(maxEnergy, GameConstants.MaxTurn);
+            countLayout.minWidth = 62;
+            countLayout.preferredWidth = 68;
+            count.resizeTextForBestFit = true;
+            count.resizeTextMinSize = 12;
+            count.resizeTextMaxSize = 17;
+            int pipCount = 10;
+            int filledPips = maxAppreciation <= 0
+                ? 0
+                : Mathf.Clamp(Mathf.CeilToInt((float)appreciation / maxAppreciation * pipCount), 0, pipCount);
             for (int i = 0; i < pipCount; i++)
             {
-                GameObject pip = CreatePanel(row.transform, "EnergyPip", i < energy ? (opponent ? NeonCyan : Accent) : new Color(0.025f, 0.030f, 0.080f, 0.92f));
+                GameObject pip = CreatePanel(row.transform, "AppreciationPip", i < filledPips ? (opponent ? NeonCyan : Accent) : new Color(0.025f, 0.030f, 0.080f, 0.92f));
                 LayoutElement pipLayout = pip.AddComponent<LayoutElement>();
-                pipLayout.minWidth = 18;
-                pipLayout.preferredWidth = 20;
-                pipLayout.minHeight = 18;
-                pipLayout.preferredHeight = 20;
+                pipLayout.minWidth = 10;
+                pipLayout.preferredWidth = 12;
+                pipLayout.minHeight = 14;
+                pipLayout.preferredHeight = 16;
                 pipLayout.flexibleWidth = 0;
             }
 
@@ -322,10 +728,11 @@ namespace AppreciatorsTcg.UI
 
         public static InputField CreateInputField(Transform parent, string placeholder, string value)
         {
-            GameObject fieldObject = CreatePanel(parent, "InputField", new Color(0.035f, 0.035f, 0.075f));
+            GameObject fieldObject = CreatePanel(parent, "InputField", WithAlpha(Background, 0.96f));
             InputField input = fieldObject.AddComponent<InputField>();
+            fieldObject.AddComponent<InputFieldContextMenu>();
             Image image = fieldObject.GetComponent<Image>();
-            image.color = new Color(0.035f, 0.035f, 0.075f);
+            image.color = WithAlpha(Background, 0.96f);
 
             Text text = CreateText(fieldObject.transform, value, 26, TextAnchor.MiddleLeft, TextColor);
             Stretch(text.rectTransform);
@@ -349,7 +756,7 @@ namespace AppreciatorsTcg.UI
 
         public static RectTransform CreateScrollContent(Transform parent, string name, bool horizontal, out ScrollRect scrollRect, bool centerHorizontalContent = false)
         {
-            GameObject scrollObject = CreatePanel(parent, name, new Color(0.035f, 0.040f, 0.075f));
+            GameObject scrollObject = CreatePanel(parent, name, WithAlpha(Background, 0.82f));
             scrollRect = scrollObject.AddComponent<ScrollRect>();
             scrollRect.scrollSensitivity = 42f;
             scrollRect.movementType = ScrollRect.MovementType.Clamped;
@@ -359,7 +766,7 @@ namespace AppreciatorsTcg.UI
             scrollLayout.flexibleHeight = 1;
             scrollLayout.flexibleWidth = 1;
 
-            GameObject viewport = CreatePanel(scrollObject.transform, "Viewport", new Color(0.035f, 0.040f, 0.075f));
+            GameObject viewport = CreatePanel(scrollObject.transform, "Viewport", WithAlpha(Background, 0.82f));
             viewport.AddComponent<Mask>().showMaskGraphic = false;
             Stretch(viewport.GetComponent<RectTransform>());
 
@@ -412,6 +819,51 @@ namespace AppreciatorsTcg.UI
             return contentRect;
         }
 
+        public static RectTransform CreateGridScrollContent(
+            Transform parent,
+            string name,
+            Vector2 cellSize,
+            int columns,
+            out ScrollRect scrollRect)
+        {
+            GameObject scrollObject = CreatePanel(parent, name, WithAlpha(Background, 0.82f));
+            scrollRect = scrollObject.AddComponent<ScrollRect>();
+            scrollRect.scrollSensitivity = 42f;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            ScrollWheelRelay wheelRelay = scrollObject.AddComponent<ScrollWheelRelay>();
+            wheelRelay.Target = scrollRect;
+            LayoutElement scrollLayout = scrollObject.AddComponent<LayoutElement>();
+            scrollLayout.flexibleHeight = 1;
+            scrollLayout.flexibleWidth = 1;
+
+            GameObject viewport = CreatePanel(scrollObject.transform, "Viewport", WithAlpha(Background, 0.82f));
+            viewport.AddComponent<Mask>().showMaskGraphic = false;
+            Stretch(viewport.GetComponent<RectTransform>());
+
+            GameObject content = new GameObject("Content", typeof(RectTransform), typeof(GridLayoutGroup), typeof(ContentSizeFitter));
+            content.transform.SetParent(viewport.transform, false);
+            GridLayoutGroup grid = content.GetComponent<GridLayoutGroup>();
+            grid.cellSize = cellSize;
+            grid.spacing = new Vector2(10f, 12f);
+            grid.padding = new RectOffset(12, 12, 12, 12);
+            grid.childAlignment = TextAnchor.UpperCenter;
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = Mathf.Max(1, columns);
+
+            ContentSizeFitter fitter = content.GetComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            RectTransform contentRect = content.GetComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0f, 1f);
+            contentRect.anchorMax = new Vector2(1f, 1f);
+            contentRect.pivot = new Vector2(0.5f, 1f);
+
+            scrollRect.viewport = viewport.GetComponent<RectTransform>();
+            scrollRect.content = contentRect;
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+            return contentRect;
+        }
+
         public static GameObject CreateCardPanel(Transform parent, string title, string body, Color color)
         {
             GameObject card = CreateVerticalStack(parent, title, color, 6, 10);
@@ -434,15 +886,18 @@ namespace AppreciatorsTcg.UI
             string footer = null,
             bool compact = false)
         {
-            Color color = selected ? Accent : ColorForType(card.type);
-            GameObject panel = CreateVerticalStack(parent, card.name, color, compact ? 4 : 7, compact ? 8 : 10);
-            AddNeonFrame(panel, selected ? Accent : ColorForRarity(card.rarity), selected ? 0.78f : 0.42f);
+            Color color = selected ? Hex("25105A") : Color.clear;
+            GameObject panel = CreatePanel(parent, card.name, color);
+            if (selected)
+            {
+                AddNeonFrame(panel, Accent, 0.98f);
+            }
             LayoutElement layout = panel.AddComponent<LayoutElement>();
             layout.minWidth = compact ? 176 : 225;
             layout.preferredWidth = compact ? 194 : 255;
             layout.flexibleWidth = compact ? 0 : 1;
-            layout.minHeight = compact ? 184 : 230;
-            layout.preferredHeight = compact ? 202 : 255;
+            layout.minHeight = compact ? 218 : 292;
+            layout.preferredHeight = compact ? 232 : 310;
             layout.flexibleHeight = 0;
 
             if (action != null)
@@ -453,82 +908,98 @@ namespace AppreciatorsTcg.UI
 
                 ColorBlock colors = button.colors;
                 colors.normalColor = color;
-                colors.highlightedColor = Color.Lerp(color, Color.white, 0.10f);
+                colors.highlightedColor = Color.Lerp(color, PortalViolet, 0.26f);
                 colors.pressedColor = Color.Lerp(color, Color.black, 0.18f);
                 colors.disabledColor = new Color(0.20f, 0.21f, 0.25f);
                 button.colors = colors;
             }
 
-            CreateCardArt(panel.transform, card, compact ? 92 : 88);
-
-            string affinity = string.IsNullOrWhiteSpace(card.laneAffinity) ? "Any lane" : card.laneAffinity;
-            string title = selected ? $"SELECTED\n{card.name}" : card.name;
-            if (compact)
-            {
-                CreateText(panel.transform, title, 18, TextAnchor.MiddleLeft, TextColor, FontStyle.Bold);
-                CreateText(panel.transform, $"COST {card.cost}   POW {card.power}   APP {card.appreciation}", 16, TextAnchor.MiddleLeft, Accent, FontStyle.Bold);
-                CreateText(panel.transform, $"{card.rarity} | {card.type}", 13, TextAnchor.MiddleLeft, MutedTextColor, FontStyle.Bold);
-            }
-            else
-            {
-                CreateText(panel.transform, title, 21, TextAnchor.MiddleLeft, TextColor, FontStyle.Bold);
-                CreateText(panel.transform, $"Cost {card.cost} | Power {card.power} | Appreciation {card.appreciation}", 17, TextAnchor.MiddleLeft, Accent, FontStyle.Bold);
-                CreateText(panel.transform, $"{card.rarity} | {card.type} | {card.traitGroup}", 17, TextAnchor.MiddleLeft, TextColor);
-                CreateText(panel.transform, affinity, 16, TextAnchor.MiddleLeft, MutedTextColor);
-                CreateText(panel.transform, card.effectText, 17, TextAnchor.UpperLeft, TextColor);
-            }
-
-            if (!string.IsNullOrWhiteSpace(footer))
-            {
-                CreateText(panel.transform, footer, compact ? 14 : 17, TextAnchor.MiddleLeft, Accent, FontStyle.Bold);
-            }
+            PopulateOfficialCardFront(panel.transform, card, compact ? OfficialCardScale.Compact : OfficialCardScale.Full, footer);
 
             return panel;
         }
 
-        public static GameObject CreateMiniCardPanel(Transform parent, CardDefinition card, string stats, bool selected = false)
+        public static GameObject CreateMiniCardPanel(
+            Transform parent,
+            CardDefinition card,
+            string stats,
+            bool selected = false,
+            int width = 82,
+            int height = 84,
+            int artHeight = 34)
         {
-            Color color = selected ? Accent : new Color(0.82f, 0.56f, 0.32f, 0.98f);
-            GameObject panel = CreateVerticalStack(parent, card.name, color, 1, 4);
+            Color color = selected ? Hex("25105A") : Color.clear;
+            GameObject panel = CreatePanel(parent, card.name, color);
             Image image = panel.GetComponent<Image>();
-            if (!UIAssetPack.ApplyResource(image, "Art/Placeholder/UserMock/appcardframe_alpha", false))
+            image.color = color;
+            if (selected)
             {
-                image.color = color;
+                AddNeonFrame(panel, Accent, 0.96f);
             }
-
-            AddNeonFrame(panel, selected ? Accent : WoodDark, selected ? 0.82f : 0.66f);
             LayoutElement layout = panel.AddComponent<LayoutElement>();
-            layout.minWidth = 70;
-            layout.preferredWidth = 82;
+            layout.minWidth = width;
+            layout.preferredWidth = width;
             layout.flexibleWidth = 0;
-            layout.minHeight = 72;
-            layout.preferredHeight = 84;
+            layout.minHeight = height;
+            layout.preferredHeight = height;
             layout.flexibleHeight = 0;
 
-            CreateCardArt(panel.transform, card, 34);
-            CreateText(panel.transform, Shorten(card.name, 12), 10, TextAnchor.MiddleCenter, CreamInk, FontStyle.Bold);
-            CreateText(panel.transform, stats, 12, TextAnchor.MiddleCenter, WoodDark, FontStyle.Bold);
+            PopulateOfficialCardFront(panel.transform, card, OfficialCardScale.Mini, null);
+            Text miniStats = CreateText(panel.transform, stats, width < 78 ? 8 : 10, TextAnchor.MiddleCenter, Ink, FontStyle.Bold);
+            miniStats.gameObject.name = "RuntimeStats";
+            SetAnchors(miniStats.rectTransform, new Vector2(0.66f, 0.225f), new Vector2(0.91f, 0.285f), Vector2.zero, Vector2.zero);
+            miniStats.resizeTextForBestFit = true;
+            miniStats.resizeTextMinSize = 5;
+            miniStats.resizeTextMaxSize = width < 78 ? 8 : 10;
+            miniStats.raycastTarget = false;
             return panel;
+        }
+
+        public static GameObject CreateCardArtThumbnail(Transform parent, CardDefinition card, int width = 64, int height = 62)
+        {
+            GameObject thumbnail = CreatePanel(parent, $"Thumbnail_{card.id}", Cream);
+            AddNeonFrame(thumbnail, ColorForType(card.type), 0.84f);
+            LayoutElement layout = thumbnail.AddComponent<LayoutElement>();
+            layout.minWidth = width;
+            layout.preferredWidth = width;
+            layout.flexibleWidth = 0;
+            layout.minHeight = height;
+            layout.preferredHeight = height;
+            layout.flexibleHeight = 0;
+
+            Image image = thumbnail.GetComponent<Image>();
+            Sprite sprite = CardArtResolver.LoadSprite(card);
+            if (sprite != null)
+            {
+                image.sprite = sprite;
+                image.color = Color.white;
+                image.preserveAspect = true;
+            }
+            else
+            {
+                Text fallback = CreateText(thumbnail.transform, "ART", 13, TextAnchor.MiddleCenter, Ink, FontStyle.Bold);
+                Stretch(fallback.rectTransform);
+            }
+            return thumbnail;
         }
 
         public static GameObject CreateMatchHandCardPanel(Transform parent, CardDefinition card, UnityAction action, bool selected = false, string footer = null)
         {
-            Color buttonColor = selected ? Accent : new Color(0.78f, 0.54f, 0.32f, 0.98f);
-            GameObject panel = CreateVerticalStack(parent, card.name, buttonColor, 2, 8);
+            Color buttonColor = selected ? Hex("25105A") : Color.clear;
+            GameObject panel = CreatePanel(parent, card.name, buttonColor);
             Image panelImage = panel.GetComponent<Image>();
-            if (!UIAssetPack.ApplyResource(panelImage, "Art/Placeholder/UserMock/appcardframe_alpha", false))
+            panelImage.color = buttonColor;
+            if (selected)
             {
-                panelImage.color = buttonColor;
+                AddNeonFrame(panel, Accent, 0.98f);
             }
 
-            AddNeonFrame(panel, selected ? Accent : WoodDark, selected ? 0.92f : 0.82f);
-
             LayoutElement layout = panel.AddComponent<LayoutElement>();
-            layout.minWidth = 142;
-            layout.preferredWidth = 142;
+            layout.minWidth = 127;
+            layout.preferredWidth = 127;
             layout.flexibleWidth = 0;
-            layout.minHeight = 212;
-            layout.preferredHeight = 212;
+            layout.minHeight = 190;
+            layout.preferredHeight = 190;
             layout.flexibleHeight = 0;
 
             if (action != null)
@@ -539,70 +1010,326 @@ namespace AppreciatorsTcg.UI
 
                 ColorBlock colors = button.colors;
                 colors.normalColor = buttonColor;
-                colors.highlightedColor = Color.Lerp(buttonColor, Color.white, 0.10f);
+                colors.highlightedColor = Color.Lerp(buttonColor, PortalViolet, 0.26f);
                 colors.pressedColor = Color.Lerp(buttonColor, Color.black, 0.18f);
                 colors.disabledColor = new Color(0.20f, 0.21f, 0.25f);
                 button.colors = colors;
             }
 
-            CreateCardArt(panel.transform, card, 68);
-
-            GameObject titleBar = CreateHorizontalStack(panel.transform, "CardTitleBar", new Color(0.96f, 0.87f, 0.69f, 0.98f), 5, 5);
-            AddNeonFrame(titleBar, WoodDark, 0.72f);
-            LayoutElement titleLayout = titleBar.AddComponent<LayoutElement>();
-            titleLayout.minHeight = 25;
-            titleLayout.preferredHeight = 27;
-            titleLayout.flexibleHeight = 0;
-            GameObject costBadge = CreatePanel(titleBar.transform, "CostBadge", IceBadge);
-            AddNeonFrame(costBadge, Color.white, 0.72f);
-            LayoutElement costLayout = costBadge.AddComponent<LayoutElement>();
-            costLayout.minWidth = 25;
-            costLayout.preferredWidth = 27;
-            costLayout.flexibleWidth = 0;
-            Text costText = CreateText(costBadge.transform, card.cost.ToString(), 16, TextAnchor.MiddleCenter, CreamInk, FontStyle.Bold);
-            Stretch(costText.rectTransform);
-            Text nameText = CreateText(titleBar.transform, Shorten(card.name, 16), 13, TextAnchor.MiddleLeft, CreamInk, FontStyle.Bold);
-            LayoutElement nameLayout = nameText.gameObject.AddComponent<LayoutElement>();
-            nameLayout.flexibleWidth = 1;
-
-            GameObject statsBar = CreateHorizontalStack(panel.transform, "CardStats", new Color(0.91f, 0.74f, 0.49f, 0.96f), 5, 4);
-            LayoutElement statsLayout = statsBar.AddComponent<LayoutElement>();
-            statsLayout.minHeight = 20;
-            statsLayout.preferredHeight = 22;
-            statsLayout.flexibleHeight = 0;
-            CreateStatLabel(statsBar.transform, "POW", card.power, HeartRed);
-            CreateStatLabel(statsBar.transform, "APP", card.appreciation, IceBadge);
-
-            Text typeText = CreateText(panel.transform, $"{card.rarity} | {card.type}", 10, TextAnchor.MiddleLeft, CreamInk, FontStyle.Bold);
-            LayoutElement typeLayout = typeText.gameObject.AddComponent<LayoutElement>();
-            typeLayout.minHeight = 12;
-            typeLayout.preferredHeight = 14;
-            typeLayout.flexibleHeight = 0;
-
-            GameObject rulesBox = CreatePanel(panel.transform, "RulesText", new Color(0.24f, 0.13f, 0.115f, 0.96f));
-            AddNeonFrame(rulesBox, new Color(0.86f, 0.66f, 0.42f), 0.70f);
-            LayoutElement rulesLayout = rulesBox.AddComponent<LayoutElement>();
-            rulesLayout.minHeight = 32;
-            rulesLayout.preferredHeight = 36;
-            rulesLayout.flexibleHeight = 1;
-            Text effectText = CreateText(rulesBox.transform, Shorten(card.effectText, 82), 11, TextAnchor.UpperLeft, new Color(1.0f, 0.93f, 0.82f), FontStyle.Bold);
-            Stretch(effectText.rectTransform);
-            effectText.rectTransform.offsetMin = new Vector2(4, 2);
-            effectText.rectTransform.offsetMax = new Vector2(-4, -2);
-            effectText.resizeTextForBestFit = true;
-            effectText.resizeTextMinSize = 8;
-            effectText.resizeTextMaxSize = 11;
-
-            if (!string.IsNullOrWhiteSpace(footer))
-            {
-                Text footerText = CreateText(panel.transform, footer, 9, TextAnchor.MiddleLeft, CreamInk, FontStyle.Bold);
-                LayoutElement footerLayout = footerText.gameObject.AddComponent<LayoutElement>();
-                footerLayout.minHeight = 10;
-                footerLayout.preferredHeight = 11;
-                footerLayout.flexibleHeight = 0;
-            }
+            PopulateOfficialCardFront(panel.transform, card, OfficialCardScale.Hand, footer);
 
             return panel;
+        }
+
+        private enum OfficialCardScale
+        {
+            Full,
+            Compact,
+            Hand,
+            Mini
+        }
+
+        public static string PillarSymbol(string pillar)
+        {
+            if (string.Equals(pillar, "Learn", System.StringComparison.OrdinalIgnoreCase)) return "◉";
+            if (string.Equals(pillar, "Grow", System.StringComparison.OrdinalIgnoreCase)) return "✦";
+            return "⬢";
+        }
+
+        public static string RaritySymbol(string rarity)
+        {
+            if (string.Equals(rarity, GameConstants.OneOfOne, System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(rarity, GameConstants.Crown, System.StringComparison.OrdinalIgnoreCase)) return "♛";
+            if (string.Equals(rarity, GameConstants.Legendary, System.StringComparison.OrdinalIgnoreCase)) return "★";
+            if (string.Equals(rarity, GameConstants.Rare, System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(rarity, GameConstants.Epic, System.StringComparison.OrdinalIgnoreCase)) return "◆";
+            return "●";
+        }
+
+        private static void CreateCardClassificationStrip(Transform parent, CardDefinition card, OfficialCardScale scale)
+        {
+            GameObject strip = CreatePanel(parent, "ClassificationSymbols", ThemeService.IsDark ? new Color(0.03f, 0.02f, 0.14f, 0.94f) : new Color(0.98f, 0.97f, 0.86f, 0.95f));
+            RectTransform rect = strip.GetComponent<RectTransform>();
+            float height = scale == OfficialCardScale.Mini ? 0.14f : 0.075f;
+            SetAnchors(rect, new Vector2(0.10f, 0.008f), new Vector2(0.90f, height), Vector2.zero, Vector2.zero);
+            HorizontalLayoutGroup layout = strip.AddComponent<HorizontalLayoutGroup>();
+            layout.spacing = 2f;
+            layout.padding = new RectOffset(3, 3, 0, 0);
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = true;
+            layout.childForceExpandWidth = true;
+            int size = scale == OfficialCardScale.Mini ? 8 : scale == OfficialCardScale.Hand ? 13 : 16;
+            Color iconColor = ThemeService.IsDark ? Cream : Ink;
+            CreateText(strip.transform, "◈", size, TextAnchor.MiddleCenter, iconColor, FontStyle.Bold).raycastTarget = false;
+            CreateText(strip.transform, PillarSymbol(card.GetPillar()), size, TextAnchor.MiddleCenter, iconColor, FontStyle.Bold).raycastTarget = false;
+            CreateText(strip.transform, RaritySymbol(card.rarity), size, TextAnchor.MiddleCenter, Accent, FontStyle.Bold).raycastTarget = false;
+            CardClassificationTooltipTrigger trigger = strip.AddComponent<CardClassificationTooltipTrigger>();
+            trigger.Card = card;
+        }
+
+        private static void PopulateOfficialCardFront(Transform parent, CardDefinition card, OfficialCardScale scale, string footer)
+        {
+            Sprite bakedFace = CardArtResolver.LoadCardFaceSprite(card);
+            if (bakedFace != null)
+            {
+                CreateBakedCardVisual(parent, bakedFace, card.rarity);
+                return;
+            }
+
+            Debug.LogError($"Missing baked production card face for '{card?.id ?? "<null>"}'. Regenerate cards with scripts/generate-card-faces.ps1.");
+            string footerLabel = $"{card.rarity.ToUpperInvariant()}  |  {card.type.ToUpperInvariant()}";
+            if (!string.IsNullOrWhiteSpace(footer) && scale == OfficialCardScale.Full)
+            {
+                footerLabel += $"  |  {footer.ToUpperInvariant()}";
+            }
+
+            CreateOfficialCardVisual(
+                parent,
+                card.name,
+                card.GetAttack(),
+                card.GetDefense(),
+                card.GetCardRulesText(),
+                footerLabel,
+                CardArtResolver.LoadSprite(card),
+                scale);
+        }
+
+        public static GameObject CreateBakedCardVisual(Transform parent, Sprite faceSprite, string rarity = null)
+        {
+            GameObject canvas = new GameObject("BakedCardFace", typeof(RectTransform), typeof(Image), typeof(AspectRatioFitter));
+            canvas.transform.SetParent(parent, false);
+            Image image = canvas.GetComponent<Image>();
+            image.sprite = faceSprite;
+            image.color = Color.white;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+
+            AspectRatioFitter fitter = canvas.GetComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = 2f / 3f;
+            PremiumCardPresentation.Attach(canvas, rarity);
+            return canvas;
+        }
+
+        public static GameObject CreateOfficialCardVisual(
+            Transform parent,
+            string cardName,
+            int attack,
+            int defense,
+            string effectText,
+            string metadata,
+            Sprite artSprite,
+            bool compact = false)
+        {
+            return CreateOfficialCardVisual(
+                parent,
+                cardName,
+                attack,
+                defense,
+                effectText,
+                metadata,
+                artSprite,
+                compact ? OfficialCardScale.Compact : OfficialCardScale.Full);
+        }
+
+        private static GameObject CreateOfficialCardVisual(
+            Transform parent,
+            string cardName,
+            int attack,
+            int defense,
+            string effectText,
+            string metadata,
+            Sprite artSprite,
+            OfficialCardScale scale)
+        {
+            GameObject canvas = new GameObject("OfficialCardCanvas", typeof(RectTransform), typeof(Image), typeof(AspectRatioFitter));
+            canvas.transform.SetParent(parent, false);
+            Image canvasImage = canvas.GetComponent<Image>();
+            canvasImage.color = Color.clear;
+            canvasImage.raycastTarget = false;
+            AspectRatioFitter fitter = canvas.GetComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = 2f / 3f;
+
+            GameObject frame = new GameObject("OfficialCardTemplate", typeof(RectTransform), typeof(Image));
+            frame.transform.SetParent(canvas.transform, false);
+            Image frameImage = frame.GetComponent<Image>();
+            frameImage.raycastTarget = false;
+            if (!UIAssetPack.ApplyResource(frameImage, "Art/Official/CardTemplate/templates/full_card_template_blank", false))
+            {
+                Debug.LogError("Missing official card template at Resources/Art/Official/CardTemplate/templates/full_card_template_blank.png.");
+                frameImage.color = Hex("2B1762");
+            }
+            Stretch(frame.GetComponent<RectTransform>());
+
+            GameObject artViewport = new GameObject("CardArt", typeof(RectTransform), typeof(Image), typeof(RectMask2D));
+            artViewport.transform.SetParent(canvas.transform, false);
+            Image viewportImage = artViewport.GetComponent<Image>();
+            viewportImage.color = Hex("6C67EB");
+            viewportImage.raycastTarget = false;
+            SetAnchors(artViewport.GetComponent<RectTransform>(), new Vector2(0.076f, 0.337f), new Vector2(0.924f, 0.848f), Vector2.zero, Vector2.zero);
+            if (artSprite != null)
+            {
+                CreateFitImage(artViewport.transform, "MetadataArt", artSprite);
+            }
+
+            // The artist's template remains the source of all frame geometry. Text is
+            // positioned into its blank value fields so every runtime card keeps the
+            // same proportions at collection, hand, board, and reveal sizes.
+            GameObject combatHeader = CreateHorizontalStack(canvas.transform, "CombatStats", Ink, 8, 7);
+            SetAnchors(combatHeader.GetComponent<RectTransform>(), new Vector2(0.055f, 0.858f), new Vector2(0.945f, 0.974f), Vector2.zero, Vector2.zero);
+            CreateCombatStatBadge(combatHeader.transform, "ATTACK", Mathf.Max(0, attack), HeartRed, scale);
+            CreateCombatStatBadge(combatHeader.transform, "DEFENSE", Mathf.Max(0, defense), Blue, scale);
+
+            GameObject nameStrip = CreatePanel(canvas.transform, "CardNameStrip", PortalViolet);
+            AddNeonFrame(nameStrip, Accent, 0.82f);
+            SetAnchors(nameStrip.GetComponent<RectTransform>(), new Vector2(0.060f, 0.218f), new Vector2(0.940f, 0.307f), Vector2.zero, Vector2.zero);
+            Text nameText = CreateText(nameStrip.transform, (cardName ?? "CARD").ToUpperInvariant(), NameFont(scale), TextAnchor.MiddleCenter, TextColor, FontStyle.Bold);
+            nameText.gameObject.name = "CardName";
+            SetAnchors(nameText.rectTransform, new Vector2(0.03f, 0.08f), new Vector2(0.97f, 0.92f), Vector2.zero, Vector2.zero);
+            ConfigureTemplateText(nameText, Mathf.Max(7, NameFont(scale) - 7), NameFont(scale));
+
+            GameObject rules = new GameObject("CardRules", typeof(RectTransform));
+            rules.transform.SetParent(canvas.transform, false);
+            SetAnchors(rules.GetComponent<RectTransform>(), new Vector2(0.075f, 0.035f), new Vector2(0.925f, 0.203f), Vector2.zero, Vector2.zero);
+            Text effect = CreateText(rules.transform, string.IsNullOrWhiteSpace(effectText) ? "No effect." : effectText, RulesFont(scale), TextAnchor.MiddleCenter, TextColor, FontStyle.Italic);
+            effect.gameObject.name = "EffectText";
+            SetAnchors(effect.rectTransform, new Vector2(0.05f, 0.27f), new Vector2(0.95f, 0.90f), Vector2.zero, Vector2.zero);
+            ConfigureTemplateText(effect, Mathf.Max(5, RulesFont(scale) - 5), RulesFont(scale));
+
+            if (scale != OfficialCardScale.Mini && !string.IsNullOrWhiteSpace(metadata))
+            {
+                Text metadataText = CreateText(rules.transform, metadata.ToUpperInvariant(), MetadataFont(scale), TextAnchor.MiddleCenter, MutedTextColor, FontStyle.Bold);
+                metadataText.gameObject.name = "CardMetadata";
+                SetAnchors(metadataText.rectTransform, new Vector2(0.06f, 0.08f), new Vector2(0.94f, 0.30f), Vector2.zero, Vector2.zero);
+                ConfigureTemplateText(metadataText, 5, MetadataFont(scale));
+            }
+
+            PremiumCardPresentation.Attach(canvas, metadata);
+            return canvas;
+        }
+
+        private static void CreateCombatStatBadge(Transform parent, string label, int value, Color color, OfficialCardScale scale)
+        {
+            GameObject badge = CreateHorizontalStack(parent, label, new Color(color.r * 0.24f, color.g * 0.24f, color.b * 0.24f, 0.98f), 4, 4);
+            AddNeonFrame(badge, color, 0.90f);
+            LayoutElement layout = badge.AddComponent<LayoutElement>();
+            layout.flexibleWidth = 1;
+            Text text = CreateText(badge.transform, $"{label}  {value}", LaneValueFont(scale), TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = Mathf.Max(6, LaneValueFont(scale) - 9);
+            text.resizeTextMaxSize = LaneValueFont(scale);
+            text.raycastTarget = false;
+        }
+
+        private static void CreateTemplateValue(Transform parent, string name, string value, Vector2 min, Vector2 max, int fontSize)
+        {
+            Text text = CreateText(parent, value, fontSize, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
+            text.gameObject.name = name;
+            SetAnchors(text.rectTransform, min, max, Vector2.zero, Vector2.zero);
+            ConfigureTemplateText(text, Mathf.Max(6, fontSize - 8), fontSize);
+        }
+
+        private static void ConfigureTemplateText(Text text, int minSize, int maxSize)
+        {
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = minSize;
+            text.resizeTextMaxSize = maxSize;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.raycastTarget = false;
+        }
+
+        private static int LaneValueFont(OfficialCardScale scale)
+        {
+            return scale == OfficialCardScale.Full ? 28 : scale == OfficialCardScale.Mini ? 9 : scale == OfficialCardScale.Hand ? 16 : 18;
+        }
+
+        private static int NameFont(OfficialCardScale scale)
+        {
+            return scale == OfficialCardScale.Full ? 22 : scale == OfficialCardScale.Mini ? 7 : scale == OfficialCardScale.Hand ? 12 : 14;
+        }
+
+        private static int CostFont(OfficialCardScale scale)
+        {
+            return scale == OfficialCardScale.Full ? 28 : scale == OfficialCardScale.Mini ? 9 : scale == OfficialCardScale.Hand ? 16 : 18;
+        }
+
+        private static int RulesFont(OfficialCardScale scale)
+        {
+            return scale == OfficialCardScale.Full ? 15 : scale == OfficialCardScale.Mini ? 5 : scale == OfficialCardScale.Hand ? 8 : 10;
+        }
+
+        private static int MetadataFont(OfficialCardScale scale)
+        {
+            return scale == OfficialCardScale.Full ? 9 : scale == OfficialCardScale.Hand ? 6 : 7;
+        }
+
+        private static void CreateLaneStrengthHeader(Transform parent, CardDefinition card, int height, bool compact)
+        {
+            GameObject header = CreateHorizontalStack(parent, "LaneStrengths", Hex("09082E"), compact ? 2 : 4, compact ? 2 : 4);
+            AddNeonFrame(header, PortalViolet, 0.96f);
+            LayoutElement headerLayout = header.AddComponent<LayoutElement>();
+            headerLayout.minHeight = height;
+            headerLayout.preferredHeight = height;
+            headerLayout.flexibleHeight = 0;
+
+            CreateLaneStrengthBadge(header.transform, card, LaneType.Art, "ART", "♥", HeartRed, compact);
+            CreateLaneStrengthBadge(header.transform, card, LaneType.Blockchain, "CHAIN", "◆", Hex("1769FF"), compact);
+            CreateLaneStrengthBadge(header.transform, card, LaneType.Community, "COMM", "★", Accent, compact);
+        }
+
+        private static void CreateLaneStrengthBadge(Transform parent, CardDefinition card, LaneType lane, string label, string icon, Color color, bool compact)
+        {
+            bool strongest = card.StrongestLane() == lane;
+            GameObject badge = CreateVerticalStack(parent, $"{lane}Strength", new Color(color.r * 0.18f, color.g * 0.18f, color.b * 0.18f, 0.98f), 0, 1);
+            AddNeonFrame(badge, strongest ? color : Color.Lerp(color, Ink, 0.48f), strongest ? 0.98f : 0.62f);
+            LayoutElement badgeLayout = badge.AddComponent<LayoutElement>();
+            badgeLayout.flexibleWidth = 1;
+
+            Text value = CreateText(badge.transform, $"{icon} {card.GetLaneStrength(lane)}", compact ? 11 : 18, TextAnchor.MiddleCenter, strongest ? Color.white : Color.Lerp(Color.white, color, 0.24f), FontStyle.Bold);
+            value.resizeTextForBestFit = true;
+            value.resizeTextMinSize = compact ? 7 : 12;
+            value.resizeTextMaxSize = compact ? 11 : 18;
+            LayoutElement valueLayout = value.gameObject.AddComponent<LayoutElement>();
+            valueLayout.flexibleHeight = 1;
+
+            Text laneLabel = CreateText(badge.transform, label, compact ? 6 : 9, TextAnchor.MiddleCenter, strongest ? color : MutedTextColor, FontStyle.Bold);
+            SetFixedLayoutHeight(laneLabel.gameObject, compact ? 9 : 13);
+        }
+
+        private static void CreateOfficialNameStrip(Transform parent, CardDefinition card, int height, int nameSize, int costSize)
+        {
+            GameObject strip = CreateHorizontalStack(parent, "CardNameStrip", Hex("311067"), 3, 4);
+            AddNeonFrame(strip, Accent, 0.82f);
+            LayoutElement stripLayout = strip.AddComponent<LayoutElement>();
+            stripLayout.minHeight = height;
+            stripLayout.preferredHeight = height;
+            stripLayout.flexibleHeight = 0;
+
+            Text name = CreateText(strip.transform, card.name.ToUpperInvariant(), nameSize, TextAnchor.MiddleLeft, TextColor, FontStyle.Bold);
+            name.resizeTextForBestFit = true;
+            name.resizeTextMinSize = Mathf.Max(7, nameSize - 5);
+            name.resizeTextMaxSize = nameSize;
+            LayoutElement nameLayout = name.gameObject.AddComponent<LayoutElement>();
+            nameLayout.flexibleWidth = 1;
+
+            GameObject cost = CreatePanel(strip.transform, "CostBadge", Accent);
+            AddNeonFrame(cost, Ink, 0.96f);
+            LayoutElement costLayout = cost.AddComponent<LayoutElement>();
+            costLayout.minWidth = height;
+            costLayout.preferredWidth = height;
+            costLayout.flexibleWidth = 0;
+            Text costText = CreateText(cost.transform, card.cost.ToString(), costSize, TextAnchor.MiddleCenter, Ink, FontStyle.Bold);
+            Stretch(costText.rectTransform);
+        }
+
+        private static void SetFixedLayoutHeight(GameObject target, float height)
+        {
+            LayoutElement layout = target.GetComponent<LayoutElement>() ?? target.AddComponent<LayoutElement>();
+            layout.minHeight = height;
+            layout.preferredHeight = height;
+            layout.flexibleHeight = 0;
         }
 
         private static void CreateStatLabel(Transform parent, string label, int value, Color color)
@@ -617,8 +1344,11 @@ namespace AppreciatorsTcg.UI
 
         public static GameObject CreateCardBackPanel(Transform parent, string label = "APP", int width = 92, int height = 116)
         {
-            GameObject panel = CreateVerticalStack(parent, "CardBack", new Color(0.23f, 0.075f, 0.32f, 0.96f), 3, 6);
-            AddNeonFrame(panel, Cream, 0.82f);
+            // Keep the layout hit area requested by the caller, but let the visible
+            // card use the artwork's true 2:3 silhouette. Older callers use several
+            // slightly different slot ratios; a transparent host prevents those
+            // slots from showing as stretched blue rectangles behind the card.
+            GameObject panel = CreatePanel(parent, "CardBack", Color.clear);
             LayoutElement layout = panel.AddComponent<LayoutElement>();
             layout.minWidth = width;
             layout.preferredWidth = width;
@@ -627,20 +1357,52 @@ namespace AppreciatorsTcg.UI
             layout.preferredHeight = height;
             layout.flexibleHeight = 0;
 
+            GameObject officialArt = new GameObject("OfficialCardBackArt", typeof(RectTransform), typeof(Image));
+            officialArt.transform.SetParent(panel.transform, false);
+            Image officialImage = officialArt.GetComponent<Image>();
+            officialImage.raycastTarget = false;
+            Stretch(officialArt.GetComponent<RectTransform>());
+            if (UIAssetPack.ApplyResource(officialImage, "Art/Official/Cards/app_card_reverse_premium", true))
+            {
+                ConfigureCardBackArt(officialArt, officialImage);
+                return panel;
+            }
+
+            if (UIAssetPack.ApplyResource(officialImage, "Art/Official/Cards/app_card_reverse", true))
+            {
+                ConfigureCardBackArt(officialArt, officialImage);
+                return panel;
+            }
+
+            officialArt.SetActive(false);
+
             int variant = Mathf.Max(0, parent.childCount - 1) % 4 + 1;
             if (UIAssetPack.Apply(panel.GetComponent<Image>(), $"04_ui/card_backs_and_decks/opponent_hand_card_back_{variant:00}.png", true))
             {
                 return panel;
             }
 
-            GameObject sigil = CreatePanel(panel.transform, "BackSigil", new Color(0.40f, 0.12f, 0.50f, 0.95f));
-            LayoutElement sigilLayout = sigil.AddComponent<LayoutElement>();
-            sigilLayout.minHeight = 42;
-            sigilLayout.preferredHeight = 50;
+            GameObject sigil = CreatePanel(panel.transform, "BackSigil", PortalViolet);
+            SetAnchors(sigil.GetComponent<RectTransform>(), new Vector2(0.18f, 0.24f), new Vector2(0.82f, 0.76f), Vector2.zero, Vector2.zero);
             Text mark = CreateText(sigil.transform, "✦", 30, TextAnchor.MiddleCenter, Accent, FontStyle.Bold);
             Stretch(mark.rectTransform);
-            CreateText(panel.transform, label, 12, TextAnchor.MiddleCenter, TextColor, FontStyle.Bold);
+            Text fallbackLabel = CreateText(panel.transform, label, 12, TextAnchor.MiddleCenter, TextColor, FontStyle.Bold);
+            SetAnchors(fallbackLabel.rectTransform, new Vector2(0.1f, 0.04f), new Vector2(0.9f, 0.22f), Vector2.zero, Vector2.zero);
             return panel;
+        }
+
+        private static void ConfigureCardBackArt(GameObject officialArt, Image officialImage)
+        {
+            officialImage.preserveAspect = false;
+            AspectRatioFitter fitter = officialArt.GetComponent<AspectRatioFitter>() ?? officialArt.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = officialImage.sprite != null && officialImage.sprite.rect.height > 0f
+                ? officialImage.sprite.rect.width / officialImage.sprite.rect.height
+                : 2f / 3f;
+
+            // The finish belongs to the fitted art, not its surrounding layout slot.
+            // This keeps the mask, foil edges, and physical card border coincident.
+            PremiumCardPresentation.Attach(officialArt, "Rare");
         }
 
         public static Color ColorForType(string type)
@@ -700,15 +1462,53 @@ namespace AppreciatorsTcg.UI
             Sprite sprite = CardArtResolver.LoadSprite(card);
             if (sprite != null)
             {
-                image.sprite = sprite;
-                image.color = Color.white;
-                image.preserveAspect = true;
+                image.color = Hex("151056");
+                artObject.AddComponent<RectMask2D>();
+                CreateCoverImage(artObject.transform, "MetadataArt", sprite);
                 return;
             }
 
             string shortType = string.IsNullOrWhiteSpace(card.type) ? "CARD" : card.type.Substring(0, Mathf.Min(3, card.type.Length));
             Text fallback = CreateText(artObject.transform, shortType, 30, TextAnchor.MiddleCenter, Accent, FontStyle.Bold);
             Stretch(fallback.rectTransform);
+        }
+
+        public static Image CreateCoverImage(Transform parent, string name, Sprite sprite)
+        {
+            GameObject imageObject = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(AspectRatioFitter));
+            imageObject.transform.SetParent(parent, false);
+            Image image = imageObject.GetComponent<Image>();
+            image.sprite = sprite;
+            image.color = Color.white;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+
+            RectTransform rect = imageObject.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+
+            AspectRatioFitter fitter = imageObject.GetComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fitter.aspectRatio = sprite == null || sprite.rect.height <= 0f ? 1f : sprite.rect.width / sprite.rect.height;
+            return image;
+        }
+
+        public static Image CreateFitImage(Transform parent, string name, Sprite sprite)
+        {
+            GameObject imageObject = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(AspectRatioFitter));
+            imageObject.transform.SetParent(parent, false);
+            Image image = imageObject.GetComponent<Image>();
+            image.sprite = sprite;
+            image.color = Color.white;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+
+            AspectRatioFitter fitter = imageObject.GetComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = sprite == null || sprite.rect.height <= 0f ? 1f : sprite.rect.width / sprite.rect.height;
+            return image;
         }
 
         private static void CreateBackdropPanel(Transform parent, string name, Color color, Vector2 min, Vector2 max, float rotation)
@@ -762,7 +1562,32 @@ namespace AppreciatorsTcg.UI
             return true;
         }
 
-        private static void AddNeonFrame(GameObject target, Color color, float alpha)
+        public static Sprite LoadPlaymatSprite(Rect normalizedRect)
+        {
+            string key = $"{normalizedRect.x:F4}:{normalizedRect.y:F4}:{normalizedRect.width:F4}:{normalizedRect.height:F4}";
+            if (playmatSpriteCache.TryGetValue(key, out Sprite cached))
+            {
+                return cached;
+            }
+
+            Texture2D texture = Resources.Load<Texture2D>(OfficialPlaymatResourcePath);
+            if (texture == null)
+            {
+                Debug.LogError("Missing native official playmat at Resources/Art/Official/Board/app_playmat_native.png.");
+                return null;
+            }
+
+            Rect pixelRect = new Rect(
+                normalizedRect.x * texture.width,
+                normalizedRect.y * texture.height,
+                normalizedRect.width * texture.width,
+                normalizedRect.height * texture.height);
+            Sprite sprite = Sprite.Create(texture, pixelRect, new Vector2(0.5f, 0.5f), 100f);
+            playmatSpriteCache[key] = sprite;
+            return sprite;
+        }
+
+        public static void AddNeonFrame(GameObject target, Color color, float alpha)
         {
             Outline outline = target.GetComponent<Outline>();
             if (outline == null)
@@ -770,8 +1595,9 @@ namespace AppreciatorsTcg.UI
                 outline = target.AddComponent<Outline>();
             }
 
-            outline.effectColor = new Color(color.r, color.g, color.b, alpha);
-            outline.effectDistance = new Vector2(2f, -2f);
+            Color brandLine = Color.Lerp(Ink, color, 0.12f);
+            outline.effectColor = new Color(brandLine.r, brandLine.g, brandLine.b, Mathf.Clamp01(alpha + 0.08f));
+            outline.effectDistance = new Vector2(3.5f, -3.5f);
             outline.useGraphicAlpha = true;
         }
 
@@ -806,6 +1632,13 @@ namespace AppreciatorsTcg.UI
             rectTransform.offsetMax = Vector2.zero;
         }
 
+        public static void Stretch(RectTransform rectTransform, float inset)
+        {
+            Stretch(rectTransform);
+            rectTransform.offsetMin = new Vector2(inset, inset);
+            rectTransform.offsetMax = new Vector2(-inset, -inset);
+        }
+
         public static void SetAnchors(RectTransform rectTransform, Vector2 min, Vector2 max, Vector2 offsetMin, Vector2 offsetMax)
         {
             rectTransform.anchorMin = min;
@@ -818,7 +1651,16 @@ namespace AppreciatorsTcg.UI
         {
             for (int i = parent.childCount - 1; i >= 0; i--)
             {
-                Object.Destroy(parent.GetChild(i).gameObject);
+                GameObject child = parent.GetChild(i).gameObject;
+                if (Application.isPlaying)
+                {
+                    child.SetActive(false);
+                    Object.Destroy(child);
+                }
+                else
+                {
+                    Object.DestroyImmediate(child);
+                }
             }
         }
 
@@ -834,12 +1676,25 @@ namespace AppreciatorsTcg.UI
 
         private static Font LoadDefaultFont()
         {
+            if (cachedDefaultFont != null)
+            {
+                return cachedDefaultFont;
+            }
+
+            Font officialFont = Resources.Load<Font>("Art/Official/StyleGuide/AppreciatorsDisplay");
+            if (officialFont != null)
+            {
+                cachedDefaultFont = officialFont;
+                return cachedDefaultFont;
+            }
+
             try
             {
                 Font display = Font.CreateDynamicFontFromOSFont(new[] { "Bahnschrift", "Arial Black", "Segoe UI Semibold", "Arial" }, 16);
                 if (display != null)
                 {
-                    return display;
+                    cachedDefaultFont = display;
+                    return cachedDefaultFont;
                 }
             }
             catch
@@ -851,7 +1706,8 @@ namespace AppreciatorsTcg.UI
                 Font legacy = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 if (legacy != null)
                 {
-                    return legacy;
+                    cachedDefaultFont = legacy;
+                    return cachedDefaultFont;
                 }
             }
             catch
@@ -863,14 +1719,33 @@ namespace AppreciatorsTcg.UI
                 Font arial = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 if (arial != null)
                 {
-                    return arial;
+                    cachedDefaultFont = arial;
+                    return cachedDefaultFont;
                 }
             }
             catch
             {
             }
 
-            return Font.CreateDynamicFontFromOSFont("Arial", 16);
+            cachedDefaultFont = Font.CreateDynamicFontFromOSFont("Arial", 16);
+            return cachedDefaultFont;
+        }
+
+        private static Color Hex(string value)
+        {
+            return ColorUtility.TryParseHtmlString($"#{value}", out Color color) ? color : Color.magenta;
+        }
+
+        private static Color WithAlpha(Color color, float alpha)
+        {
+            color.a = alpha;
+            return color;
+        }
+
+        private static Color ReadableTextColor(Color background)
+        {
+            float luminance = background.r * 0.2126f + background.g * 0.7152f + background.b * 0.0722f;
+            return luminance > 0.54f ? Ink : Color.white;
         }
     }
 }

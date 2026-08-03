@@ -14,7 +14,6 @@ Each file should use the stable card id:
 
 ```text
 ghost_companion.png
-beer_helmet.png
 the_original.png
 ```
 

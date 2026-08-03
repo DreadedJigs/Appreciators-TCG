@@ -1,6 +1,6 @@
 # Appreciators TCG
 
-Appreciators TCG is a fast-paced, mobile-friendly strategy card game prototype built around three-lane battles across Art, Community, and Blockchain. Phase 1 is gameplay-first: NFT ownership, wallet verification, cosmetics, rewards, and holder features are mocked placeholders and do not affect match power.
+Appreciators TCG is a mobile-friendly engine-building card game about learning the table, building a shared-row engine, and gathering Growth. Phase 1 is gameplay-first: NFT ownership, wallet verification, cosmetics, rewards, and holder features are mocked placeholders and do not affect match power.
 
 Slogan: **Be Original**
 
@@ -77,7 +77,14 @@ Useful routes:
 
 - `GET /health`
 - `GET /api/cards`
+- `GET /api/card-meta/summary`
+- `GET /api/card-meta/cards`
+- `GET /api/card-meta/cards/:tokenId`
+- `GET /api/card-meta/abilities`
+- `GET /api/card-meta/seasons`
 - `GET /api/assets/manifest`
+- `GET /api/nft/originals/traits`
+- `GET /api/nft/originals/token/:tokenId`
 - `POST /api/profile`
 - `POST /api/matchmaking/casual`
 - `POST /api/matchmaking/invite`
@@ -129,12 +136,23 @@ Unity:
 
 See `docs/DEBUG_AUDIT.md` for the current debug and audit checklist.
 See `docs/ART_ASSET_PIPELINE.md` and `docs/ART_ASSET_MANIFEST.csv` for the final art drop process.
+See `docs/APPRECIATORS_ORIGINALS_METADATA_AUDIT.md` for the ApeChain Originals trait mapping.
+See `docs/BALANCE_REPORT.md` for the seeded 20,000-match preliminary balance pass.
 
 Full Phase 1 structure audit:
 
 ```bash
 node scripts/audit-phase1.mjs
 ```
+
+Refresh the 6,666-token ApeChain metadata snapshot:
+
+```bash
+cd backend
+npm run metadata:originals
+```
+
+The import references official image URLs without downloading thousands of image files. Only the approved gameplay trait list maps into mechanics; unrelated visual traits remain metadata, and any `Dreaded Ape` entry is excluded. Run `node scripts/import-metadata-card-art.mjs` from the repository root to download the 24 approved alpha card-art mappings; provenance and proxy details live in `docs/CARD_ART_PROVENANCE.md`.
 
 ## Configure the Unity Backend URL
 
@@ -154,7 +172,9 @@ Official card art should be dropped into:
 unity-client/Assets/Resources/Art/Cards/
 ```
 
-Use the exact file names in `docs/ART_ASSET_MANIFEST.csv`, such as `ghost_companion.png`. The Unity UI loads `artPath` from card data and falls back to placeholder art until final PNGs exist.
+Use the exact file names in `docs/ART_ASSET_MANIFEST.csv`, such as `ghost_companion.png`. The Unity UI loads `artPath` from card data and falls back to deterministic placeholder art until final PNGs exist. Square art-only PNGs are preferred. Supplied portrait card-sheet references are cropped to their illustration window at runtime so mock text never replaces approved gameplay data.
+
+The official playmat and style references live under `unity-client/Assets/Resources/Art/Official/`. The UI uses the supplied Galactic Blue, King's Gold, Wave Break, Toxic Green, Pyro Red, Grape, and supporting colors. Add the licensed Aktiv Grotesk font export as `Art/Official/StyleGuide/AppreciatorsDisplay.ttf` for an exact runtime type match.
 
 ## Build Unity WebGL
 
@@ -171,28 +191,36 @@ Use the exact file names in `docs/ART_ASSET_MANIFEST.csv`, such as `ghost_compan
    - `MatchScene`
    - `ResultsScene`
    - `Web3MockScene`
+   - `PackOpeningScene`
 5. Click `Switch Platform`.
 6. Click `Build`.
 
 You can also run the scripted WebGL build from Unity batchmode with `AppreciatorsTcg.EditorTools.AppreciatorsBuildWebGL.Build`.
 
-The match UI is designed for landscape play with large buttons and readable card panels.
+The match UI uses a responsive 16:9 design reference and renders natively at 1080p or 4K, while retaining landscape mobile scaling, touch-sized controls, and readable card panels.
+
+## Appreciation Ritual Packs
+
+Pack rewards are generated and awarded by the Render Node backend. Production Unity builds only request a pack opening and animate the returned signed five-card result. Exact Standard, Starter, and Event mystery odds are published by `/api/packs/catalog`.
+
+See `docs/PACK_SERVER_AUTHORITY.md` for the API contract, signing, idempotency, and deployment notes.
 
 ## Phase 1 Gameplay
 
 - 12-card decks
-- Starting hand of 3 cards
-- Draw 1 card each turn
-- Energy starts at 1 and increases by 1 each turn
-- Match lasts 6 turns
-- Three lanes: Art, Community, Blockchain
-- Max 4 cards per lane per player
-- Higher power wins a lane
-- Best of 3 lanes decides victory, defeat, or draw
-- Offline AI opponent prioritizes playable cards and has a small preference for lanes it is losing
-- Invite 1v1 creates and joins private rooms through the backend. Phase 1.5 uses polling room state with synced card actions, available-player direct challenges, QR/mobile-friendly join links, reconnect support, lane placement, and both-player end-turn advancement.
+- Keep one hidden card and draw back to a two-card decision each turn
+- Play a card onto the shared row, then choose **Build** or **Discard**; canceling returns it to the same hand without redrawing either player
+- Cards expose only Attack and Defense as their required player-facing numeric stats
+- One traditional shared Growth Row replaces three-lane combat
+- Built cards exhaust to generate Growth; adjacent traits and three-domain sets add combination Growth
+- Tally confirms pending Growth, penalties, and leader modifiers before checking victory
+- First player to 200 Growth wins; Spotlight begins at 150 Growth and the fallback match arc is 11 turns
+- Offline AI weighs long-term engine value against immediate Actions and late-game scoring
+- Invite 1v1 syncs Build, Action, leader, and end-turn events through the backend while preserving private hands.
 
 ## Phase Roadmap
+
+The 6,666-card, 22-season distribution and competitive parity rules are documented in `docs/SEASONAL_RELEASE_PLAN.md` and published by `GET /api/releases/plan`.
 
 ### PHASE 1 - PROTOTYPE
 
@@ -202,7 +230,7 @@ Features:
 - Collection Screen
 - Deck Builder
 - AI Opponent
-- Three-Lane Battles
+- Single-Row Growth Battles
 - Basic Matchmaking
 
 Goal: prove the game is fun.
@@ -244,11 +272,12 @@ Goal: enhance gameplay through ownership without making NFTs mandatory.
 
 ## Known Limitations
 
-- Phase 1 uses placeholder card art until official files are delivered.
+- Five supplied card mocks and the official playmat are integrated. Metadata-backed alpha art fills the remaining card slots when the importer is run; documented proxies remain replaceable by final artist exports.
 - Runtime placeholder PNGs live in `unity-client/Assets/Resources/Art/Placeholder`.
 - Wallets, NFT sync, and rewards are mocked only.
 - Backend profiles use in-memory storage.
 - Invite rooms use in-memory plus optional JSON runtime persistence. This is enough for prototype invite testing, but production should move to a database or Render Key Value.
+- Pack inventory uses signed server-authoritative rewards with optional `/tmp` JSON persistence. Durable production inventory still requires authenticated accounts and a transactional database.
 - AI is intentionally simple.
 - Card targeting is deterministic for prototype speed: buffs choose eligible friendly cards automatically.
 - Unity WebGL build output is not committed.

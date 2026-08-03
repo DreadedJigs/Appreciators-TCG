@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using AppreciatorsTcg.Cards;
 using AppreciatorsTcg.Core;
 
 namespace AppreciatorsTcg.Battle
@@ -9,19 +11,47 @@ namespace AppreciatorsTcg.Battle
         public static int CalculateLanePower(LaneState lane, OwnerSide side, bool finalScore)
         {
             List<BattleCardInstance> cards = lane.GetCards(side);
-            int total = cards.Sum(card => card.CurrentPower);
+            return cards.Sum(card => card.CurrentPower);
+        }
 
-            if (lane.Lane == LaneType.Art)
+        public static int CalculateBoardGrowth(LaneState lane, OwnerSide side)
+        {
+            return lane.GetCards(side).Where(card => !card.IsExhausted).Sum(card => card.GrowthValue);
+        }
+
+        public static int CalculateCombinationGrowth(IReadOnlyList<BattleCardInstance> cards)
+        {
+            if (cards == null || cards.Count == 0)
             {
-                total += cards.Count(card => card.Definition.HasLaneAffinity("Art"));
+                return 0;
             }
 
-            if (lane.Lane == LaneType.Blockchain)
+            int growth = 0;
+            for (int i = 1; i < cards.Count; i++)
             {
-                total += cards.Count(card => card.Definition.HasTag("Technology") || card.Definition.HasLaneAffinity("Blockchain")) * 2;
+                CardDefinition left = cards[i - 1].Definition;
+                CardDefinition right = cards[i].Definition;
+                bool sharedTrait = !string.IsNullOrWhiteSpace(left.traitGroup) &&
+                    string.Equals(left.traitGroup, right.traitGroup, StringComparison.OrdinalIgnoreCase);
+                bool sharedAffinity = !string.IsNullOrWhiteSpace(left.laneAffinity) &&
+                    string.Equals(left.laneAffinity, right.laneAffinity, StringComparison.OrdinalIgnoreCase);
+                if (sharedTrait || sharedAffinity)
+                {
+                    growth += 2;
+                }
             }
 
-            return total;
+            int affinityCount = cards
+                .Select(card => card.Definition.laneAffinity)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+            if (affinityCount >= 3)
+            {
+                growth += 3;
+            }
+
+            return growth;
         }
     }
 }

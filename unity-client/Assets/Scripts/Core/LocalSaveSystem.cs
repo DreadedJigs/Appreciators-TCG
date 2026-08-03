@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -8,6 +9,7 @@ namespace AppreciatorsTcg.Core
     {
         private const string PlayerNameKey = "appreciators.playerName";
         private const string DeckKey = "appreciators.deckIds";
+        private const string NamedDecksKey = "appreciators.namedDecks.v1";
         private const string ApiBaseUrlKey = "appreciators.apiBaseUrl";
         private const string PendingMatchModeKey = "appreciators.pendingMatchMode";
         private const string PendingInviteCodeKey = "appreciators.pendingInviteCode";
@@ -17,6 +19,44 @@ namespace AppreciatorsTcg.Core
         private const string PendingPlayerRoleKey = "appreciators.pendingPlayerRole";
         private const string MockWalletAddressKey = "appreciators.mockWalletAddress";
         private const string MockWalletVerifiedKey = "appreciators.mockWalletVerified";
+        private const string PlayerIdKey = "appreciators.playerId";
+        private const string AccountNameKey = "appreciators.accountName.v1";
+        private const string PendingPackRequestIdKey = "appreciators.pendingPackRequestId";
+        private const string PendingPackIdKey = "appreciators.pendingPackId";
+        private const string PendingPackAttunementKey = "appreciators.pendingPackAttunement";
+        private const string ThemeKey = "appreciators.theme.v1";
+        private const string ThemeDefaultVersionKey = "appreciators.theme.default.version";
+        private const string TutorialStepKey = "appreciators.tutorial.step.v2";
+        private const string TutorialCoreKey = "appreciators.tutorial.core.v2";
+        private const string ReducedMotionKey = "appreciators.accessibility.reducedMotion.v1";
+
+        public static void SaveTheme(AppreciatorsTheme theme)
+        {
+            PlayerPrefs.SetString(ThemeKey, theme.ToString());
+            PlayerPrefs.Save();
+        }
+
+        public static AppreciatorsTheme LoadTheme()
+        {
+            return Enum.TryParse(PlayerPrefs.GetString(ThemeKey, AppreciatorsTheme.Dark.ToString()), true, out AppreciatorsTheme theme)
+                ? theme
+                : AppreciatorsTheme.Dark;
+        }
+
+        public static void EnsureDarkModeDefault()
+        {
+            // Migrate existing alpha installs once so every mode enters this
+            // release in dark mode. Later player toggles remain persistent.
+            const int currentDefaultVersion = 1;
+            if (PlayerPrefs.GetInt(ThemeDefaultVersionKey, 0) >= currentDefaultVersion)
+            {
+                return;
+            }
+
+            PlayerPrefs.SetString(ThemeKey, AppreciatorsTheme.Dark.ToString());
+            PlayerPrefs.SetInt(ThemeDefaultVersionKey, currentDefaultVersion);
+            PlayerPrefs.Save();
+        }
 
         public static void SavePlayerName(string playerName)
         {
@@ -28,6 +68,63 @@ namespace AppreciatorsTcg.Core
         public static string LoadPlayerName()
         {
             return PlayerPrefs.GetString(PlayerNameKey, "Guest");
+        }
+
+        public static string LoadOrCreatePlayerId()
+        {
+            string playerId = PlayerPrefs.GetString(PlayerIdKey, string.Empty);
+            if (!string.IsNullOrWhiteSpace(playerId))
+            {
+                return playerId;
+            }
+
+            playerId = $"player_{Guid.NewGuid():N}";
+            PlayerPrefs.SetString(PlayerIdKey, playerId);
+            PlayerPrefs.Save();
+            return playerId;
+        }
+
+        public static string SaveAccountIdentity(string playerName)
+        {
+            string safeName = string.IsNullOrWhiteSpace(playerName) ? "Guest" : playerName.Trim();
+            string playerId = CreateStablePlayerId(safeName);
+            PlayerPrefs.SetString(PlayerNameKey, safeName);
+            PlayerPrefs.SetString(AccountNameKey, safeName.ToLowerInvariant());
+            PlayerPrefs.SetString(PlayerIdKey, playerId);
+            PlayerPrefs.Save();
+            return playerId;
+        }
+
+        public static void SavePlayerId(string playerId)
+        {
+            if (string.IsNullOrWhiteSpace(playerId))
+            {
+                return;
+            }
+
+            PlayerPrefs.SetString(PlayerIdKey, playerId.Trim());
+            PlayerPrefs.Save();
+        }
+
+        public static string CreateStablePlayerId(string playerName)
+        {
+            string normalized = string.IsNullOrWhiteSpace(playerName)
+                ? "guest"
+                : new string(playerName.Trim().ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                normalized = "guest";
+            }
+
+            // Deterministic alpha identity lets the same named player restore the
+            // server-backed inventory from another browser or network.
+            ulong hash = 14695981039346656037UL;
+            foreach (char character in normalized)
+            {
+                hash ^= character;
+                hash *= 1099511628211UL;
+            }
+            return $"account_{hash:x16}";
         }
 
         public static bool HasSavedDeck()
@@ -50,6 +147,45 @@ namespace AppreciatorsTcg.Core
             }
 
             return saved.Split('|').Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
+        }
+
+        public static void SaveDeckCollection(PlayerDeckCollection collection)
+        {
+            if (collection == null)
+            {
+                Debug.LogError("Cannot save a null player deck collection.");
+                return;
+            }
+
+            PlayerPrefs.SetString(NamedDecksKey, JsonUtility.ToJson(collection));
+            PlayerPrefs.Save();
+        }
+
+        public static PlayerDeckCollection LoadDeckCollection()
+        {
+            string json = PlayerPrefs.GetString(NamedDecksKey, string.Empty);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return new PlayerDeckCollection();
+            }
+
+            try
+            {
+                PlayerDeckCollection collection = JsonUtility.FromJson<PlayerDeckCollection>(json);
+                if (collection == null)
+                {
+                    Debug.LogError("Saved named deck data was empty. Starting with a clean deck collection.");
+                    return new PlayerDeckCollection();
+                }
+
+                collection.decks = collection.decks ?? new List<PlayerDeckProfile>();
+                return collection;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"Could not load named deck data: {exception.Message}");
+                return new PlayerDeckCollection();
+            }
         }
 
         public static void SaveApiBaseUrl(string apiBaseUrl)
@@ -136,6 +272,56 @@ namespace AppreciatorsTcg.Core
             PlayerPrefs.DeleteKey(PendingOpponentNameKey);
             PlayerPrefs.DeleteKey(PendingPlayerIdKey);
             PlayerPrefs.DeleteKey(PendingPlayerRoleKey);
+            PlayerPrefs.Save();
+        }
+
+        public static void SavePendingPackOpen(string requestId, string packId, string attunement)
+        {
+            PlayerPrefs.SetString(PendingPackRequestIdKey, requestId ?? string.Empty);
+            PlayerPrefs.SetString(PendingPackIdKey, packId ?? string.Empty);
+            PlayerPrefs.SetString(PendingPackAttunementKey, attunement ?? string.Empty);
+            PlayerPrefs.Save();
+        }
+
+        public static bool TryLoadPendingPackOpen(out string requestId, out string packId, out string attunement)
+        {
+            requestId = PlayerPrefs.GetString(PendingPackRequestIdKey, string.Empty);
+            packId = PlayerPrefs.GetString(PendingPackIdKey, string.Empty);
+            attunement = PlayerPrefs.GetString(PendingPackAttunementKey, string.Empty);
+            return !string.IsNullOrWhiteSpace(requestId) && !string.IsNullOrWhiteSpace(packId) && !string.IsNullOrWhiteSpace(attunement);
+        }
+
+        public static void ClearPendingPackOpen()
+        {
+            PlayerPrefs.DeleteKey(PendingPackRequestIdKey);
+            PlayerPrefs.DeleteKey(PendingPackIdKey);
+            PlayerPrefs.DeleteKey(PendingPackAttunementKey);
+            PlayerPrefs.Save();
+        }
+
+        public static void SaveTutorialProgress(int step, bool coreDemonstrated)
+        {
+            PlayerPrefs.SetInt(TutorialStepKey, Math.Max(0, step));
+            PlayerPrefs.SetInt(TutorialCoreKey, coreDemonstrated ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        public static int LoadTutorialStep() => Math.Max(0, PlayerPrefs.GetInt(TutorialStepKey, 0));
+
+        public static bool LoadTutorialCoreDemonstrated() => PlayerPrefs.GetInt(TutorialCoreKey, 0) == 1;
+
+        public static void ResetTutorialProgress()
+        {
+            PlayerPrefs.DeleteKey(TutorialStepKey);
+            PlayerPrefs.DeleteKey(TutorialCoreKey);
+            PlayerPrefs.Save();
+        }
+
+        public static bool LoadReducedMotion() => PlayerPrefs.GetInt(ReducedMotionKey, 0) == 1;
+
+        public static void SaveReducedMotion(bool enabled)
+        {
+            PlayerPrefs.SetInt(ReducedMotionKey, enabled ? 1 : 0);
             PlayerPrefs.Save();
         }
     }

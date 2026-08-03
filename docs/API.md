@@ -33,6 +33,16 @@ Example body:
 
 Returns the Phase 1 prototype card set as JSON.
 
+## Card meta system
+
+- `GET /api/card-meta/summary` returns the validated 6,666-card, 432-ability, 22-season counts, rarity totals, archetypes, and metadata accuracy boundary.
+- `GET /api/card-meta/cards` pages card identities and accepts `season`, `rarity`, `domain`, `pillar`, `archetype`, `offset`, and `limit` filters. The maximum page size is 303.
+- `GET /api/card-meta/cards/:tokenId` returns one NFT card identity.
+- `GET /api/card-meta/abilities` pages reusable ability chassis and accepts `type`, `domain`, `pillar`, and `rarity` filters.
+- `GET /api/card-meta/seasons` returns the 22-season plan.
+
+Per-token trait values remain `Metadata pending` until a canonical collection JSON or CSV export is available. The API preserves that boundary and does not invent individual NFT traits.
+
 ## GET /api/assets/manifest
 
 Returns the expected final-art file names and Unity `Resources` paths for all prototype cards.
@@ -58,7 +68,7 @@ Example body:
 ```json
 {
   "username": "Host",
-  "deckIds": ["regular_body", "beer_helmet"]
+  "deckIds": ["regular_body", "no_head_body"]
 }
 ```
 
@@ -73,7 +83,7 @@ Creates a private invite room with query-string inputs for WebGL-friendly links.
 Example:
 
 ```text
-/api/matchmaking/invite/new?username=Host&deckIds=regular_body,beer_helmet
+/api/matchmaking/invite/new?username=Host&deckIds=regular_body,no_head_body
 ```
 
 ## GET /api/matchmaking/invite-lobby/announce
@@ -83,7 +93,7 @@ Marks a player as available for direct 1v1 challenges and returns the current lo
 Example:
 
 ```text
-/api/matchmaking/invite-lobby/announce?username=Host&playerId=local-player-id&deckIds=regular_body,beer_helmet
+/api/matchmaking/invite-lobby/announce?username=Host&playerId=local-player-id&deckIds=regular_body,no_head_body
 ```
 
 ## GET /api/matchmaking/invite-lobby
@@ -170,7 +180,11 @@ Starts a ready invite room with query-string inputs.
 
 ## GET /api/matchmaking/invite/:inviteCode/state
 
-Returns the current public match state, including turn, energy, lane cards, lane power, and result.
+Returns the current public match state, including the 11-turn clock, compatibility board data, and result. The Unity client gathers and permanently tallies Growth each turn.
+
+## GET /api/releases/plan
+
+Returns the machine-readable 6,666-card seasonal structure, per-season rarity distribution, competitive Crown parity rule, deck limits, Growth thresholds, formats, and release cadence.
 
 ## GET /api/matchmaking/invite/:inviteCode/actions
 
@@ -189,8 +203,9 @@ Submits a WebGL-friendly match action through query-string inputs.
 Examples:
 
 ```text
-/api/matchmaking/invite/ABC123/action?playerId=player-id&actionId=a1&type=play-card&cardId=regular_body&lane=Art&turn=1
-/api/matchmaking/invite/ABC123/action?playerId=player-id&actionId=a2&type=end-turn&turn=1
+/api/matchmaking/invite/ABC123/action?playerId=player-id&actionId=a1&type=play-card&cardId=regular_body&lane=Community&turn=1
+/api/matchmaking/invite/ABC123/action?playerId=player-id&actionId=a2&type=play-action&cardId=tropical_background&turn=1
+/api/matchmaking/invite/ABC123/action?playerId=player-id&actionId=a3&type=end-turn&turn=1
 ```
 
 The server rejects stale turns, duplicate end-turn attempts, invalid lanes, and actions from non-participants.

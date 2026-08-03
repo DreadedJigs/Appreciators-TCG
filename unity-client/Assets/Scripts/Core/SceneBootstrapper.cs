@@ -1,4 +1,5 @@
 using AppreciatorsTcg.UI;
+using AppreciatorsTcg.Packs;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -8,6 +9,7 @@ namespace AppreciatorsTcg.Core
     {
         private void Start()
         {
+            LocalSaveSystem.EnsureDarkModeDefault();
             string sceneName = SceneManager.GetActiveScene().name;
 
             switch (sceneName)
@@ -28,6 +30,9 @@ namespace AppreciatorsTcg.Core
                 case "InviteMatchScene":
                     gameObject.AddComponent<InviteMatchController>();
                     break;
+                case "PackOpeningScene":
+                    gameObject.AddComponent<PackOpeningController>();
+                    break;
                 case "MatchScene":
                     gameObject.AddComponent<MatchScreenController>();
                     break;
@@ -36,6 +41,9 @@ namespace AppreciatorsTcg.Core
                     break;
                 case "Web3MockScene":
                     gameObject.AddComponent<Web3MockScreenController>();
+                    break;
+                case "BossBattleScene":
+                    gameObject.AddComponent<BossBattleScreenController>();
                     break;
                 default:
                     Debug.LogWarning($"No screen controller registered for {sceneName}.");

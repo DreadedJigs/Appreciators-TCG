@@ -17,6 +17,7 @@ const persistencePath = resolve(process.env.PACK_INVENTORY_STORE_PATH || "data/r
 export const STARTER_PACK_GRANT_COUNT = 3;
 export const MATCH_WIN_SHARD_REWARD = 69;
 export const RANKED_LOSS_SHARD_PENALTY = 5;
+export const TUTORIAL_COMPLETION_SHARD_REWARD = 50;
 export const BOSS_BATTLE_UNLOCK_COST = 2000;
 const STARTER_GRANT_VERSION = 1;
 const runtimeFallbackSigningSecret = crypto.randomBytes(32).toString("hex");
@@ -110,10 +111,38 @@ export function openOwnedPack(payload = {}) {
       });
     }
 
-    return {
+    // Requests created by earlier alpha builds may have a finalized reward but lack
+    // newer top-level envelope fields. Rehydrate and re-sign that same reward so a
+    // browser can resume safely without rolling or consuming another pack.
+    const reward = existing.reward;
+    validateGeneratedReward(reward, pack.id);
+    const envelope = signReward(player.playerId, requestId, reward);
+    const inventory = publicInventory(player);
+    const replayResponse = {
       ...existing,
+      ...envelope,
+      success: true,
+      requestId,
+      packId: pack.id,
+      attunement,
+      attunementChancePercent: reward.attunementChancePercent,
+      attunementSucceeded: reward.attunementSucceeded,
+      attunementShardsSpent: reward.attunementShardsSpent,
+      packShardsAwarded: reward.packShardsAwarded,
+      rewards: reward.cards,
+      totalShardsAwarded: reward.totalShardsAwarded,
+      netShardChange: reward.totalShardsAwarded - reward.attunementShardsSpent,
+      remainingPackCount: inventory.packs.find((entry) => entry.packId === pack.id)?.count || 0,
+      totalShardBalance: inventory.appreciationShards,
+      openedAt: reward.openedAtUtc,
+      reward
+    };
+    player.openRequests[requestId] = replayResponse;
+    persist({ required: true });
+    return {
+      ...replayResponse,
       idempotentReplay: true,
-      inventory: publicInventory(player)
+      inventory
     };
   }
 
@@ -302,6 +331,41 @@ export function awardMatchWinShards(payload = {}) {
   return awardMatchResultShards({ ...payload, result: "Victory", mode: payload.mode || "Casual" });
 }
 
+export function awardTutorialCompletionShards(payload = {}) {
+  const player = getOrCreatePlayer(payload.playerId);
+  const rewardId = "native_board_tutorial_v1";
+  player.tutorialRewards = player.tutorialRewards || {};
+  if (player.tutorialRewards[rewardId]) {
+    return {
+      ...player.tutorialRewards[rewardId],
+      totalShardBalance: player.appreciationShards,
+      idempotentReplay: true,
+      inventory: publicInventory(player)
+    };
+  }
+
+  const before = clonePlayer(player);
+  let response;
+  try {
+    player.appreciationShards += TUTORIAL_COMPLETION_SHARD_REWARD;
+    player.updatedAt = new Date().toISOString();
+    response = {
+      success: true,
+      rewardId,
+      shardsAwarded: TUTORIAL_COMPLETION_SHARD_REWARD,
+      shardsChanged: TUTORIAL_COMPLETION_SHARD_REWARD,
+      totalShardBalance: player.appreciationShards
+    };
+    player.tutorialRewards[rewardId] = response;
+    persist({ required: true });
+  } catch (error) {
+    players.set(player.playerId, before);
+    throw error;
+  }
+
+  return { ...response, idempotentReplay: false, inventory: publicInventory(player) };
+}
+
 export function getBossPoolStatus(rawPoolId = "alpha_boss") {
   loadIfNeeded();
   return publicBossPool(getOrCreateBossPool(rawPoolId));
@@ -409,6 +473,7 @@ function getOrCreatePlayer(rawPlayerId) {
   player.openRequests = player.openRequests || {};
   player.purchaseRequests = player.purchaseRequests || {};
   player.matchWinRewards = player.matchWinRewards || {};
+  player.tutorialRewards = player.tutorialRewards || {};
   player.bossContributionRequests = player.bossContributionRequests || {};
   player.packs = player.packs || {};
   player.cards = player.cards || {};
@@ -544,6 +609,7 @@ function createPlayer(playerId) {
     openRequests: {},
     purchaseRequests: {},
     matchWinRewards: {},
+    tutorialRewards: {},
     bossContributionRequests: {},
     starterGrantVersion: STARTER_GRANT_VERSION,
     createdAt: now,

@@ -32,6 +32,7 @@ import {
   assertPackTestToolsAccess,
   awardMatchResultShards,
   awardMatchWinShards,
+  awardTutorialCompletionShards,
   BOSS_BATTLE_UNLOCK_COST,
   contributeBossShards,
   getBossPoolStatus,
@@ -56,6 +57,20 @@ import {
   syncMockNftOwnership,
   verifyMockWallet
 } from "./web3MockStore.js";
+import {
+  claimBossRole,
+  disconnectWalletAccount,
+  getBossBattleState,
+  getWalletAccount,
+  joinBossParty,
+  leaveBossParty,
+  linkWalletAccount,
+  linkVerifiedWalletAccount,
+  releaseBossRole,
+  setBossPartyReady,
+  startBossBattle
+} from "./bossBattleStore.js";
+import { createWalletChallenge, verifyWalletChallenge } from "./walletAuthStore.js";
 
 const publicDir = join(dirname(fileURLToPath(import.meta.url)), "..", "public");
 
@@ -279,6 +294,14 @@ export function createApp() {
     }
   });
 
+  app.post("/api/economy/tutorial-complete", economyWriteLimiter, (req, res, next) => {
+    try {
+      res.json(awardTutorialCompletionShards(packRequestPayload(req)));
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.get("/api/economy/boss-pool", packReadLimiter, (req, res, next) => {
     try {
       res.json({ success: true, pool: getBossPoolStatus(req.query?.poolId) });
@@ -294,6 +317,28 @@ export function createApp() {
       next(error);
     }
   });
+
+  app.get("/api/boss-battles/:poolId", packReadLimiter, (req, res, next) => {
+    try {
+      res.json({ success: true, battle: getBossBattleState({ ...req.query, poolId: req.params.poolId }) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const bossMutation = (handler) => (req, res, next) => {
+    try {
+      res.json(handler({ ...(req.body || {}), poolId: req.params.poolId || req.body?.poolId }));
+    } catch (error) {
+      next(error);
+    }
+  };
+  app.post("/api/boss-battles/:poolId/join", economyWriteLimiter, bossMutation(joinBossParty));
+  app.post("/api/boss-battles/:poolId/leave", economyWriteLimiter, bossMutation(leaveBossParty));
+  app.post("/api/boss-battles/:poolId/ready", economyWriteLimiter, bossMutation(setBossPartyReady));
+  app.post("/api/boss-battles/:poolId/claim-boss", economyWriteLimiter, bossMutation(claimBossRole));
+  app.post("/api/boss-battles/:poolId/release-boss", economyWriteLimiter, bossMutation(releaseBossRole));
+  app.post("/api/boss-battles/:poolId/challenge", economyWriteLimiter, bossMutation(startBossBattle));
 
   const resetTestInventoryHandler = (req, res, next) => {
     try {
@@ -478,6 +523,47 @@ export function createApp() {
 
   app.get("/api/wallet/verify-link", (req, res) => {
     res.json(verifyMockWallet(req.query));
+  });
+
+  app.get("/api/wallet/account", packReadLimiter, (req, res, next) => {
+    try {
+      res.json(getWalletAccount(req.query));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/wallet/account/link", economyWriteLimiter, (req, res, next) => {
+    try {
+      res.json(linkWalletAccount(req.body));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/wallet/account/challenge", economyWriteLimiter, (req, res, next) => {
+    try {
+      res.json(createWalletChallenge(req.body));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/wallet/account/verify", economyWriteLimiter, async (req, res, next) => {
+    try {
+      const verified = await verifyWalletChallenge(req.body);
+      res.json(linkVerifiedWalletAccount(verified));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/wallet/account/disconnect", economyWriteLimiter, (req, res, next) => {
+    try {
+      res.json(disconnectWalletAccount(req.body));
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.post("/api/nft/sync", (req, res) => {

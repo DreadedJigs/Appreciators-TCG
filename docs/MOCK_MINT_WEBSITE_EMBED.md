@@ -30,7 +30,7 @@ https://appreciators-tcg-backend.onrender.com/mock-mint-simulator.html?apiBase=h
 
 ## API Used By The Widget
 
-The widget calls:
+The widget calls the mint endpoint:
 
 ```html
 GET /api/mint/simulate-link?walletAddress=0xAPPRECIATORSDEMO&quantity=1
@@ -42,6 +42,7 @@ The response is explicitly mocked:
 {
   "mock": true,
   "realTransactionSubmitted": false,
+  "selectionMode": "random-non-sequential",
   "mintedQuantity": 1,
   "supplyCap": 6666,
   "mintPriceEth": "0.000",
@@ -49,7 +50,19 @@ The response is explicitly mocked:
 }
 ```
 
-When the OpenSea collection link is available, use it to wire real rarity bands into the future AI minter battle mode.
+After a successful mint, the widget unlocks **Play I Declare War vs AI** and calls:
+
+```html
+GET /api/mint/war-link?walletAddress=0xAPPRECIATORSDEMO&tokenId=mock-mint-1234
+```
+
+The community leaderboard is read from:
+
+```html
+GET /api/mint/leaderboard-link
+```
+
+The leaderboard is in-memory for this simulator. It resets when the backend restarts. When the OpenSea collection link is available, use it to replace the current mock rarity bands with real collection rarity bands.
 
 ## Direct HTML Option
 

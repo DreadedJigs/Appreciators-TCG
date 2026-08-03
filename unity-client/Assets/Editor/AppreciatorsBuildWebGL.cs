@@ -35,7 +35,8 @@ namespace AppreciatorsTcg.EditorTools
                     "Assets/Scenes/PackOpeningScene.unity",
                     "Assets/Scenes/MatchScene.unity",
                     "Assets/Scenes/ResultsScene.unity",
-                    "Assets/Scenes/Web3MockScene.unity"
+                    "Assets/Scenes/Web3MockScene.unity",
+                    "Assets/Scenes/BossBattleScene.unity"
                 },
                 locationPathName = output,
                 target = BuildTarget.WebGL,
@@ -78,6 +79,9 @@ namespace AppreciatorsTcg.EditorTools
             index = index.Replace(
                 "productVersion: \"1.0\",",
                 "productVersion: \"alpha-" + buildStamp + "\",");
+            index = index.Replace(
+                "}).then((unityInstance) => {",
+                "}).then((unityInstance) => {\n                window.APPRECIATORS_UNITY_INSTANCE = unityInstance;");
             index = index.Replace(
                 "var config = {",
                 "var config = {\n        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),");
@@ -125,6 +129,29 @@ html, body { width: 100%; height: 100%; min-height: 100dvh; overflow: hidden; ba
             string fullscreenScript = @"
 <script>
 (function () {
+  function resumeUnityAudio() {
+    var contexts = [];
+    function remember(context) {
+      if (context && typeof context.resume === 'function' && contexts.indexOf(context) < 0) contexts.push(context);
+    }
+    try { if (typeof WEBAudio !== 'undefined') remember(WEBAudio.audioContext); } catch (_) {}
+    try {
+      var instance = window.APPRECIATORS_UNITY_INSTANCE;
+      var module = instance && instance.Module;
+      remember(module && module.audioContext);
+      remember(module && module.WEBAudio && module.WEBAudio.audioContext);
+    } catch (_) {}
+    contexts.forEach(function (context) {
+      if (context.state !== 'running') Promise.resolve(context.resume()).catch(function () {});
+    });
+    document.documentElement.dataset.appreciatorsAudio = contexts.length
+      ? (contexts.some(function (context) { return context.state === 'running'; }) ? 'running' : 'resuming')
+      : 'waiting-for-unity';
+  }
+  window.APPRECIATORS_UNLOCK_AUDIO = resumeUnityAudio;
+  ['pointerdown', 'touchstart', 'mousedown', 'keydown'].forEach(function (eventName) {
+    document.addEventListener(eventName, resumeUnityAudio, { capture: true, passive: true });
+  });
   function isMobileLandscape() { return navigator.maxTouchPoints > 0 && matchMedia('(orientation: landscape) and (max-height: 900px)').matches; }
   function enterGameFullscreen() {
     if (!isMobileLandscape() || document.fullscreenElement) return;

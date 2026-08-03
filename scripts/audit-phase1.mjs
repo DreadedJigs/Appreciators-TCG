@@ -67,9 +67,9 @@ const counts = backendCards.reduce((result, card) => {
   return result;
 }, {});
 
-assert.equal(backendCards.length, 29, "Approved Appreciators trait set needs 29 cards");
+assert.equal(backendCards.length, 24, "Active Appreciators set needs 24 non-Companion cards");
 assert.equal(counts.ORIGINAL, 17, "Approved trait set needs 17 ORIGINALS");
-assert.equal(counts.COMPANION, 5, "Approved trait set needs 5 COMPANIONS");
+assert.equal(counts.COMPANION || 0, 0, "Companion cards must be retired from the active set");
 assert.equal(counts.ITEM, 7, "Approved trait set needs 7 ITEMS");
 assert.equal(counts.EVENT || 0, 0, "Do not invent EVENT cards outside the approved list");
 
@@ -81,18 +81,23 @@ assert.ok(backendSource.includes("/api/assets/manifest"), "Missing backend route
 
 for (const card of backendCards) {
   assert.equal(card.artKey, card.id, `${card.id} must have a stable artKey`);
-  assert.equal(card.artPath, `Art/Cards/${card.id}`, `${card.id} must have a Unity Resources artPath`);
-  assert.ok(Number.isInteger(card.appreciation), `${card.id} must have Appreciation`);
-  assert.ok(["Common", "Rare", "Legendary", "1/1"].includes(card.rarity), `${card.id} must have approved rarity`);
+  assert.ok(
+    [`Art/Cards/${card.id}`, `Art/Official/GeneratedCards/${card.id}`].includes(card.artPath),
+    `${card.id} must have a Unity Resources artPath`
+  );
+  assert.ok(Number.isInteger(card.attack), `${card.id} must have Attack`);
+  assert.ok(Number.isInteger(card.defense), `${card.id} must have Defense`);
+  assert.ok(["Common", "Uncommon", "Rare", "Legendary", "Mythic", "1/1"].includes(card.rarity), `${card.id} must have approved rarity`);
   assert.ok(["ORIGINAL", "COMPANION", "ITEM", "EVENT"].includes(card.type), `${card.id} must have approved type`);
   assert.ok(!/dreaded ape/i.test(`${card.id} ${card.name} ${card.artPath}`), `${card.id} must not reference Dreaded Ape assets`);
 }
 
 const matchSource = [
   "unity-client/Assets/Scripts/Battle/BattleGame.cs",
+  "unity-client/Assets/Scripts/Battle/BattlePlayerState.cs",
   "unity-client/Assets/Scripts/Battle/LaneState.cs"
 ].map((file) => readFileSync(path.join(root, file), "utf8")).join("\n");
-for (const rule of ["StartingHandSize", "CardsDrawnPerTurn", "MaxTurn", "MaxCardsPerLanePerPlayer"]) {
+for (const rule of ["StartingHandSize", "DecisionHandSize", "MaxTurn", "MaxCardsPerLanePerPlayer", "GrowthVictoryTarget"]) {
   assert.ok(matchSource.includes(rule), `Battle game is not wired to ${rule}`);
 }
 

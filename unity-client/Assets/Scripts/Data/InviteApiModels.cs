@@ -27,6 +27,7 @@ namespace AppreciatorsTcg.Data
     {
         public InviteRoom room;
         public InviteMatchState matchState;
+        public string message;
     }
 
     [Serializable]
@@ -140,11 +141,27 @@ namespace AppreciatorsTcg.Data
         public int currentTurn;
         public int maxTurn;
         public InviteRoleInts energy;
+        public InviteResourceRoles resources;
         public InviteRoleBools endedTurn;
         public InviteLaneState[] lanes;
+        public InviteTerminationState termination;
         public InviteMatchResult result;
         public int version;
         public string message;
+    }
+
+    [Serializable]
+    public class InviteTerminationState
+    {
+        public string status;
+        public string requestedByPlayerId;
+        public string requestedByRole;
+        public string requestedByUsername;
+        public bool hostAccepted;
+        public bool guestAccepted;
+        public string requestedAt;
+        public string resolvedAt;
+        public string declinedByUsername;
     }
 
     [Serializable]
@@ -159,6 +176,22 @@ namespace AppreciatorsTcg.Data
     {
         public bool host;
         public bool guest;
+    }
+
+    [Serializable]
+    public class InviteResourceRoles
+    {
+        public InviteCommunityResources host;
+        public InviteCommunityResources guest;
+    }
+
+    [Serializable]
+    public class InviteCommunityResources
+    {
+        public int art;
+        public int blockchain;
+        public int shield;
+        public int rally;
     }
 
     [Serializable]

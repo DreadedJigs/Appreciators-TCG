@@ -7,23 +7,6 @@ namespace AppreciatorsTcg.Cards
 {
     public static class CardArtResolver
     {
-        private const string AssetPackBase = "Art/Placeholder/app_Lane_Card_Game_UI_AssetPack";
-
-        private static readonly string[] AssetPackPortraits =
-        {
-            "02_card_art/portraits/portrait_hand_winged_kid",
-            "02_card_art/portraits/portrait_hand_monke_business",
-            "02_card_art/portraits/portrait_hand_mutant_punk",
-            "02_card_art/portraits/portrait_hand_cyber_beak",
-            "02_card_art/portraits/portrait_hand_toxic_rex",
-            "02_card_art/portraits/portrait_player_dragon_kid",
-            "02_card_art/portraits/portrait_player_radiation_kid",
-            "02_card_art/portraits/portrait_player_three_strikes",
-            "02_card_art/portraits/portrait_opponent_winged_kid",
-            "02_card_art/portraits/portrait_opponent_monke_business",
-            "02_card_art/portraits/portrait_opponent_toxic_rex"
-        };
-
         private static readonly Dictionary<string, Sprite> SpriteCache = new Dictionary<string, Sprite>();
 
         public static Sprite LoadSprite(CardDefinition card)
@@ -40,13 +23,12 @@ namespace AppreciatorsTcg.Cards
                 return configured;
             }
 
-            Sprite assetPackPlaceholder = LoadSpriteAtPath(AssetPackPortraitPath(card));
-            if (assetPackPlaceholder != null)
-            {
-                return assetPackPlaceholder;
-            }
-
             return LoadSpriteAtPath(PlaceholderPath(card.type));
+        }
+
+        public static Sprite LoadCardFaceSprite(CardDefinition card)
+        {
+            return card == null ? null : LoadFullSpriteAtPath($"Art/Official/GeneratedCards/{card.id}");
         }
 
         public static bool HasFinalArt(CardDefinition card)
@@ -70,35 +52,6 @@ namespace AppreciatorsTcg.Cards
             return $"Art/Placeholder/placeholder_{safeType}";
         }
 
-        private static string AssetPackPortraitPath(CardDefinition card)
-        {
-            string identity = string.IsNullOrWhiteSpace(card.id) ? card.name : card.id;
-            int index = StableIndex($"{card.type}:{card.traitGroup}:{identity}", AssetPackPortraits.Length);
-            return $"{AssetPackBase}/{AssetPackPortraits[index]}";
-        }
-
-        private static int StableIndex(string value, int count)
-        {
-            if (count <= 0)
-            {
-                return 0;
-            }
-
-            unchecked
-            {
-                int hash = 17;
-                if (!string.IsNullOrEmpty(value))
-                {
-                    for (int i = 0; i < value.Length; i++)
-                    {
-                        hash = hash * 31 + value[i];
-                    }
-                }
-
-                return (hash & 0x7fffffff) % count;
-            }
-        }
-
         private static Sprite LoadSpriteAtPath(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -116,14 +69,53 @@ namespace AppreciatorsTcg.Cards
             {
                 return null;
             }
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.anisoLevel = 4;
+
+            // The first official mock drops are complete portrait card sheets. Runtime
+            // cards use only their illustration window so the approved game rules stay
+            // authoritative and sample text on the reference sheet is never displayed.
+            Rect spriteRect = new Rect(0, 0, texture.width, texture.height);
+            if (texture.height >= texture.width * 1.35f)
+            {
+                spriteRect = new Rect(
+                    texture.width * 0.055f,
+                    texture.height * 0.414f,
+                    texture.width * 0.89f,
+                    texture.height * 0.452f);
+            }
 
             Sprite sprite = Sprite.Create(
                 texture,
-                new Rect(0, 0, texture.width, texture.height),
+                spriteRect,
                 new Vector2(0.5f, 0.5f),
                 100f);
 
             SpriteCache[path] = sprite;
+            return sprite;
+        }
+
+        private static Sprite LoadFullSpriteAtPath(string path)
+        {
+            string cacheKey = $"full:{path}";
+            if (SpriteCache.TryGetValue(cacheKey, out Sprite cached))
+            {
+                return cached;
+            }
+
+            Texture2D texture = Resources.Load<Texture2D>(path);
+            if (texture == null)
+            {
+                SpriteCache[cacheKey] = null;
+                return null;
+            }
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.anisoLevel = 4;
+
+            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f);
+            SpriteCache[cacheKey] = sprite;
             return sprite;
         }
     }

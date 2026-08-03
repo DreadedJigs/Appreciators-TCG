@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using AppreciatorsTcg.Cards;
 using AppreciatorsTcg.Core;
@@ -13,8 +14,8 @@ namespace AppreciatorsTcg.UI
         private RectTransform ghostRect;
         private RectTransform canvasRect;
         private bool dragging;
-        private bool forwardingScroll;
-        private ScrollRect parentScrollRect;
+        private RectTransform sourceRect;
+        private Coroutine returnRoutine;
 
         public MatchScreenController Controller { get; set; }
         public int HandIndex { get; set; }
@@ -22,21 +23,20 @@ namespace AppreciatorsTcg.UI
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            if (ShouldScrollHand(eventData))
-            {
-                forwardingScroll = true;
-                parentScrollRect = GetComponentInParent<ScrollRect>();
-                if (parentScrollRect != null)
-                {
-                    parentScrollRect.OnInitializePotentialDrag(eventData);
-                    parentScrollRect.OnBeginDrag(eventData);
-                }
+            // The live rules only retain two cards, so a drag beginning on a card is
+            // always a card-play gesture. Previously the first few pixels could be
+            // classified as horizontal hand scrolling, which made an otherwise valid
+            // drag appear to stop responding (especially on touch screens).
+            RecoverInterruptedDrag();
 
+            if (Controller == null || Card == null)
+            {
                 return;
             }
 
-            if (Controller == null || Card == null || !Controller.CanStartCardDrag(HandIndex))
+            if (!Controller.CanStartCardDrag(HandIndex))
             {
+                Controller.ExplainBlockedCardDrag(HandIndex);
                 return;
             }
 
@@ -50,13 +50,14 @@ namespace AppreciatorsTcg.UI
             CardInspectionOverlay.Hide();
             Controller.MarkDraggingHandCard(HandIndex);
             canvasRect = canvas.GetComponent<RectTransform>();
-            ghost = UIFactory.CreateMatchHandCardPanel(canvas.transform, Card, null, true, "Drop on lane");
+            sourceRect = GetComponent<RectTransform>();
+            ghost = UIFactory.CreateMatchHandCardPanel(canvas.transform, Card, null, true, "Choose Build or Action");
             ghost.name = "DraggingCardPreview";
             ghostRect = ghost.GetComponent<RectTransform>();
             ghostRect.anchorMin = new Vector2(0.5f, 0.5f);
             ghostRect.anchorMax = new Vector2(0.5f, 0.5f);
             ghostRect.pivot = new Vector2(0.5f, 0.5f);
-            ghostRect.sizeDelta = new Vector2(160f, 204f);
+            ghostRect.sizeDelta = new Vector2(162f, 248f);
             ghost.transform.SetAsLastSibling();
             DisableRaycasts(ghost);
             MoveGhost(eventData);
@@ -64,16 +65,6 @@ namespace AppreciatorsTcg.UI
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (forwardingScroll)
-            {
-                if (parentScrollRect != null)
-                {
-                    parentScrollRect.OnDrag(eventData);
-                }
-
-                return;
-            }
-
             if (!dragging)
             {
                 return;
@@ -84,34 +75,31 @@ namespace AppreciatorsTcg.UI
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            if (forwardingScroll)
-            {
-                if (parentScrollRect != null)
-                {
-                    parentScrollRect.OnEndDrag(eventData);
-                }
-
-                forwardingScroll = false;
-                parentScrollRect = null;
-                return;
-            }
-
             if (!dragging)
             {
                 return;
             }
 
             MatchLaneDropZone dropZone = FindDropZone(eventData);
-            DestroyGhost();
+            MatchShardDropZone shardDropZone = FindShardDropZone(eventData);
             dragging = false;
+
+            if (shardDropZone != null && shardDropZone.Controller == Controller)
+            {
+                DestroyGhost();
+                Controller.DiscardHandCard(HandIndex);
+                return;
+            }
 
             if (dropZone != null && dropZone.Controller == Controller)
             {
+                DestroyGhost();
                 Controller.PlayHandCardFromDrop(HandIndex, dropZone.Lane);
                 return;
             }
 
             Controller.CancelDraggingHandCard();
+            returnRoutine = StartCoroutine(AnimateGhostBackToHand());
         }
 
         private void MoveGhost(PointerEventData eventData)
@@ -124,17 +112,6 @@ namespace AppreciatorsTcg.UI
             Vector2 localPoint;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, eventData.position, eventData.pressEventCamera, out localPoint);
             ghostRect.anchoredPosition = localPoint + new Vector2(0f, 34f);
-        }
-
-        private static bool ShouldScrollHand(PointerEventData eventData)
-        {
-            if (eventData == null)
-            {
-                return false;
-            }
-
-            Vector2 delta = eventData.position - eventData.pressPosition;
-            return Mathf.Abs(delta.x) > Mathf.Abs(delta.y) * 1.12f;
         }
 
         private static MatchLaneDropZone FindDropZone(PointerEventData eventData)
@@ -158,6 +135,27 @@ namespace AppreciatorsTcg.UI
             return null;
         }
 
+        private static MatchShardDropZone FindShardDropZone(PointerEventData eventData)
+        {
+            if (EventSystem.current == null || eventData == null)
+            {
+                return null;
+            }
+
+            List<RaycastResult> results = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(eventData, results);
+            foreach (RaycastResult result in results)
+            {
+                MatchShardDropZone zone = result.gameObject.GetComponentInParent<MatchShardDropZone>();
+                if (zone != null)
+                {
+                    return zone;
+                }
+            }
+
+            return null;
+        }
+
         private static void DisableRaycasts(GameObject root)
         {
             foreach (Graphic graphic in root.GetComponentsInChildren<Graphic>(true))
@@ -168,6 +166,12 @@ namespace AppreciatorsTcg.UI
 
         private void DestroyGhost()
         {
+            if (returnRoutine != null)
+            {
+                StopCoroutine(returnRoutine);
+                returnRoutine = null;
+            }
+
             if (ghost == null)
             {
                 return;
@@ -177,14 +181,68 @@ namespace AppreciatorsTcg.UI
             ghost = null;
             ghostRect = null;
             canvasRect = null;
+            sourceRect = null;
+        }
+
+        private IEnumerator AnimateGhostBackToHand()
+        {
+            if (ghost == null || ghostRect == null || canvasRect == null || sourceRect == null)
+            {
+                DestroyGhost();
+                yield break;
+            }
+
+            CanvasGroup group = ghost.GetComponent<CanvasGroup>() ?? ghost.AddComponent<CanvasGroup>();
+            Vector2 start = ghostRect.anchoredPosition;
+            Vector2 target = canvasRect.InverseTransformPoint(sourceRect.position);
+            Vector3 startScale = ghostRect.localScale;
+            const float duration = 0.20f;
+            float elapsed = 0f;
+            while (elapsed < duration && ghostRect != null)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float eased = 1f - Mathf.Pow(1f - t, 3f);
+                ghostRect.anchoredPosition = Vector2.LerpUnclamped(start, target, eased);
+                ghostRect.localScale = Vector3.LerpUnclamped(startScale, Vector3.one * 0.84f, eased);
+                group.alpha = 1f - eased * 0.78f;
+                yield return null;
+            }
+
+            returnRoutine = null;
+            DestroyGhost();
         }
 
         private void OnDisable()
         {
-            DestroyGhost();
+            RecoverInterruptedDrag();
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+            {
+                RecoverInterruptedDrag();
+            }
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused)
+            {
+                RecoverInterruptedDrag();
+            }
+        }
+
+        private void RecoverInterruptedDrag()
+        {
+            bool wasDragging = dragging;
             dragging = false;
-            forwardingScroll = false;
-            parentScrollRect = null;
+            DestroyGhost();
+            if (wasDragging && Controller != null)
+            {
+                Controller.CancelDraggingHandCard();
+            }
         }
     }
 }

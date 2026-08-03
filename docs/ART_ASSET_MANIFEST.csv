@@ -4,7 +4,6 @@ card_id,name,type,trait_group,rarity,lane_affinity,art_key,unity_art_path,expect
 "cat_companion","Cat Companion","COMPANION","Companion","Legendary","Community","cat_companion","Art/Cards/cat_companion","cat_companion.png"
 "devil_dog_companion","Devil Dog Companion","COMPANION","Companion","Common","Community","devil_dog_companion","Art/Cards/devil_dog_companion","devil_dog_companion.png"
 "snake_companion","Snake Companion","COMPANION","Companion","Rare","","snake_companion","Art/Cards/snake_companion","snake_companion.png"
-"beer_helmet","Beer Helmet","ORIGINAL","Head","Rare","Art","beer_helmet","Art/Cards/beer_helmet","beer_helmet.png"
 "great_white_head","Great White Head","ORIGINAL","Head","Legendary","","great_white_head","Art/Cards/great_white_head","great_white_head.png"
 "tiger_shark_head","Tiger Shark Head","ORIGINAL","Head","Rare","Art","tiger_shark_head","Art/Cards/tiger_shark_head","tiger_shark_head.png"
 "unicorn_head","Unicorn Head","ORIGINAL","Head","Rare","Community","unicorn_head","Art/Cards/unicorn_head","unicorn_head.png"

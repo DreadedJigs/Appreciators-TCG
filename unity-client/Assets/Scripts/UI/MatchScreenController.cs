@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using AppreciatorsTcg.Audio;
 using AppreciatorsTcg.Battle;
 using AppreciatorsTcg.Cards;
 using AppreciatorsTcg.Core;
@@ -40,15 +41,14 @@ namespace AppreciatorsTcg.UI
         private const int MatchHandCardHeight = 190;
         private const int PlayerBoardCardWidth = 92;
         private const int PlayerBoardCardHeight = 138;
-        private const int OpponentBoardCardWidth = 80;
-        private const int OpponentBoardCardHeight = 121;
+        private const int OpponentBoardCardWidth = PlayerBoardCardWidth;
+        private const int OpponentBoardCardHeight = PlayerBoardCardHeight;
         private const int DiscardCardWidth = 108;
         private const int DiscardCardHeight = 143;
         private const int DiscardCardArtHeight = 53;
 
         private BattleGame game;
         private BackendApiClient apiClient;
-        private Text statusText;
         private Text messageText;
         private Button endTurnButton;
         private Button quitButton;
@@ -108,10 +108,10 @@ namespace AppreciatorsTcg.UI
         private Button tutorialRestartButton;
         private Button tutorialSkipButton;
         private RectTransform tutorialPanelRect;
-        private readonly Vector2 tutorialExpandedMin = new Vector2(0.055f, 0.300f);
-        private readonly Vector2 tutorialExpandedMax = new Vector2(0.945f, 0.960f);
-        private readonly Vector2 tutorialCollapsedMin = new Vector2(0.255f, 0.018f);
-        private readonly Vector2 tutorialCollapsedMax = new Vector2(0.745f, 0.112f);
+        private Vector2 tutorialExpandedMin = new Vector2(0.055f, 0.300f);
+        private Vector2 tutorialExpandedMax = new Vector2(0.945f, 0.960f);
+        private Vector2 tutorialCollapsedMin = new Vector2(0.255f, 0.018f);
+        private Vector2 tutorialCollapsedMax = new Vector2(0.745f, 0.112f);
         private bool tutorialAwaitingTally;
         private bool tutorialCoreDemonstrated;
         private PhaseAnnouncementController phaseAnnouncer;
@@ -137,9 +137,14 @@ namespace AppreciatorsTcg.UI
         private Button phaseNextButton;
         private Button matchThemeButton;
         private GameObject matchSettingsMenu;
+        private GameObject battleLedgerPanel;
+        private Text battleLedgerText;
+        private ScrollRect battleLedgerScroll;
+        private readonly List<string> battleLedgerEntries = new List<string>();
         private bool autoPlayPhases = true;
         private bool phaseAdvanceRequested;
         private bool waitingForPhaseAdvance;
+        private bool mandatoryDiscardReviewActive;
         private Vector2Int lastResponsiveLayoutSize;
 
         private void Start()
@@ -229,6 +234,7 @@ namespace AppreciatorsTcg.UI
             messageText.resizeTextForBestFit = true;
             messageText.resizeTextMinSize = 8;
             messageText.resizeTextMaxSize = 12;
+            messageText.gameObject.SetActive(false);
 
             playerHudContent = CreateAnchoredHorizontal(
                 screen.transform,
@@ -286,6 +292,7 @@ namespace AppreciatorsTcg.UI
             UIFactory.SetAnchors(quitButton.GetComponent<RectTransform>(), new Vector2(0.755f, 0.012f), new Vector2(0.865f, 0.060f), Vector2.zero, Vector2.zero);
 
             CreateMatchSettingsControls(screen.transform);
+            RecordBattleLedger(matchIntro);
             CreateFigmaBoardChrome(screen.transform);
             ApplyResponsiveFigmaLayout(true);
 
@@ -309,6 +316,7 @@ namespace AppreciatorsTcg.UI
         {
             ApplyResponsiveFigmaLayout(false);
             UpdateHud();
+            RecordBattleLedger(game.LastMessage);
             messageText.text = game.LastMessage;
 
             if (endTurnButton != null)
@@ -318,7 +326,10 @@ namespace AppreciatorsTcg.UI
             if (phaseNextButton != null)
             {
                 phaseNextButton.gameObject.SetActive(!tutorialMatch);
-                phaseNextButton.interactable = !combatAnimating && !game.IsComplete && (!inviteMatch || !localInviteTurnEnded);
+                // A paced phase is deliberately waiting inside the combat coroutine.
+                // NEXT must remain usable even though combatAnimating is true.
+                phaseNextButton.interactable = waitingForPhaseAdvance ||
+                    (!combatAnimating && !game.IsComplete && (!inviteMatch || !localInviteTurnEnded));
                 SetButtonText(phaseNextButton, waitingForPhaseAdvance ? "NEXT PHASE" : "NEXT");
             }
 
@@ -401,6 +412,7 @@ namespace AppreciatorsTcg.UI
                 presentedPlayerHandCount = Mathf.Min(slot + 1, game.Player.Hand.Count);
                 presentedOpponentHandCount = Mathf.Min(slot + 1, game.Opponent.Hand.Count);
                 UpdateScreen();
+                UiAudioService.PlayCardDraw();
                 yield return new WaitForSecondsRealtime(ThemeService.ReducedMotion ? 0.18f : 0.88f);
             }
 
@@ -429,19 +441,106 @@ namespace AppreciatorsTcg.UI
             phaseNextButton.gameObject.SetActive(true);
 
             matchSettingsMenu = UIFactory.CreateVerticalStack(parent, "StarSettingsMenu", UIFactory.GlassPanel, 10, 16);
-            UIFactory.SetAnchors(matchSettingsMenu.GetComponent<RectTransform>(), new Vector2(0.355f, 0.285f), new Vector2(0.645f, 0.715f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(matchSettingsMenu.GetComponent<RectTransform>(), new Vector2(0.345f, 0.080f), new Vector2(0.655f, 0.920f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(matchSettingsMenu, UIFactory.NeonCyan);
-            UIFactory.CreateText(matchSettingsMenu.transform, "OPTIONS", 27, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
-            UIFactory.CreateText(matchSettingsMenu.transform, "Display, audio, pacing, and match controls", 16, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
+            Text optionsTitle = UIFactory.CreateText(matchSettingsMenu.transform, "OPTIONS", 25, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            LayoutElement optionsTitleLayout = optionsTitle.gameObject.AddComponent<LayoutElement>();
+            optionsTitleLayout.minHeight = 30;
+            optionsTitleLayout.preferredHeight = 34;
+            Text optionsSubtitle = UIFactory.CreateText(matchSettingsMenu.transform, "Display, audio, pacing, and match controls", 14, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
+            LayoutElement optionsSubtitleLayout = optionsSubtitle.gameObject.AddComponent<LayoutElement>();
+            optionsSubtitleLayout.minHeight = 24;
+            optionsSubtitleLayout.preferredHeight = 28;
             matchThemeButton = UIFactory.CreateButton(matchSettingsMenu.transform, ThemeService.IsDark ? "THEME: DARK" : "THEME: LIGHT", ToggleMatchTheme, UIFactory.PortalViolet);
             float savedVolume = PlayerPrefs.GetFloat("appreciators_master_volume", 1f);
             AudioListener.volume = Mathf.Clamp01(savedVolume);
             matchVolumeButton = UIFactory.CreateButton(matchSettingsMenu.transform, VolumeLabel(), CycleMatchVolume, UIFactory.Green);
             phaseModeButton = UIFactory.CreateButton(matchSettingsMenu.transform, "▶  PHASES: AUTO", TogglePhasePacing, UIFactory.Blue);
             phaseModeButton.gameObject.SetActive(!tutorialMatch);
+            UIFactory.CreateButton(matchSettingsMenu.transform, "BATTLE LEDGER", OpenBattleLedger, UIFactory.Accent);
             UIFactory.CreateButton(matchSettingsMenu.transform, "QUIT TO MAIN MENU", OpenQuitFromOptions, UIFactory.Red);
             UIFactory.CreateButton(matchSettingsMenu.transform, "CLOSE", ToggleMatchSettingsMenu, UIFactory.PanelAlt);
             matchSettingsMenu.SetActive(false);
+
+            CreateBattleLedgerPanel(parent);
+        }
+
+        private void CreateBattleLedgerPanel(Transform parent)
+        {
+            battleLedgerPanel = UIFactory.CreatePanel(parent, "BattleLedgerOverlay", new Color(0.005f, 0.008f, 0.025f, 0.78f));
+            UIFactory.Stretch(battleLedgerPanel.GetComponent<RectTransform>());
+
+            GameObject frame = UIFactory.CreateVerticalStack(
+                battleLedgerPanel.transform,
+                "BattleLedgerFrame",
+                ThemeService.IsDark ? new Color(0.025f, 0.018f, 0.105f, 0.985f) : new Color(0.97f, 0.95f, 0.86f, 0.99f),
+                10,
+                18);
+            UIFactory.SetAnchors(frame.GetComponent<RectTransform>(), new Vector2(0.16f, 0.10f), new Vector2(0.84f, 0.90f), Vector2.zero, Vector2.zero);
+            UIFactory.MakeDimensionalPanel(frame, UIFactory.NeonCyan);
+            UIFactory.CreateText(frame.transform, "BATTLE LEDGER", 30, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            UIFactory.CreateText(
+                frame.transform,
+                "Turn-by-turn phases, revealed effects, combat results, and Appreciation changes",
+                16,
+                TextAnchor.MiddleCenter,
+                UIFactory.MutedTextColor,
+                FontStyle.Bold);
+
+            RectTransform ledgerContent = UIFactory.CreateScrollContent(frame.transform, "BattleLedgerScroll", false, out battleLedgerScroll);
+            ledgerContent.offsetMin = Vector2.zero;
+            ledgerContent.offsetMax = Vector2.zero;
+            battleLedgerText = UIFactory.CreateText(ledgerContent, string.Empty, 17, TextAnchor.UpperLeft, UIFactory.TextColor, FontStyle.Normal);
+            battleLedgerText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            battleLedgerText.verticalOverflow = VerticalWrapMode.Overflow;
+            battleLedgerText.lineSpacing = 1.08f;
+            ContentSizeFitter fitter = battleLedgerText.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            UIFactory.CreateButton(frame.transform, "BACK TO OPTIONS", CloseBattleLedger, UIFactory.PortalViolet);
+            battleLedgerPanel.SetActive(false);
+        }
+
+        private void OpenBattleLedger()
+        {
+            if (matchSettingsMenu != null) matchSettingsMenu.SetActive(false);
+            RefreshBattleLedger();
+            battleLedgerPanel.SetActive(true);
+            battleLedgerPanel.transform.SetAsLastSibling();
+            battleAudio?.PlayCardSelected();
+        }
+
+        private void CloseBattleLedger()
+        {
+            if (battleLedgerPanel != null) battleLedgerPanel.SetActive(false);
+            if (matchSettingsMenu != null)
+            {
+                matchSettingsMenu.SetActive(true);
+                matchSettingsMenu.transform.SetAsLastSibling();
+            }
+        }
+
+        private void RecordBattleLedger(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return;
+            string normalized = message.Trim();
+            if (battleLedgerEntries.Count > 0 && battleLedgerEntries[battleLedgerEntries.Count - 1].EndsWith(normalized, StringComparison.Ordinal)) return;
+
+            string phase = game == null ? "SETUP" : game.Phase == BattleTurnPhase.BuildOrDiscard ? "BUILD OR DISCARD" : game.Phase.ToString().ToUpperInvariant();
+            int turn = game == null ? 1 : game.Turn;
+            battleLedgerEntries.Add($"TURN {turn}  •  {phase}\n{normalized}");
+            if (battleLedgerEntries.Count > 80) battleLedgerEntries.RemoveAt(0);
+            if (battleLedgerPanel != null && battleLedgerPanel.activeSelf) RefreshBattleLedger();
+        }
+
+        private void RefreshBattleLedger()
+        {
+            if (battleLedgerText == null) return;
+            battleLedgerText.text = battleLedgerEntries.Count == 0
+                ? "No battle actions recorded yet."
+                : string.Join("\n\n", battleLedgerEntries);
+            Canvas.ForceUpdateCanvases();
+            if (battleLedgerScroll != null) battleLedgerScroll.verticalNormalizedPosition = 0f;
         }
 
         private void ToggleMatchSettingsMenu()
@@ -449,7 +548,11 @@ namespace AppreciatorsTcg.UI
             if (matchSettingsMenu == null) return;
             bool show = !matchSettingsMenu.activeSelf;
             matchSettingsMenu.SetActive(show);
-            if (show) matchSettingsMenu.transform.SetAsLastSibling();
+            if (show)
+            {
+                matchSettingsMenu.transform.SetAsLastSibling();
+                battleAudio?.PlayCardSelected();
+            }
         }
 
         private void ToggleMatchTheme()
@@ -472,6 +575,7 @@ namespace AppreciatorsTcg.UI
             PlayerPrefs.SetFloat("appreciators_master_volume", next);
             PlayerPrefs.Save();
             SetButtonText(matchVolumeButton, VolumeLabel());
+            battleAudio?.PlayCardSelected();
         }
 
         private void OpenQuitFromOptions()
@@ -514,7 +618,7 @@ namespace AppreciatorsTcg.UI
         {
             autoPlayPhases = !autoPlayPhases;
             SetButtonText(phaseModeButton, autoPlayPhases ? "▶  PHASES: AUTO" : "⏸  PHASES: PAUSED");
-            if (autoPlayPhases && waitingForPhaseAdvance)
+            if (autoPlayPhases && waitingForPhaseAdvance && !mandatoryDiscardReviewActive)
             {
                 phaseAdvanceRequested = true;
             }
@@ -613,6 +717,7 @@ namespace AppreciatorsTcg.UI
             }
 
             if (tutorialMatch || autoPlayPhases || phase == BattleTurnPhase.Learn ||
+                phase == BattleTurnPhase.Discard ||
                 phase == BattleTurnPhase.BuildOrDiscard || phase == BattleTurnPhase.Complete)
             {
                 yield break;
@@ -623,6 +728,8 @@ namespace AppreciatorsTcg.UI
             if (phaseNextButton != null)
             {
                 phaseNextButton.gameObject.SetActive(true);
+                phaseNextButton.interactable = true;
+                SetButtonText(phaseNextButton, "NEXT PHASE");
                 phaseNextButton.transform.SetAsLastSibling();
             }
             ShowMatStatus($"{phase.ToString().ToUpperInvariant()} paused. Click NEXT PHASE to continue.");
@@ -632,7 +739,11 @@ namespace AppreciatorsTcg.UI
             }
             waitingForPhaseAdvance = false;
             phaseAdvanceRequested = false;
-            if (phaseNextButton != null) phaseNextButton.gameObject.SetActive(true);
+            if (phaseNextButton != null)
+            {
+                phaseNextButton.gameObject.SetActive(true);
+                SetButtonText(phaseNextButton, "NEXT");
+            }
         }
 
         private static void CreateCombatStatsBadge(Transform cardPanel, CardDefinition card)
@@ -781,6 +892,7 @@ namespace AppreciatorsTcg.UI
 
         private void ShowMatStatus(string message)
         {
+            RecordBattleLedger(message);
             if (messageText != null)
             {
                 messageText.text = message;
@@ -792,7 +904,7 @@ namespace AppreciatorsTcg.UI
             tutorialHighlight = new GameObject("TutorialHighlight", typeof(RectTransform), typeof(CanvasGroup), typeof(Image), typeof(Outline));
             tutorialHighlight.transform.SetParent(Root, false);
             Image highlightImage = tutorialHighlight.GetComponent<Image>();
-            highlightImage.color = new Color(UIFactory.Accent.r, UIFactory.Accent.g, UIFactory.Accent.b, 0.16f);
+            highlightImage.color = new Color(UIFactory.Accent.r, UIFactory.Accent.g, UIFactory.Accent.b, 0.07f);
             highlightImage.raycastTarget = false;
             Outline outline = tutorialHighlight.GetComponent<Outline>();
             outline.effectColor = UIFactory.Accent;
@@ -812,14 +924,16 @@ namespace AppreciatorsTcg.UI
                 Vector2.zero,
                 Vector2.zero);
             UIFactory.AddNeonFrame(tutorialPanel, UIFactory.NeonCyan, 0.96f);
-            tutorialTitle = UIFactory.CreateText(tutorialPanel.transform, string.Empty, 42, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            tutorialTitle = UIFactory.CreateText(tutorialPanel.transform, string.Empty, 38, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
             LayoutElement titleLayout = tutorialTitle.gameObject.AddComponent<LayoutElement>();
             titleLayout.minHeight = 58;
             titleLayout.preferredHeight = 64;
-            tutorialBody = UIFactory.CreateText(tutorialPanel.transform, string.Empty, 60, TextAnchor.MiddleLeft, UIFactory.Cream, FontStyle.Bold);
+            tutorialBody = UIFactory.CreateText(tutorialPanel.transform, string.Empty, 46, TextAnchor.MiddleLeft, UIFactory.Cream, FontStyle.Bold);
             LayoutElement bodyLayout = tutorialBody.gameObject.AddComponent<LayoutElement>();
             bodyLayout.flexibleHeight = 1f;
-            tutorialBody.resizeTextForBestFit = false;
+            tutorialBody.resizeTextForBestFit = true;
+            tutorialBody.resizeTextMinSize = 22;
+            tutorialBody.resizeTextMaxSize = 46;
             tutorialBody.horizontalOverflow = HorizontalWrapMode.Wrap;
             tutorialBody.verticalOverflow = VerticalWrapMode.Truncate;
             tutorialBody.lineSpacing = 0.90f;
@@ -827,7 +941,7 @@ namespace AppreciatorsTcg.UI
             tutorialPreviousButton = UIFactory.CreateButton(navigation.transform, "BACK", ShowPreviousTutorialExplanation, UIFactory.PanelAlt);
             tutorialNextButton = UIFactory.CreateButton(navigation.transform, "NEXT - PLAY STEP", AdvanceTutorial, UIFactory.Blue);
             tutorialRestartButton = UIFactory.CreateButton(navigation.transform, "RESTART", RestartTutorial, UIFactory.PortalViolet);
-            tutorialSkipButton = UIFactory.CreateButton(navigation.transform, "SKIP", FinishTutorial, UIFactory.PanelAlt);
+            tutorialSkipButton = UIFactory.CreateButton(navigation.transform, "SKIP", SkipTutorial, UIFactory.PanelAlt);
             foreach (Button button in new[] { tutorialPreviousButton, tutorialNextButton, tutorialRestartButton, tutorialSkipButton })
             {
                 SetChoiceButtonHeight(button, 64);
@@ -1005,7 +1119,8 @@ namespace AppreciatorsTcg.UI
                     yield return PlayPacedPhase(BattleTurnPhase.BuildOrDiscard);
                     if (!game.Player.HasCommittedCardThisTurn && game.Player.Hand.Count > 0)
                     {
-                        game.TryBuildCard(OwnerSide.Player, 0, out string buildMessage);
+                        bool built = game.TryBuildCard(OwnerSide.Player, 0, out string buildMessage);
+                        if (built) battleAudio?.PlayCardPlaced();
                         ShowMatStatus(buildMessage);
                         UpdateScreen();
                         yield return new WaitForSecondsRealtime(1.1f);
@@ -1014,16 +1129,21 @@ namespace AppreciatorsTcg.UI
                 case TutorialStep.EndTurn:
                     if (!game.Player.HasCommittedCardThisTurn && game.Player.Hand.Count > 0)
                     {
-                        game.TryBuildCard(OwnerSide.Player, 0, out _);
+                        if (game.TryBuildCard(OwnerSide.Player, 0, out _)) battleAudio?.PlayCardPlaced();
                     }
                     game.RunAiTurn();
+                    battleAudio?.PlayCardPlaced();
                     UpdateScreen();
                     yield return new WaitForSecondsRealtime(1.0f);
                     game.BeginEndTurnPhase();
                     yield return PlayPacedPhase(BattleTurnPhase.EndTurn);
                     break;
                 case TutorialStep.Discard:
-                    if (!game.Opponent.HasCommittedCardThisTurn) game.RunAiTurn();
+                    if (!game.Opponent.HasCommittedCardThisTurn)
+                    {
+                        game.RunAiTurn();
+                        battleAudio?.PlayCardPlaced();
+                    }
                     game.BeginEndTurnPhase();
                     yield return PlayPacedPhase(BattleTurnPhase.Discard);
                     if (!tutorialDiscardDemonstrated)
@@ -1041,6 +1161,7 @@ namespace AppreciatorsTcg.UI
                     if (!tutorialDiscardDemonstrated)
                     {
                         game.RunAiTurn();
+                        battleAudio?.PlayCardPlaced();
                         game.BeginEndTurnPhase();
                         game.ResolveForcedDiscardPhase();
                         tutorialDiscardDemonstrated = true;
@@ -1055,7 +1176,7 @@ namespace AppreciatorsTcg.UI
                         {
                             yield return combatAnimator.PlaySequence(game.LastCombatEvents, lanesContent,
                                 item => { battleAudio?.PlayAttack(); ShowMatStatus(item.Summary()); },
-                                item => { battleAudio?.PlayImpact(); if (item.TargetDefeated) battleAudio?.PlayDefeat(); },
+                                null,
                                 GetDiscardAnimationTarget);
                         }
                         UpdateScreen();
@@ -1111,89 +1232,89 @@ namespace AppreciatorsTcg.UI
             {
                 case TutorialStep.Objective:
                     tutorialTitle.text = "1 / 17  OBJECTIVE";
-                    tutorialBody.text = $"You control the pace. Each step plays automatically only after you choose Next or Back. Win at {GameConstants.AppreciationVictoryTarget} Appreciation or reduce enemy HP to zero.";
-                    SetTutorialHighlight(new Rect(0.335f, 0.245f, 0.425f, 0.095f));
+                    tutorialBody.text = $"Welcome to the mirrored single-lane board. You control the lesson with Next, Back, and Restart. Win by reaching {GameConstants.AppreciationVictoryTarget} Appreciation or reducing the opponent to zero HP.";
+                    SetTutorialHighlight(new Rect(0.020f, 0.025f, 0.960f, 0.950f));
                     break;
                 case TutorialStep.TurnSequence:
-                    tutorialTitle.text = "2 / 17  AUTOPLAY TURN";
-                    tutorialBody.text = "Draw Two -> Learn -> Build or Discard -> End Turn -> Discard -> Combat -> Gather -> Cycle. Nothing advances until you choose it.";
-                    SetTutorialHighlight(new Rect(0.20f, 0.435f, 0.60f, 0.13f));
+                    tutorialTitle.text = "2 / 17  CURRENT TURN FLOW";
+                    tutorialBody.text = "Draw Two -> Learn -> Build or Instant -> End Turn -> Discard -> Combat -> Gather Growth -> Cycle. The dark phase rail announces each transition; this lesson waits for Next before playing every demonstration.";
+                    SetTutorialHighlight(new Rect(0.020f, 0.635f, 0.960f, 0.040f));
                     break;
                 case TutorialStep.Draw:
                     tutorialTitle.text = "3 / 17  DRAW TWO - AUTOMATIC";
-                    tutorialBody.text = "Hands begin empty. Watch two cards leave the face-down deck and arrive one at a time. Every turn uses this same automatic draw.";
-                    SetTutorialHighlight(new Rect(0.054f, 0.015f, 0.746f, 0.255f));
+                    tutorialBody.text = "Both mirrored hands begin empty. Watch two cards move from each face-down deck into the centered hand areas. Every new turn performs this draw automatically.";
+                    SetTutorialHighlight(new Rect(0.370f, 0.095f, 0.605f, 0.185f));
                     break;
                 case TutorialStep.Learn:
                     tutorialTitle.text = "4 / 17  LEARN";
-                    tutorialBody.text = "Read both cards before committing. Attack and Defense are public; revealed board and discard cards can be enlarged for inspection.";
-                    SetTutorialHighlight(new Rect(0.054f, 0.036f, 0.882f, 0.916f));
+                    tutorialBody.text = "Inspect both centered hand cards before committing. Cards use Attack and Defense, and holding or clicking any revealed card opens its complete Build and Instant text.";
+                    SetTutorialHighlight(new Rect(0.365f, 0.095f, 0.270f, 0.180f));
                     break;
                 case TutorialStep.BuildOrDiscard:
-                    tutorialTitle.text = "5 / 17  BUILD OR DISCARD";
-                    tutorialBody.text = "The demonstration Builds one card onto the mat. In a live match you may instead resolve that card as an Instant Discard effect.";
-                    SetTutorialHighlight(new Rect(0.014f, 0.355f, 0.936f, 0.237f));
+                    tutorialTitle.text = "5 / 17  BUILD OR INSTANT";
+                    tutorialBody.text = "Drop or select one card, then choose its action. Build places it on your side of the shared battlefield. Instant resolves its discard ability immediately instead.";
+                    SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.HarmfulDiscard:
-                    tutorialTitle.text = "6 / 17  DISCARD CONSEQUENCES";
-                    tutorialBody.text = "Costly or Dangerous effects state their consequence before resolution. The remaining card is still waiting for the official turn-end Discard phase.";
-                    SetTutorialHighlight(new Rect(0.383f, 0.015f, 0.417f, 0.255f));
+                    tutorialTitle.text = "6 / 17  INSTANT CONSEQUENCES";
+                    tutorialBody.text = "Instant abilities display their timing, target, and cost before resolving. Only the chosen card takes effect; the second card remains in hand until the official Discard phase.";
+                    SetTutorialHighlight(new Rect(0.365f, 0.095f, 0.270f, 0.180f));
                     break;
                 case TutorialStep.EndTurn:
                     tutorialTitle.text = "7 / 17  END TURN";
-                    tutorialBody.text = "The opponent commits first. End Turn then closes card decisions and hands control to the official Discard phase.";
-                    SetTutorialHighlight(new Rect(0.809f, 0.036f, 0.127f, 0.239f));
+                    tutorialBody.text = "The opponent commits with a readable pause. End Turn closes both players' card decisions and advances to the official Discard phase. In paused pacing, Next occupies this control rail.";
+                    SetTutorialHighlight(new Rect(0.250f, 0.010f, 0.720f, 0.055f));
                     break;
                 case TutorialStep.Discard:
                     tutorialTitle.text = "8 / 17  DISCARD PHASE";
-                    tutorialBody.text = "Before Combat, each unplayed second card is randomly revealed, resolved, and moved face-up to its owner's discard square.";
-                    SetTutorialHighlight(new Rect(0.054f, 0.036f, 0.882f, 0.916f));
+                    tutorialBody.text = "Before Combat, each unplayed second card is revealed and moved to its mirrored discard well. No second effect is applied unless the rules explicitly say so.";
+                    SetTutorialHighlight(new Rect(0.025f, 0.095f, 0.115f, 0.810f));
                     break;
                 case TutorialStep.PublicDiscard:
                     tutorialTitle.text = "9 / 17  PUBLIC DISCARD";
-                    tutorialBody.text = "Discard piles stay face-up in order. Click any revealed opponent card to enlarge it and review its effect.";
-                    SetTutorialHighlight(new Rect(0.054f, 0.036f, 0.882f, 0.916f));
+                    tutorialBody.text = "Both discard wells stack cards face-up. Click either player's stack to enlarge and review every revealed card without covering the Appreciation well beside it.";
+                    SetTutorialHighlight(new Rect(0.025f, 0.095f, 0.115f, 0.810f));
                     break;
                 case TutorialStep.BoardPresence:
                     tutorialTitle.text = "10 / 17  BOARD PRESENCE";
-                    tutorialBody.text = "Built cards defend, attack, and generate Growth. Discarded cards leave no defender, opening direct-attack pressure.";
-                    SetTutorialHighlight(new Rect(0.014f, 0.355f, 0.936f, 0.237f));
+                    tutorialBody.text = "The center is one shared battlefield: opponent cards occupy the upper side and yours the lower side. Built cards defend, attack, and generate Growth; Instant cards leave no defender.";
+                    SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.Combat:
                     tutorialTitle.text = "11 / 17  COMBAT";
-                    tutorialBody.text = "Now the built cards attack. Attack and Defense resolve together, damage persists, and defeated cards move to the public discard pile.";
-                    SetTutorialHighlight(new Rect(0.014f, 0.355f, 0.936f, 0.237f));
+                    tutorialBody.text = "Combat presents opponent cards above yours in a faceoff. Inspect every card first, then select attackers, targets, and order. Attack and Defense resolve together; defeated cards enter public discard.";
+                    SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.BuffsAndNerfs:
                     tutorialTitle.text = "12 / 17  BUFFS AND NERFS";
-                    tutorialBody.text = "Printed stats remain visible while current values reflect modifiers, damage, duration, and source. Combat always uses current values.";
-                    SetTutorialHighlight(new Rect(0.014f, 0.355f, 0.936f, 0.237f));
+                    tutorialBody.text = "Printed Attack and Defense remain visible while current values reflect modifiers and damage. Enlarged cards show the active source and duration; Combat always uses current values.";
+                    SetTutorialHighlight(new Rect(0.300f, 0.355f, 0.400f, 0.250f));
                     break;
                 case TutorialStep.DirectAttack:
                     tutorialTitle.text = "13 / 17  DIRECT ATTACK";
-                    tutorialBody.text = "With no eligible defender, an attacker can hit the opposing player and reduce HP immediately.";
-                    SetTutorialHighlight(new Rect(0.385f, 0.735f, 0.375f, 0.060f));
+                    tutorialBody.text = "If the opposing side has no eligible defender, an attacker crosses the shared lane and reduces the opponent's HP. Both mirrored HUDs update immediately.";
+                    SetTutorialHighlight(new Rect(0.260f, 0.940f, 0.480f, 0.048f));
                     break;
                 case TutorialStep.AutoAttack:
-                    tutorialTitle.text = "14 / 17  AUTO-ATTACK";
-                    tutorialBody.text = "Auto-Attack plans casual and tutorial combat. Manual selection remains available in normal play; competitive matches require it.";
-                    SetTutorialHighlight(new Rect(0.165f, 0.15f, 0.67f, 0.70f));
+                    tutorialTitle.text = "14 / 17  ATTACK CONTROLS";
+                    tutorialBody.text = "Auto-Attack supplies a quick legal plan in casual play. Reset / Reselect clears it, and Review Attack Order confirms the sequence before resolution.";
+                    SetTutorialHighlight(new Rect(0.180f, 0.335f, 0.640f, 0.285f));
                     break;
                 case TutorialStep.GatherGrowth:
                     tutorialTitle.text = "15 / 17  GATHER GROWTH";
-                    tutorialBody.text = "Ready board abilities generate temporary Growth. It becomes banked Appreciation in the following Cycle.";
-                    SetTutorialHighlight(new Rect(0.335f, 0.245f, 0.425f, 0.095f));
+                    tutorialBody.text = "Surviving built cards and ready board abilities generate Growth after Combat. Growth is queued beside each player's native Appreciation well until Cycle.";
+                    SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
                 case TutorialStep.Cycle:
                     tutorialTitle.text = "16 / 17  CYCLE";
-                    tutorialBody.text = "Cycle combines the old Tally and Refresh steps: bonuses resolve, Growth becomes Appreciation, cards ready, and temporary modifiers expire. Watch the printed Appreciation button fill to 50 from within.";
-                    SetTutorialHighlight(new Rect(0.198f, 0.038f, 0.177f, 0.237f));
+                    tutorialBody.text = "Cycle combines tally and refresh: Growth becomes banked Appreciation, cards ready, temporary modifiers expire, and the next automatic Draw begins. Watch the mirrored Appreciation wells fill toward 50.";
+                    SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
                 case TutorialStep.Winning:
                     tutorialTitle.text = "17 / 17  WINNING";
-                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation in Cycle or reduce the enemy to zero HP. Restart to watch the demonstration again.";
+                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation during Cycle or reduce the enemy to zero HP. Finish this full lesson now to receive the one-time 50 Appreciation Shard tutorial reward.";
                     SetButtonText(tutorialNextButton, "FINISH TUTORIAL");
-                    SetTutorialHighlight(new Rect(0.335f, 0.245f, 0.425f, 0.095f));
+                    SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
             }
 
@@ -1242,7 +1363,46 @@ namespace AppreciatorsTcg.UI
             {
                 Destroy(tutorialPanel);
             }
-            ShowMatStatus("Tutorial complete. Keep playing this match, or use X to return to the menu.");
+            ShowMatStatus("Tutorial complete. Claiming 50 Appreciation Shards...");
+            StartCoroutine(ClaimTutorialCompletionReward());
+        }
+
+        private void SkipTutorial()
+        {
+            tutorialStep = TutorialStep.Complete;
+            tutorialMatch = false;
+            tutorialAwaitingTally = false;
+            if (tutorialHighlight != null) Destroy(tutorialHighlight);
+            if (tutorialPanel != null) Destroy(tutorialPanel);
+            ShowMatStatus("Tutorial skipped. Complete all tutorial steps later to earn the one-time 50 Appreciation Shard reward.");
+        }
+
+        private IEnumerator ClaimTutorialCompletionReward()
+        {
+            TutorialRewardResponse reward = null;
+            string rewardError = null;
+            string playerId = LocalSaveSystem.LoadOrCreatePlayerId();
+            yield return apiClient.ClaimTutorialCompletionReward(
+                playerId,
+                response => reward = response,
+                error => rewardError = error);
+
+            if (reward?.inventory != null)
+            {
+                new AppreciatorsTcg.Packs.PackInventoryService(new AppreciatorsTcg.Packs.PackSaveService())
+                    .ReplaceWithAuthoritativeSnapshot(reward.inventory);
+            }
+
+            if (reward != null && reward.success)
+            {
+                ShowMatStatus(reward.idempotentReplay
+                    ? $"Tutorial complete. The one-time reward was already claimed. Balance: {reward.totalShardBalance:N0} Appreciation Shards."
+                    : $"Tutorial complete! +{reward.shardsAwarded:N0} Appreciation Shards. Balance: {reward.totalShardBalance:N0}.");
+            }
+            else
+            {
+                ShowMatStatus($"Tutorial complete. The 50-Shard reward could not be synced yet: {rewardError}");
+            }
         }
 
         private void ShowPlayChoiceDialog(int handIndex)
@@ -1420,6 +1580,7 @@ namespace AppreciatorsTcg.UI
 
         private void CancelPlayChoice()
         {
+            UiAudioService.PlayCancel();
             pendingPlayChoiceHandIndex = -1;
             selectedHandIndex = -1;
             RefreshTransientHandUi();
@@ -1583,6 +1744,7 @@ namespace AppreciatorsTcg.UI
 
         private IEnumerator PlayDiscardResolution(CardDefinition card, string resolution)
         {
+            UiAudioService.PlayDiscard();
             GameObject panel = UIFactory.CreateHorizontalStack(matchTableRoot, "DiscardResolutionArea", ThemeService.IsDark
                 ? new Color(0.025f, 0.018f, 0.105f, 0.97f)
                 : new Color(0.97f, 0.95f, 0.86f, 0.98f), 12, 14);
@@ -1603,14 +1765,61 @@ namespace AppreciatorsTcg.UI
             detail.resizeTextMaxSize = 14;
             panel.transform.SetAsLastSibling();
 
-            float duration = ThemeService.ReducedMotion ? 0.35f : 1.15f;
+            float transitionDuration = ThemeService.ReducedMotion ? 0.10f : 0.22f;
             float elapsed = 0f;
-            while (elapsed < duration && panel != null)
+            group.alpha = 0f;
+            rect.localScale = ThemeService.ReducedMotion ? Vector3.one : Vector3.one * 0.94f;
+            while (elapsed < transitionDuration && panel != null)
             {
                 elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                group.alpha = t < 0.16f ? t / 0.16f : t > 0.76f ? (1f - t) / 0.24f : 1f;
-                rect.localScale = ThemeService.ReducedMotion ? Vector3.one : Vector3.one * Mathf.Lerp(0.90f, 1f, Mathf.SmoothStep(0f, 1f, t));
+                float t = Mathf.Clamp01(elapsed / transitionDuration);
+                group.alpha = t;
+                rect.localScale = ThemeService.ReducedMotion ? Vector3.one : Vector3.one * Mathf.Lerp(0.94f, 1f, Mathf.SmoothStep(0f, 1f, t));
+                yield return null;
+            }
+
+            if (panel != null)
+            {
+                group.alpha = 1f;
+                rect.localScale = Vector3.one;
+            }
+
+            if (tutorialMatch)
+            {
+                yield return new WaitForSecondsRealtime(ThemeService.ReducedMotion ? 0.45f : 1.35f);
+            }
+            else
+            {
+                mandatoryDiscardReviewActive = true;
+                waitingForPhaseAdvance = true;
+                phaseAdvanceRequested = false;
+                if (phaseNextButton != null)
+                {
+                    phaseNextButton.gameObject.SetActive(true);
+                    phaseNextButton.interactable = true;
+                    SetButtonText(phaseNextButton, "NEXT EFFECT");
+                    phaseNextButton.transform.SetAsLastSibling();
+                }
+                ShowMatStatus("Discard effect revealed. Read the card and result, then click NEXT EFFECT to continue.");
+                while (!phaseAdvanceRequested)
+                {
+                    yield return null;
+                }
+                mandatoryDiscardReviewActive = false;
+                waitingForPhaseAdvance = false;
+                phaseAdvanceRequested = false;
+                if (phaseNextButton != null)
+                {
+                    SetButtonText(phaseNextButton, "NEXT");
+                }
+            }
+
+            elapsed = 0f;
+            while (elapsed < transitionDuration && panel != null)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / transitionDuration);
+                group.alpha = 1f - t;
                 yield return null;
             }
             if (panel != null) Destroy(panel);
@@ -1850,7 +2059,7 @@ namespace AppreciatorsTcg.UI
             CreateNativeBoardPanel(parent, "NativeOpponentZone", new Rect(0.020f, 0.690f, 0.960f, 0.285f), Brand("FFFFFF"), Brand("7841AA"), "OPPONENT");
             CreateNativeBoardPanel(parent, "NativePlayerZone", new Rect(0.020f, 0.025f, 0.960f, 0.285f), Brand("FFFFFF"), Brand("7841AA"), "PLAYER");
 
-            CreateNativeBoardPanel(parent, "NativeMainBattlefield", new Rect(0.020f, 0.335f, 0.960f, 0.285f), Brand("C8FAFA"), Brand("00BEE1"), "BATTLEFIELD  •  DROP TO BUILD");
+            CreateNativeBoardPanel(parent, "NativeMainBattlefield", new Rect(0.020f, 0.325f, 0.960f, 0.350f), Brand("C8FAFA"), Brand("00BEE1"), "BATTLEFIELD  •  DROP TO BUILD");
 
             CreateNativeBoardPanel(parent, "OpponentDiscardWell", new Rect(0.025f, 0.720f, 0.115f, 0.185f), Brand("D7C3EB"), Brand("7841AA"), "DISCARD");
             CreateNativeBoardPanel(parent, "PlayerDiscardWell", new Rect(0.025f, 0.095f, 0.115f, 0.185f), Brand("D7C3EB"), Brand("7841AA"), "DISCARD");
@@ -1858,18 +2067,6 @@ namespace AppreciatorsTcg.UI
             CreateNativeBoardPanel(parent, "PlayerAppreciationWell", new Rect(0.160f, 0.095f, 0.110f, 0.185f), Brand("FAFAD2"), Brand("FFC700"), "APPRECIATION");
             CreateNativeBoardPanel(parent, "OpponentDeckWell", new Rect(0.880f, 0.720f, 0.095f, 0.185f), Brand("C8FAFA"), Brand("00BEE1"), "DECK");
             CreateNativeBoardPanel(parent, "PlayerDeckWell", new Rect(0.880f, 0.095f, 0.095f, 0.185f), Brand("C8FAFA"), Brand("00BEE1"), "DECK");
-
-            GameObject phaseRail = UIFactory.CreatePanel(parent, "NativePhaseRail", new Color(0.09f, 0.075f, 0.247f, 0.98f));
-            UIFactory.SetAnchors(phaseRail.GetComponent<RectTransform>(), new Vector2(0.020f, 0.635f), new Vector2(0.980f, 0.675f), Vector2.zero, Vector2.zero);
-            phaseRail.GetComponent<Image>().raycastTarget = false;
-            phaseRail.transform.SetSiblingIndex(Mathf.Min(7, phaseRail.transform.parent.childCount - 1));
-            Text phaseLabel = UIFactory.CreateText(phaseRail.transform, "CURRENT PHASE  •  DRAW  ›  LEARN  ›  BUILD OR DISCARD  ›  COMBAT  ›  CYCLE", 13, TextAnchor.MiddleLeft, UIFactory.Cream, FontStyle.Bold);
-            phaseLabel.text = "TURN FLOW";
-            UIFactory.SetAnchors(phaseLabel.rectTransform, new Vector2(0.018f, 0f), new Vector2(0.155f, 1f), Vector2.zero, Vector2.zero);
-            phaseLabel.resizeTextForBestFit = true;
-            phaseLabel.resizeTextMinSize = 8;
-            phaseLabel.resizeTextMaxSize = 13;
-            phaseLabel.raycastTarget = false;
 
             Transform surface = parent.Find("NativeBoardSurface");
             if (surface != null) surface.SetAsFirstSibling();
@@ -1888,8 +2085,7 @@ namespace AppreciatorsTcg.UI
                 "OpponentAppreciationWell",
                 "PlayerAppreciationWell",
                 "OpponentDeckWell",
-                "PlayerDeckWell",
-                "NativePhaseRail"
+                "PlayerDeckWell"
             };
             for (int index = 0; index < chromeOrder.Length; index++)
             {
@@ -2107,19 +2303,33 @@ namespace AppreciatorsTcg.UI
 
             float aspect = (float)Screen.width / Screen.height;
             bool portrait = aspect < 0.78f;
-            bool compactLandscape = !portrait && aspect < 1.45f;
+            bool compactLayout = ResponsiveCanvasScaler.IsCompactLayout;
+            bool phoneLayout = ResponsiveCanvasScaler.IsPhoneLayout;
 
-            if (portrait)
-            {
-                ApplyMirroredPlayerZoneLayout();
-            }
-            else
-            {
-                ApplyMirroredPlayerZoneLayout();
-            }
+            ApplyMirroredPlayerZoneLayout(phoneLayout, portrait);
 
             SetRect(deckDrawSource == null ? null : deckDrawSource.parent as RectTransform, new Rect(0.890f, 0.100f, 0.080f, 0.165f));
             SetRect(opponentDeckDrawSource == null ? null : opponentDeckDrawSource.parent as RectTransform, new Rect(0.890f, 0.735f, 0.080f, 0.165f));
+            ApplyMatchReadability(compactLayout, phoneLayout);
+            if (tutorialMatch && tutorialPanelRect != null)
+            {
+                bool expanded = tutorialBody != null && tutorialBody.gameObject.activeSelf;
+                if (phoneLayout)
+                {
+                    tutorialExpandedMin = new Vector2(0.025f, portrait ? 0.13f : 0.16f);
+                    tutorialExpandedMax = new Vector2(0.975f, 0.975f);
+                    tutorialCollapsedMin = new Vector2(0.055f, 0.012f);
+                    tutorialCollapsedMax = new Vector2(0.945f, 0.175f);
+                }
+                else
+                {
+                    tutorialExpandedMin = new Vector2(0.055f, 0.300f);
+                    tutorialExpandedMax = new Vector2(0.945f, 0.960f);
+                    tutorialCollapsedMin = new Vector2(0.255f, 0.018f);
+                    tutorialCollapsedMax = new Vector2(0.745f, 0.112f);
+                }
+                SetTutorialPanelExpandedImmediate(expanded);
+            }
             RefreshNativeArtworkCropping();
         }
 
@@ -2158,27 +2368,86 @@ namespace AppreciatorsTcg.UI
             }
         }
 
-        private void ApplyMirroredPlayerZoneLayout()
+        private void ApplyMirroredPlayerZoneLayout(bool phoneLayout, bool portrait)
         {
-            SetRect(opponentHudContent, new Rect(0.260f, 0.940f, 0.480f, 0.048f));
-            SetRect(playerHudContent, new Rect(0.370f, 0.012f, 0.370f, 0.048f));
+            float controlHeight = phoneLayout ? 0.105f : 0.048f;
+            float handHeight = phoneLayout ? 0.135f : 0.105f;
+            float handY = phoneLayout ? 0.155f : 0.160f;
+            float opponentHandY = phoneLayout ? 0.710f : 0.735f;
+            SetRect(opponentHudContent, phoneLayout
+                ? new Rect(0.205f, 0.908f, 0.590f, 0.078f)
+                : new Rect(0.260f, 0.940f, 0.480f, 0.048f));
+            SetRect(playerHudContent, phoneLayout
+                ? new Rect(0.315f, 0.018f, 0.475f, 0.078f)
+                : new Rect(0.370f, 0.012f, 0.370f, 0.048f));
 
             SetRect(opponentDiscardContent, new Rect(0.030f, 0.735f, 0.105f, 0.165f));
             SetRect(playerDiscardContent, new Rect(0.030f, 0.100f, 0.105f, 0.165f));
 
-            SetRect(opponentAppreciationMeter, new Rect(0.165f, 0.735f, 0.100f, 0.165f));
-            SetRect(playerAppreciationMeter, new Rect(0.165f, 0.100f, 0.100f, 0.165f));
+            SetRect(opponentAppreciationMeter, phoneLayout ? new Rect(0.150f, 0.735f, 0.140f, 0.165f) : new Rect(0.165f, 0.735f, 0.100f, 0.165f));
+            SetRect(playerAppreciationMeter, phoneLayout ? new Rect(0.150f, 0.100f, 0.140f, 0.165f) : new Rect(0.165f, 0.100f, 0.100f, 0.165f));
 
-            SetRect(opponentHandContent, new Rect(0.390f, 0.735f, 0.220f, 0.105f));
-            SetRect(handScrollRect, new Rect(0.390f, 0.160f, 0.220f, 0.105f));
+            SetRect(opponentHandContent, new Rect(phoneLayout ? 0.355f : 0.390f, opponentHandY, phoneLayout ? 0.290f : 0.220f, handHeight));
+            SetRect(handScrollRect, new Rect(phoneLayout ? 0.355f : 0.390f, handY, phoneLayout ? 0.290f : 0.220f, handHeight));
 
-            SetRect(endTurnButton, new Rect(0.820f, 0.012f, 0.150f, 0.048f));
-            SetRect(phaseNextButton, new Rect(0.260f, 0.012f, 0.105f, 0.048f));
-            SetRect(quitButton, new Rect(0.755f, 0.012f, 0.110f, 0.048f));
-            SetRect(messageText, new Rect(0.610f, 0.638f, 0.350f, 0.033f));
+            SetRect(endTurnButton, new Rect(phoneLayout ? 0.800f : 0.820f, 0.012f, phoneLayout ? 0.185f : 0.150f, controlHeight));
+            float nextControlHeight = phoneLayout ? 0.078f : 0.044f;
+            SetRect(phaseNextButton, new Rect(phoneLayout ? 0.280f : 0.260f, 0.008f, phoneLayout ? 0.090f : 0.105f, nextControlHeight));
+            SetRect(quitButton, new Rect(phoneLayout ? 0.665f : 0.755f, 0.012f, phoneLayout ? 0.125f : 0.110f, controlHeight));
+            SetRect(messageText, new Rect(phoneLayout ? 0.405f : 0.610f, phoneLayout ? 0.622f : 0.638f, phoneLayout ? 0.565f : 0.350f, phoneLayout ? 0.066f : 0.033f));
             messageText.alignment = TextAnchor.MiddleRight;
             messageText.horizontalOverflow = HorizontalWrapMode.Wrap;
             messageText.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
+        private void ApplyMatchReadability(bool compactLayout, bool phoneLayout)
+        {
+            if (messageText != null)
+            {
+                messageText.fontSize = phoneLayout ? 14 : compactLayout ? 15 : 13;
+                messageText.resizeTextMinSize = phoneLayout ? 10 : 11;
+                messageText.resizeTextMaxSize = messageText.fontSize;
+            }
+
+            SetMinimumFontSize(opponentHudContent, phoneLayout ? 16 : compactLayout ? 14 : 12);
+            SetMinimumFontSize(playerHudContent, phoneLayout ? 16 : compactLayout ? 14 : 12);
+            Transform phaseRail = matchTableRoot.Find("NativePhaseRail");
+            SetMinimumFontSize(phaseRail, phoneLayout ? 17 : compactLayout ? 15 : 13);
+            ConfigureCompactMatchButton(quitButton, phoneLayout, "OPTIONS");
+            ConfigureCompactMatchButton(phaseNextButton, phoneLayout, "NEXT");
+            ConfigureCompactMatchButton(endTurnButton, phoneLayout, null);
+        }
+
+        private static void ConfigureCompactMatchButton(Button button, bool compact, string compactLabel)
+        {
+            Text label = button == null ? null : button.GetComponentInChildren<Text>();
+            if (label == null) return;
+            if (compact && !string.IsNullOrWhiteSpace(compactLabel)) label.text = compactLabel;
+            label.fontSize = compact ? 16 : 25;
+            label.resizeTextForBestFit = compact;
+            label.resizeTextMinSize = compact ? 11 : 18;
+            label.resizeTextMaxSize = compact ? 16 : 25;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
+        private static void SetMinimumFontSize(Component root, int minimum)
+        {
+            if (root == null) return;
+            SetMinimumFontSize(root.transform, minimum);
+        }
+
+        private static void SetMinimumFontSize(Transform root, int minimum)
+        {
+            if (root == null) return;
+            foreach (Text text in root.GetComponentsInChildren<Text>(true))
+            {
+                text.fontSize = Mathf.Max(text.fontSize, minimum);
+                if (text.resizeTextForBestFit)
+                {
+                    text.resizeTextMinSize = Mathf.Max(text.resizeTextMinSize, Mathf.Max(10, minimum - 3));
+                    text.resizeTextMaxSize = Mathf.Max(text.resizeTextMaxSize, minimum);
+                }
+            }
         }
 
         private void SetResponsiveAnchors(string childName, Rect rect)
@@ -2519,8 +2788,8 @@ namespace AppreciatorsTcg.UI
                 Color.clear);
             UIFactory.SetAnchors(
                 lanePanel.GetComponent<RectTransform>(),
-                new Vector2(0.035f, 0.345f),
-                new Vector2(0.965f, 0.490f),
+                new Vector2(0.035f, 0.325f),
+                new Vector2(0.965f, 0.500f),
                 Vector2.zero,
                 Vector2.zero);
             PlaymatZoneMotion motion = lanePanel.AddComponent<PlaymatZoneMotion>();
@@ -2529,38 +2798,11 @@ namespace AppreciatorsTcg.UI
             dropZone.Controller = this;
             dropZone.Lane = LaneType.Community;
 
-            int opponentPower = game.PreviewBoardGrowth(OwnerSide.Opponent);
-            int playerPower = game.PreviewBoardGrowth(OwnerSide.Player);
             GameObject opponentRow = CreateBoardCardRow(lanesContent, lane, OwnerSide.Opponent);
-            UIFactory.SetAnchors(opponentRow.GetComponent<RectTransform>(), new Vector2(0.120f, 0.490f), new Vector2(0.880f, 0.615f), Vector2.zero, Vector2.zero);
-
-            CreateLaneScoreLine(lanesContent, LaneType.Community, opponentPower, playerPower);
-            UIFactory.SetAnchors(statusText.rectTransform, new Vector2(0.165f, 0.635f), new Vector2(0.600f, 0.675f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(opponentRow.GetComponent<RectTransform>(), new Vector2(0.120f, 0.505f), new Vector2(0.880f, 0.665f), Vector2.zero, Vector2.zero);
 
             GameObject playerRow = CreateBoardCardRow(lanesContent, lane, OwnerSide.Player);
-            UIFactory.SetAnchors(playerRow.GetComponent<RectTransform>(), new Vector2(0.120f, 0.345f), new Vector2(0.880f, 0.485f), Vector2.zero, Vector2.zero);
-        }
-
-        private void CreateLaneScoreLine(Transform parent, LaneType laneType, int opponentPower, int playerPower)
-        {
-            string instruction = game.Player.HasCommittedCardThisTurn
-                ? "GATHER READY"
-                : "BUILD OR DISCARD";
-            statusText = UIFactory.CreateText(
-                parent,
-                $"YOU G{playerPower}  /  OPP G{opponentPower}  -  SPOTLIGHT {GameConstants.SpotlightGrowthThreshold}  -  GOAL {GameConstants.GrowthVictoryTarget}  -  {instruction}",
-                13,
-                TextAnchor.MiddleCenter,
-                game.Player.HasCommittedCardThisTurn ? UIFactory.Green : UIFactory.Cream,
-                FontStyle.Bold);
-            LayoutElement layout = statusText.gameObject.AddComponent<LayoutElement>();
-            layout.minHeight = 20;
-            layout.preferredHeight = 22;
-            layout.flexibleHeight = 0;
-            statusText.resizeTextForBestFit = true;
-            statusText.resizeTextMinSize = 8;
-            statusText.resizeTextMaxSize = 11;
-            statusText.raycastTarget = false;
+            UIFactory.SetAnchors(playerRow.GetComponent<RectTransform>(), new Vector2(0.120f, 0.335f), new Vector2(0.880f, 0.495f), Vector2.zero, Vector2.zero);
         }
 
         private void HandleLaneSurfaceClick(LaneType lane)
@@ -2674,10 +2916,10 @@ namespace AppreciatorsTcg.UI
             float aspect = Screen.height <= 0 ? 1.777f : (float)Screen.width / Screen.height;
             if (aspect < 0.78f)
             {
-                return new Rect(0.205f, 0.365f, 0.590f, 0.250f);
+                return new Rect(0.205f, 0.325f, 0.590f, 0.350f);
             }
 
-            return new Rect(0.205f, 0.365f, 0.590f, 0.250f);
+            return new Rect(0.205f, 0.325f, 0.590f, 0.350f);
         }
 
         private static Color LaneColor(LaneType laneType)
@@ -2890,6 +3132,50 @@ namespace AppreciatorsTcg.UI
             return true;
         }
 
+        public void ExplainBlockedCardDrag(int handIndex)
+        {
+            string reason;
+            if (game == null)
+            {
+                reason = "The match is still preparing. Try the card again in a moment.";
+            }
+            else if (game.IsComplete)
+            {
+                reason = "The match is complete.";
+            }
+            else if (waitingForPhaseAdvance)
+            {
+                reason = "This phase is paused. Press NEXT PHASE to continue.";
+            }
+            else if (combatAnimating)
+            {
+                reason = "The current action is resolving. Card play resumes after the phase finishes.";
+            }
+            else if (game.Player.HasCommittedCardThisTurn || game.Player.CommitSkippedThisTurn)
+            {
+                reason = "Your card action is already committed for this turn. Press NEXT to continue.";
+            }
+            else if (inviteMatch && localInviteTurnEnded)
+            {
+                reason = "Your turn is submitted. Waiting for the opponent.";
+            }
+            else if (playChoiceDialog != null)
+            {
+                reason = "Finish or close the current card choice first.";
+            }
+            else if (handIndex < 0 || handIndex >= game.Player.Hand.Count)
+            {
+                reason = "That card is no longer in your hand.";
+            }
+            else
+            {
+                reason = "That card cannot be played during the current phase.";
+            }
+
+            battleAudio?.PlayInvalid();
+            ShowMatStatus(reason);
+        }
+
         public void MarkDraggingHandCard(int handIndex)
         {
             selectedHandIndex = handIndex;
@@ -3072,6 +3358,7 @@ namespace AppreciatorsTcg.UI
         {
             combatAnimating = true;
             game.RunAiTurn();
+            battleAudio?.PlayCardPlaced();
             UpdateScreen();
             ShowMatStatus($"{opponentLabel} committed a card. End Turn leads into the Discard phase.");
             yield return new WaitForSecondsRealtime(1.0f);
@@ -3120,14 +3407,7 @@ namespace AppreciatorsTcg.UI
                         battleAudio?.PlayAttack();
                         ShowMatStatus(battleEvent.Summary());
                     },
-                    battleEvent =>
-                    {
-                        battleAudio?.PlayImpact();
-                        if (battleEvent.TargetDefeated)
-                        {
-                            battleAudio?.PlayDefeat();
-                        }
-                    },
+                    null,
                     GetDiscardAnimationTarget);
             }
 
@@ -3181,6 +3461,8 @@ namespace AppreciatorsTcg.UI
             {
                 yield break;
             }
+
+            UiAudioService.PlayReward();
 
             GameObject flash = new GameObject("AppreciationTally", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
             flash.transform.SetParent(matchTableRoot, false);
@@ -3407,6 +3689,14 @@ namespace AppreciatorsTcg.UI
             yield return PlayPacedPhase(BattleTurnPhase.Discard);
             game.ResolveForcedDiscardPhase();
             UpdateScreen();
+            if (game.LastPlayerForcedDiscard != null)
+            {
+                yield return PlayDiscardResolution(game.LastPlayerForcedDiscard, game.LastPlayerForcedDiscardMessage);
+            }
+            if (game.LastOpponentForcedDiscard != null)
+            {
+                yield return PlayDiscardResolution(game.LastOpponentForcedDiscard, game.LastOpponentForcedDiscardMessage);
+            }
             yield return PlayPacedPhase(BattleTurnPhase.Combat);
             OpenCombatPlanner();
         }

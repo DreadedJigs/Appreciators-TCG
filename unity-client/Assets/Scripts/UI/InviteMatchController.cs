@@ -28,6 +28,7 @@ namespace AppreciatorsTcg.UI
         private Transform lobbyListRoot;
         private RawImage qrImage;
         private Text qrLabel;
+        private DeckChoicePanel deckChoice;
         private Texture2D qrTexture;
         private string lastQrInviteCode;
         private string lastInviteLinkToCopy;
@@ -52,6 +53,7 @@ namespace AppreciatorsTcg.UI
 
             GameObject screen = CreateFullScreenStack("Invite 1v1");
             UIFactory.CreateText(screen.transform, "Be Original", 26, TextAnchor.MiddleLeft, UIFactory.Accent, FontStyle.Bold);
+            deckChoice = DeckChoicePanel.Create(screen.transform, "Battle Deck", OnDeckSelected);
 
             GameObject actions = UIFactory.CreateHorizontalStack(screen.transform, "InviteActions", UIFactory.Panel, 12, 12);
             LayoutElement actionsLayout = actions.AddComponent<LayoutElement>();
@@ -78,7 +80,7 @@ namespace AppreciatorsTcg.UI
             LayoutElement inputLayout = codeInput.gameObject.GetComponent<LayoutElement>();
             inputLayout.minHeight = 76;
             inputLayout.preferredHeight = 82;
-            codeInput.gameObject.GetComponent<Image>().color = new Color(0.02f, 0.04f, 0.09f);
+            codeInput.gameObject.GetComponent<Image>().color = UIFactory.Background;
             codeInput.onValueChanged.AddListener(NormalizeInviteCode);
             codeInput.onEndEdit.AddListener(_ => JoinIfCodeReady());
             joinInlineButton = UIFactory.CreateButton(codePanel.transform, "Join This Code", JoinInvite, UIFactory.Blue);
@@ -354,7 +356,8 @@ namespace AppreciatorsTcg.UI
                     $"Status: {currentRoom.status}\n" +
                     $"Host: {host}\n" +
                     $"Guest: {guest}\n" +
-                    $"Match: {currentRoom.matchId}";
+                    $"Match: {currentRoom.matchId}\n" +
+                    $"Your Deck: {PlayerDeckService.GetActiveDeck().name}";
             }
 
             messageText.text = message;
@@ -363,6 +366,7 @@ namespace AppreciatorsTcg.UI
             pendingRequestMessage = string.Empty;
             CancelInvoke(nameof(ShowRequestTimeout));
             bool hasRoom = currentRoom != null;
+            deckChoice?.SetInteractable(!hasRoom);
             bool canStart = hasRoom && currentRoom.status == "ready";
             bool canCopy = hasRoom || CleanCode().Length == 6;
             startButton.interactable = canStart;
@@ -383,6 +387,18 @@ namespace AppreciatorsTcg.UI
             }
 
             UpdatePolling();
+        }
+
+        private void OnDeckSelected(PlayerDeckProfile deck)
+        {
+            if (messageText == null || deck == null)
+            {
+                return;
+            }
+
+            messageText.text = $"{deck.name} selected. It will be locked when you create or join a room.";
+            messageText.color = UIFactory.Green;
+            AnnounceInvitePresence();
         }
 
         private void ShowRequestTimeout()
@@ -544,7 +560,7 @@ namespace AppreciatorsTcg.UI
 
         private void AddLobbyRow(string label, string buttonLabel, UnityAction action, Color buttonColor)
         {
-            GameObject row = UIFactory.CreateHorizontalStack(lobbyListRoot, buttonLabel, new Color(0.02f, 0.035f, 0.070f, 0.72f), 8, 6);
+            GameObject row = UIFactory.CreateHorizontalStack(lobbyListRoot, buttonLabel, UIFactory.MenuInset, 8, 6);
             HorizontalLayoutGroup group = row.GetComponent<HorizontalLayoutGroup>();
             group.childForceExpandWidth = false;
             LayoutElement rowLayout = row.AddComponent<LayoutElement>();

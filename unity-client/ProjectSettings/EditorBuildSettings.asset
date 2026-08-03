@@ -24,6 +24,9 @@ EditorBuildSettings:
     path: Assets/Scenes/InviteMatchScene.unity
     guid: 99999999999999999999999999999999
   - enabled: 1
+    path: Assets/Scenes/PackOpeningScene.unity
+    guid: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  - enabled: 1
     path: Assets/Scenes/MatchScene.unity
     guid: 55555555555555555555555555555555
   - enabled: 1

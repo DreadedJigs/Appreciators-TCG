@@ -1,259 +1,521 @@
+using System;
+using System.Collections;
+using System.Runtime.InteropServices;
 using AppreciatorsTcg.Core;
 using AppreciatorsTcg.Data;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 
 namespace AppreciatorsTcg.UI
 {
     public class Web3MockScreenController : ScreenControllerBase
     {
+        private const string LocalOneOfOneQaWallet = "0x1111111111111111111111111111111111110001";
         private BackendApiClient apiClient;
+        private string playerId;
         private InputField walletInput;
         private InputField apiInput;
-        private Text messageText;
-        private Text walletStatusText;
+        private Text accountText;
+        private Text connectionText;
+        private Text eligibilityText;
         private Text ownershipText;
-        private Text mintQuantityText;
-        private Text mintSupplyText;
-        private Text mintResultText;
-        private int mintQuantity = 1;
+        private Image assetPreviewImage;
+        private Text messageText;
+        private Button linkButton;
+        private Button syncButton;
+        private Button disconnectButton;
+        private WalletAccountStatus walletStatus;
+        private WalletChallengeResponse activeChallenge;
+        private string pendingWalletAddress;
+        private bool requestActive;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern void AppreciatorsRequestWalletConnection(string gameObjectName);
+
+        [DllImport("__Internal")]
+        private static extern void AppreciatorsSignWalletMessage(string gameObjectName, string walletAddress, string message);
+#endif
 
         private void Start()
         {
             apiClient = gameObject.AddComponent<BackendApiClient>();
+            playerId = LocalSaveSystem.LoadOrCreatePlayerId();
 
-            GameObject panel = CreateFullScreenStack("Wallet / Web3");
-            UIFactory.CreateText(
+            GameObject shell = UIFactory.CreatePanel(Root, "WalletAccessShell", UIFactory.GlassPanel);
+            UIFactory.SetAnchors(shell.GetComponent<RectTransform>(), new Vector2(0.02f, 0.03f), new Vector2(0.98f, 0.97f), Vector2.zero, Vector2.zero);
+            GameObject header = UIFactory.CreateVerticalStack(shell.transform, "WalletHeader", UIFactory.PanelAlt, 0, 5);
+            UIFactory.SetAnchors(header.GetComponent<RectTransform>(), new Vector2(0.03f, 0.83f), new Vector2(0.97f, 0.97f), Vector2.zero, Vector2.zero);
+            UIFactory.MakeDimensionalPanel(header, UIFactory.NeonCyan);
+            Text headerTitle = UIFactory.CreateText(header.transform, "WALLET & HOLDER ACCESS", 31, TextAnchor.MiddleCenter, UIFactory.NeonCyan, FontStyle.Bold);
+            SetHeight(headerTitle.gameObject, 34);
+            Text headerSubtitle = UIFactory.CreateText(header.transform, "SIGNED WALLET  •  APECHAIN ASSETS  •  VERIFIED 1-OF-1 ACCESS", 14, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            SetHeight(headerSubtitle.gameObject, 22);
+
+            GameObject accountPanel = CreateAccountPanel(shell.transform);
+            UIFactory.SetAnchors(accountPanel.GetComponent<RectTransform>(), new Vector2(0.03f, 0.65f), new Vector2(0.34f, 0.80f), Vector2.zero, Vector2.zero);
+            GameObject connectionPanel = CreateConnectionPanel(shell.transform);
+            UIFactory.SetAnchors(connectionPanel.GetComponent<RectTransform>(), new Vector2(0.03f, 0.20f), new Vector2(0.34f, 0.63f), Vector2.zero, Vector2.zero);
+            GameObject eligibilityPanel = CreateEligibilityPanel(shell.transform);
+            UIFactory.SetAnchors(eligibilityPanel.GetComponent<RectTransform>(), new Vector2(0.355f, 0.52f), new Vector2(0.68f, 0.80f), Vector2.zero, Vector2.zero);
+            GameObject ownershipPanel = CreateOwnershipPanel(shell.transform);
+            UIFactory.SetAnchors(ownershipPanel.GetComponent<RectTransform>(), new Vector2(0.355f, 0.20f), new Vector2(0.68f, 0.50f), Vector2.zero, Vector2.zero);
+            GameObject apiPanel = CreateApiPanel(shell.transform);
+            UIFactory.SetAnchors(apiPanel.GetComponent<RectTransform>(), new Vector2(0.695f, 0.52f), new Vector2(0.97f, 0.80f), Vector2.zero, Vector2.zero);
+            GameObject boundaryPanel = UIFactory.CreateVerticalStack(shell.transform, "VerificationBoundary", UIFactory.PanelAlt, 5, 10);
+            UIFactory.SetAnchors(boundaryPanel.GetComponent<RectTransform>(), new Vector2(0.695f, 0.20f), new Vector2(0.97f, 0.50f), Vector2.zero, Vector2.zero);
+            UIFactory.MakeDimensionalPanel(boundaryPanel, UIFactory.Accent);
+            Text safetyTitle = UIFactory.CreateText(boundaryPanel.transform, "RELEASE SAFETY", 19, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            SetHeight(safetyTitle.gameObject, 26);
+            Text safetyCopy = UIFactory.CreateText(boundaryPanel.transform, "SIGNATURE PROVES WALLET CONTROL\nAPECHAIN ownerOf UNLOCKS BOSS ACCESS", 12, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            safetyCopy.lineSpacing = 1.08f;
+            SetHeight(safetyCopy.gameObject, 60);
+
+            GameObject footer = UIFactory.CreateHorizontalStack(shell.transform, "WalletFooter", Color.clear, 8, 0);
+            UIFactory.SetAnchors(footer.GetComponent<RectTransform>(), new Vector2(0.03f, 0.035f), new Vector2(0.97f, 0.145f), Vector2.zero, Vector2.zero);
+            UIFactory.CreateButton(footer.transform, "BOSS BATTLES", () => SceneManager.LoadScene("BossBattleScene"), UIFactory.Red);
+            UIFactory.CreateButton(footer.transform, "SAVE API URL", SaveApiUrl, UIFactory.Blue);
+            UIFactory.CreateButton(footer.transform, "MAIN MENU", () => SceneManager.LoadScene("MainMenuScene"), UIFactory.PanelAlt);
+            messageText = UIFactory.CreateText(shell.transform, "Loading saved wallet status...", 17, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
+            UIFactory.SetAnchors(messageText.rectTransform, new Vector2(0.03f, 0.15f), new Vector2(0.97f, 0.195f), Vector2.zero, Vector2.zero);
+            messageText.resizeTextForBestFit = true;
+            messageText.resizeTextMinSize = 10;
+            messageText.resizeTextMaxSize = 14;
+            messageText.verticalOverflow = VerticalWrapMode.Truncate;
+            StartCoroutine(RefreshWalletRoutine());
+        }
+
+        private GameObject CreateAccountPanel(Transform parent)
+        {
+            GameObject panel = UIFactory.CreateVerticalStack(parent, "AccountIdentity", UIFactory.PanelAlt, 2, 7);
+            UIFactory.MakeDimensionalPanel(panel, UIFactory.Accent);
+            Text title = UIFactory.CreateText(panel.transform, "SAVED GAME ACCOUNT", 18, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            SetHeight(title.gameObject, 24);
+            string shortId = playerId.Length > 12 ? playerId.Substring(0, 12) + "..." : playerId;
+            accountText = UIFactory.CreateText(
                 panel.transform,
-                "Mock wallet identity for Phase 1.5. No real wallet signatures, NFT ownership, or paid gameplay power are used yet.",
-                22,
-                TextAnchor.MiddleLeft,
-                UIFactory.MutedTextColor);
+                $"{LocalSaveSystem.LoadPlayerName().ToUpperInvariant()}   •   ACCOUNT {shortId}",
+                13,
+                TextAnchor.MiddleCenter,
+                UIFactory.Cream,
+                FontStyle.Bold);
+            accountText.resizeTextForBestFit = true;
+            accountText.resizeTextMinSize = 10;
+            accountText.resizeTextMaxSize = 13;
+            SetHeight(accountText.gameObject, 30);
+            return panel;
+        }
 
-            GameObject walletPanel = UIFactory.CreateVerticalStack(panel.transform, "MockWalletPanel", UIFactory.PanelAlt, 10, 14);
-            UIFactory.CreateText(walletPanel.transform, "Mock Wallet Address", 22, TextAnchor.MiddleLeft, UIFactory.TextColor, FontStyle.Bold);
+        private GameObject CreateConnectionPanel(Transform parent)
+        {
+            GameObject panel = UIFactory.CreateVerticalStack(parent, "WalletConnection", UIFactory.GlassPanel, 6, 10);
+            UIFactory.MakeDimensionalPanel(panel, UIFactory.NeonCyan);
+            Text title = UIFactory.CreateText(panel.transform, "APECHAIN WALLET", 18, TextAnchor.MiddleCenter, UIFactory.NeonCyan, FontStyle.Bold);
+            SetHeight(title.gameObject, 25);
             string savedWallet = LocalSaveSystem.LoadMockWalletAddress();
-            walletInput = UIFactory.CreateInputField(
-                walletPanel.transform,
-                "0xAPPRECIATORS...",
-                string.IsNullOrWhiteSpace(savedWallet) ? "0xAPPRECIATORS000000000000000000000000000000" : savedWallet);
+            walletInput = UIFactory.CreateInputField(panel.transform, "0x WALLET ADDRESS", savedWallet);
+            SetHeight(walletInput.gameObject, 52);
+            CompactInput(walletInput);
+            GameObject actions = UIFactory.CreateHorizontalStack(panel.transform, "WalletActions", Color.clear, 8, 0);
+            linkButton = UIFactory.CreateButton(actions.transform, "CONNECT", ConnectInjectedWallet, UIFactory.Green);
+            syncButton = UIFactory.CreateButton(actions.transform, "SYNC", SyncOwnership, UIFactory.Blue);
+            disconnectButton = UIFactory.CreateButton(actions.transform, "DISCONNECT", DisconnectWallet, UIFactory.PanelAlt);
+            Button qaButton = UIFactory.CreateButton(actions.transform, "QA 1/1", LoadQaWallet, UIFactory.PortalViolet);
+            CompactButton(linkButton);
+            CompactButton(syncButton);
+            CompactButton(disconnectButton);
+            CompactButton(qaButton);
+            connectionText = UIFactory.CreateText(panel.transform, "DISCONNECTED", 13, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
+            connectionText.resizeTextForBestFit = true;
+            connectionText.resizeTextMinSize = 10;
+            connectionText.resizeTextMaxSize = 13;
+            connectionText.verticalOverflow = VerticalWrapMode.Truncate;
+            SetHeight(connectionText.gameObject, 34);
+            return panel;
+        }
 
-            GameObject walletButtons = UIFactory.CreateHorizontalStack(walletPanel.transform, "WalletActions", Color.clear, 10, 0);
-            UIFactory.CreateButton(walletButtons.transform, "Mock Verify", VerifyWallet, UIFactory.Green);
-            UIFactory.CreateButton(walletButtons.transform, "Mock NFT Sync", SyncOwnership, UIFactory.Blue);
-            UIFactory.CreateButton(walletButtons.transform, "Disconnect", DisconnectWallet, UIFactory.PanelAlt);
+        private GameObject CreateEligibilityPanel(Transform parent)
+        {
+            GameObject panel = UIFactory.CreateVerticalStack(parent, "BossEligibility", UIFactory.Panel, 6, 12);
+            UIFactory.MakeDimensionalPanel(panel, UIFactory.Red);
+            Text title = UIFactory.CreateText(panel.transform, "BOSS BATTLE ROLE", 20, TextAnchor.MiddleCenter, UIFactory.Red, FontStyle.Bold);
+            SetHeight(title.gameObject, 28);
+            eligibilityText = UIFactory.CreateText(
+                panel.transform,
+                "MEMBER\nVERIFIED 1-OF-1 OWNERSHIP REQUIRED",
+                13,
+                TextAnchor.MiddleCenter,
+                UIFactory.Cream,
+                FontStyle.Bold);
+            eligibilityText.lineSpacing = 1.12f;
+            SetHeight(eligibilityText.gameObject, 48);
+            return panel;
+        }
 
-            walletStatusText = UIFactory.CreateText(walletPanel.transform, WalletStatusLine(), 21, TextAnchor.MiddleLeft, UIFactory.Accent, FontStyle.Bold);
-
-            GameObject mintPanel = UIFactory.CreateVerticalStack(panel.transform, "MintSimulatorPanel", UIFactory.Panel, 8, 14);
-            UIFactory.CreateText(mintPanel.transform, "Mock Mint Simulator", 24, TextAnchor.MiddleLeft, UIFactory.NeonPink, FontStyle.Bold);
-            mintSupplyText = UIFactory.CreateText(mintPanel.transform, "Supply: simulator ready", 21, TextAnchor.MiddleLeft, UIFactory.Accent, FontStyle.Bold);
-
-            GameObject mintActions = UIFactory.CreateHorizontalStack(mintPanel.transform, "MintActions", Color.clear, 10, 0);
-            UIFactory.CreateButton(mintActions.transform, "-", () => SetMintQuantity(mintQuantity - 1), UIFactory.PanelAlt);
-            mintQuantityText = UIFactory.CreateText(mintActions.transform, string.Empty, 24, TextAnchor.MiddleCenter, UIFactory.TextColor, FontStyle.Bold);
-            UIFactory.CreateButton(mintActions.transform, "+", () => SetMintQuantity(mintQuantity + 1), UIFactory.PanelAlt);
-            UIFactory.CreateButton(mintActions.transform, "Mock Mint", SimulateMint, UIFactory.Green);
-            UpdateMintQuantityText();
-
-            mintResultText = UIFactory.CreateText(
-                mintPanel.transform,
-                "Set a quantity and press Mock Mint. No wallet signature, gas, or payment is sent.",
-                20,
-                TextAnchor.UpperLeft,
-                UIFactory.MutedTextColor);
-
-            GameObject ownershipPanel = UIFactory.CreateVerticalStack(panel.transform, "OwnershipPanel", UIFactory.Panel, 8, 14);
-            LayoutElement ownershipLayout = ownershipPanel.AddComponent<LayoutElement>();
-            ownershipLayout.flexibleHeight = 1;
-            UIFactory.CreateText(ownershipPanel.transform, "Cosmetic Holder Preview", 24, TextAnchor.MiddleLeft, UIFactory.NeonCyan, FontStyle.Bold);
+        private GameObject CreateOwnershipPanel(Transform parent)
+        {
+            GameObject panel = UIFactory.CreateVerticalStack(parent, "OwnershipPreview", UIFactory.Panel, 6, 12);
+            UIFactory.MakeDimensionalPanel(panel, UIFactory.Green);
+            Text title = UIFactory.CreateText(panel.transform, "OWNERSHIP PREVIEW", 20, TextAnchor.MiddleCenter, UIFactory.Green, FontStyle.Bold);
+            SetHeight(title.gameObject, 28);
+            GameObject assetRow = UIFactory.CreateHorizontalStack(panel.transform, "OwnedAssets", Color.clear, 7, 0);
+            SetHeight(assetRow, 72);
+            GameObject preview = UIFactory.CreatePanel(assetRow.transform, "AssetPreview", UIFactory.PanelAlt);
+            assetPreviewImage = preview.GetComponent<Image>();
+            assetPreviewImage.preserveAspect = true;
+            LayoutElement previewLayout = preview.AddComponent<LayoutElement>();
+            previewLayout.minWidth = 62;
+            previewLayout.preferredWidth = 68;
+            previewLayout.flexibleWidth = 0;
             ownershipText = UIFactory.CreateText(
-                ownershipPanel.transform,
-                "Verify a mock wallet, then sync ownership to preview future holder cosmetics and rewards.",
-                21,
-                TextAnchor.UpperLeft,
+                assetRow.transform,
+                "COSMETIC OWNERSHIP PREVIEW\nNEVER GRANTS BOSS ELIGIBILITY",
+                13,
+                TextAnchor.MiddleCenter,
                 UIFactory.MutedTextColor);
+            ownershipText.lineSpacing = 1.10f;
+            LayoutElement ownershipLayout = ownershipText.gameObject.AddComponent<LayoutElement>();
+            ownershipLayout.flexibleWidth = 1;
+            return panel;
+        }
 
-            GameObject apiPanel = UIFactory.CreateVerticalStack(panel.transform, "ApiPanel", UIFactory.PanelAlt, 8, 14);
-            UIFactory.CreateText(apiPanel.transform, "Backend API Base URL", 22, TextAnchor.MiddleLeft, UIFactory.TextColor, FontStyle.Bold);
-            apiInput = UIFactory.CreateInputField(apiPanel.transform, AppConfig.DefaultApiBaseUrl, AppConfig.ApiBaseUrl);
-            messageText = UIFactory.CreateText(panel.transform, "Online features use the backend when available. Local AI play still works offline.", 20, TextAnchor.MiddleCenter, UIFactory.Accent);
+        private GameObject CreateApiPanel(Transform parent)
+        {
+            GameObject panel = UIFactory.CreateVerticalStack(parent, "BackendConnection", UIFactory.PanelAlt, 5, 12);
+            Text title = UIFactory.CreateText(panel.transform, "BACKEND API", 19, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            SetHeight(title.gameObject, 28);
+            apiInput = UIFactory.CreateInputField(panel.transform, AppConfig.DefaultApiBaseUrl, AppConfig.ApiBaseUrl);
+            SetHeight(apiInput.gameObject, 54);
+            CompactInput(apiInput);
+            return panel;
+        }
 
-            GameObject footer = UIFactory.CreateHorizontalStack(panel.transform, "Footer", Color.clear, 10, 0);
-            UIFactory.CreateButton(footer.transform, "Save API URL", SaveApiUrl, UIFactory.Blue);
-            UIFactory.CreateButton(footer.transform, "Main Menu", () => SceneManager.LoadScene("MainMenuScene"), UIFactory.PanelAlt);
+        private IEnumerator RefreshWalletRoutine()
+        {
+            if (requestActive) yield break;
+            requestActive = true;
+            WalletAccountResponse response = null;
+            string requestError = null;
+            yield return apiClient.GetWalletAccount(playerId, value => response = value, error => requestError = error);
+            requestActive = false;
+            if (response?.wallet != null)
+            {
+                walletStatus = response.wallet;
+                ApplyWalletStatus();
+                SetMessage(response.verificationBoundary, UIFactory.MutedTextColor);
+            }
+            else
+            {
+                ApplyOfflineStatus();
+                SetMessage($"Wallet status could not sync. {ReadableError(requestError)}", UIFactory.Red);
+            }
+        }
+
+        private void LinkWallet()
+        {
+            if (requestActive) return;
+            string address = walletInput == null ? string.Empty : walletInput.text.Trim();
+            StartCoroutine(LinkWalletRoutine(address));
+        }
+
+        private void ConnectInjectedWallet()
+        {
+            if (requestActive) return;
+            SetRequestState(true, "Opening the wallet and switching to ApeChain...");
+#if UNITY_WEBGL && !UNITY_EDITOR
+            AppreciatorsRequestWalletConnection(gameObject.name);
+#else
+            SetRequestState(false, "Injected wallet connection is available in the WebGL build. Use QA 1/1 for local Editor testing.", UIFactory.Accent);
+#endif
+        }
+
+        public void OnInjectedWalletConnected(string walletAddress)
+        {
+            if (string.IsNullOrWhiteSpace(walletAddress))
+            {
+                OnInjectedWalletError("The wallet returned an empty account.");
+                return;
+            }
+            pendingWalletAddress = walletAddress.Trim();
+            if (walletInput != null) walletInput.text = pendingWalletAddress;
+            StartCoroutine(CreateChallengeRoutine());
+        }
+
+        public void OnInjectedWalletSignature(string signature)
+        {
+            if (activeChallenge == null || string.IsNullOrWhiteSpace(signature))
+            {
+                OnInjectedWalletError("The wallet did not return a usable signature.");
+                return;
+            }
+            StartCoroutine(VerifySignatureRoutine(signature.Trim()));
+        }
+
+        public void OnInjectedWalletError(string error)
+        {
+            activeChallenge = null;
+            pendingWalletAddress = string.Empty;
+            SetRequestState(false, string.IsNullOrWhiteSpace(error) ? "Wallet connection was cancelled." : error, UIFactory.Red);
+        }
+
+        private IEnumerator CreateChallengeRoutine()
+        {
+            WalletChallengeResponse response = null;
+            string requestError = null;
+            SetMessage("Creating a one-time wallet signature challenge...", UIFactory.Accent);
+            yield return apiClient.CreateWalletChallenge(playerId, pendingWalletAddress, value => response = value, error => requestError = error);
+            if (response?.success != true)
+            {
+                SetRequestState(false, ReadableError(requestError), UIFactory.Red);
+                yield break;
+            }
+            activeChallenge = response;
+            SetMessage("Approve the message signature. This does not spend assets or authorize a transaction.", UIFactory.Accent);
+#if UNITY_WEBGL && !UNITY_EDITOR
+            AppreciatorsSignWalletMessage(gameObject.name, pendingWalletAddress, activeChallenge.message);
+#else
+            SetRequestState(false, "Message signing requires the WebGL wallet bridge.", UIFactory.Red);
+#endif
+        }
+
+        private IEnumerator VerifySignatureRoutine(string signature)
+        {
+            WalletAccountResponse response = null;
+            string requestError = null;
+            SetMessage("Verifying signature and reading Appreciators Originals on ApeChain...", UIFactory.Accent);
+            yield return apiClient.VerifyWalletChallenge(
+                playerId,
+                pendingWalletAddress,
+                activeChallenge.challengeId,
+                signature,
+                value => response = value,
+                error => requestError = error);
+            activeChallenge = null;
+            if (response?.wallet == null)
+            {
+                SetRequestState(false, ReadableError(requestError), UIFactory.Red);
+                yield break;
+            }
+            walletStatus = response.wallet;
+            LocalSaveSystem.SaveMockWallet(walletStatus.walletAddress, walletStatus.signatureVerified);
+            walletInput.text = walletStatus.walletAddress;
+            ApplyWalletStatus();
+            SetRequestState(false, response.message, walletStatus.oneOfOneEligible ? UIFactory.Green : UIFactory.Accent);
+        }
+
+        private IEnumerator LinkWalletRoutine(string address)
+        {
+            requestActive = true;
+            SetMessage("Linking wallet preview to the saved game account...", UIFactory.Accent);
+            WalletAccountResponse response = null;
+            string requestError = null;
+            yield return apiClient.LinkWalletAccount(playerId, address, value => response = value, error => requestError = error);
+            requestActive = false;
+            if (response?.wallet != null)
+            {
+                walletStatus = response.wallet;
+                LocalSaveSystem.SaveMockWallet(walletStatus.walletAddress, true);
+                walletInput.text = walletStatus.walletAddress;
+                ApplyWalletStatus();
+                SetMessage(response.message, walletStatus.oneOfOneEligible ? UIFactory.Green : UIFactory.Accent);
+            }
+            else SetMessage(ReadableError(requestError), UIFactory.Red);
+        }
+
+        private void SyncOwnership()
+        {
+            if (requestActive || walletStatus == null || string.IsNullOrWhiteSpace(walletStatus.walletAddress)) return;
+            StartCoroutine(RefreshWalletRoutine());
+        }
+
+        private IEnumerator SyncOwnershipRoutine()
+        {
+            requestActive = true;
+            SetMessage("Loading the cosmetic ownership preview...", UIFactory.Accent);
+            NftSyncResponse response = null;
+            string requestError = null;
+            yield return apiClient.SyncMockNftOwnership(walletStatus.walletAddress, value => response = value, error => requestError = error);
+            requestActive = false;
+            if (response?.synced == true)
+            {
+                ownershipText.text =
+                    $"ORIGINALS  {AssetList(response.originals)}\n" +
+                    $"COMPANIONS  {AssetList(response.companions)}\n" +
+                    $"COSMETICS  {ListText(response.cosmetics)}\n" +
+                    "PREVIEW ONLY • NO GAMEPLAY POWER";
+                ownershipText.color = UIFactory.Cream;
+                SetMessage(response.message, UIFactory.Green);
+            }
+            else SetMessage(ReadableError(requestError), UIFactory.Red);
+        }
+
+        private void DisconnectWallet()
+        {
+            if (requestActive) return;
+            StartCoroutine(DisconnectRoutine());
+        }
+
+        private IEnumerator DisconnectRoutine()
+        {
+            requestActive = true;
+            WalletAccountResponse response = null;
+            string requestError = null;
+            yield return apiClient.DisconnectWalletAccount(playerId, value => response = value, error => requestError = error);
+            requestActive = false;
+            if (response?.wallet != null)
+            {
+                walletStatus = response.wallet;
+                LocalSaveSystem.ClearMockWallet();
+                walletInput.text = string.Empty;
+                ownershipText.text = "Wallet disconnected. Ownership preview cleared.";
+                ApplyWalletStatus();
+                SetMessage("Wallet preview disconnected from this saved account.", UIFactory.Green);
+            }
+            else SetMessage(ReadableError(requestError), UIFactory.Red);
+        }
+
+        private void LoadQaWallet()
+        {
+            walletInput.text = LocalOneOfOneQaWallet;
+            SetMessage("Loading the local 1-of-1 QA holder. Production Boss Mode still requires a real signed wallet.", UIFactory.PortalViolet);
+            LinkWallet();
         }
 
         private void SaveApiUrl()
         {
             LocalSaveSystem.SaveApiBaseUrl(apiInput.text);
-            messageText.text = "API URL saved locally.";
+            SetMessage("Backend API URL saved. Reload this screen to reconnect with the new endpoint.", UIFactory.Green);
         }
 
-        private void VerifyWallet()
+        private void ApplyWalletStatus()
         {
-            string walletAddress = CleanWalletAddress();
-            messageText.text = "Verifying mock wallet...";
-            StartCoroutine(apiClient.VerifyMockWallet(walletAddress, LocalSaveSystem.LoadPlayerName(), response =>
+            if (walletStatus == null) return;
+            bool connected = walletStatus.connectionState != "disconnected" && !string.IsNullOrWhiteSpace(walletStatus.walletAddress);
+            connectionText.text = connected
+                ? walletStatus.oneOfOneEligible
+                    ? "LINKED  •  APECHAIN  •  1-OF-1 VERIFIED"
+                    : "LINKED  •  APECHAIN  •  MEMBER"
+                : "DISCONNECTED  •  WALLET OPTIONAL";
+            connectionText.color = connected ? UIFactory.NeonCyan : UIFactory.MutedTextColor;
+            eligibilityText.text = walletStatus.oneOfOneEligible && walletStatus.ownershipVerified
+                ? "1-OF-1 BOSS\nSERVER VERIFIED"
+                : "MEMBER\nVERIFIED 1-OF-1 OWNERSHIP REQUIRED";
+            eligibilityText.color = walletStatus.oneOfOneEligible ? UIFactory.Green : UIFactory.Cream;
+            WalletOwnedAsset[] assets = walletStatus.assets ?? Array.Empty<WalletOwnedAsset>();
+            string assetList = assets.Length == 0
+                ? "NO 1-OF-1 ASSETS IN THIS WALLET"
+                : string.Join("  •  ", Array.ConvertAll(assets, asset => $"{asset.name} #{asset.tokenId}"));
+            ownershipText.text = $"ORIGINALS  {walletStatus.originalsBalance}\n{assetList}";
+            ownershipText.color = assets.Length > 0 ? UIFactory.Green : UIFactory.Cream;
+            if (assetPreviewImage != null)
             {
-                LocalSaveSystem.SaveMockWallet(response.walletAddress, response.verified);
-                walletInput.text = response.walletAddress;
-                walletStatusText.text = WalletStatusLine();
-                ownershipText.text =
-                    $"{response.holderTier}\n" +
-                    $"Wallet: {response.displayAddress}\n" +
-                    $"Cosmetics: {ListText(response.cosmetics)}\n\n" +
-                    "Real wallet signatures remain disabled until Phase 4.";
-                messageText.text = response.message;
-            }, error =>
-            {
-                LocalSaveSystem.SaveMockWallet(walletAddress, true);
-                walletStatusText.text = WalletStatusLine();
-                messageText.text = $"Backend unavailable. Saved offline mock wallet. {error}";
-            }));
-        }
-
-        private void SyncOwnership()
-        {
-            string walletAddress = CleanWalletAddress();
-            messageText.text = "Syncing mock ownership...";
-            StartCoroutine(apiClient.SyncMockNftOwnership(walletAddress, response =>
-            {
-                LocalSaveSystem.SaveMockWallet(response.walletAddress, true);
-                walletInput.text = response.walletAddress;
-                walletStatusText.text = WalletStatusLine();
-                ownershipText.text =
-                    $"ORIGINALS: {AssetList(response.originals)}\n" +
-                    $"COMPANIONS: {AssetList(response.companions)}\n" +
-                    $"Cosmetics: {ListText(response.cosmetics)}\n" +
-                    $"Rewards: {ListText(response.rewards)}\n\n" +
-                    "All synced ownership is cosmetic-only in this prototype.";
-                messageText.text = response.message;
-            }, error =>
-            {
-                messageText.text = $"Mock ownership sync failed. Check backend URL. {error}";
-            }));
-        }
-
-        private void SimulateMint()
-        {
-            string walletAddress = CleanWalletAddress();
-            messageText.text = "Simulating mint...";
-            mintResultText.text = "Mint transaction pending on Appreciators Mocknet...";
-            StartCoroutine(apiClient.SimulateMockMint(walletAddress, mintQuantity, response =>
-            {
-                LocalSaveSystem.SaveMockWallet(response.walletAddress, true);
-                walletInput.text = response.walletAddress;
-                walletStatusText.text = WalletStatusLine();
-                mintSupplyText.text = $"Supply: {response.simulatedMinted}/{response.supplyCap} minted | {response.remainingSupply} left";
-                mintResultText.text =
-                    $"{response.message}\n" +
-                    $"Wallet: {response.displayAddress}\n" +
-                    $"Price: {response.mintPriceEth} ETH | Network: {response.network}\n" +
-                    $"Tx: {ShortHash(response.txHash)}\n" +
-                    $"Revealed: {MintedTokenList(response.tokens)}\n" +
-                    $"Your simulated total: {response.totalMintedByWallet}";
-                messageText.text = response.realTransactionSubmitted
-                    ? response.message
-                    : "Mock mint complete. No real transaction was submitted.";
-            }, error =>
-            {
-                mintResultText.text = "Mint simulator needs the backend to generate token reveals and supply stats.";
-                messageText.text = $"Mock mint failed. Check backend URL. {error}";
-            }));
-        }
-
-        private void DisconnectWallet()
-        {
-            LocalSaveSystem.ClearMockWallet();
-            walletInput.text = "0xAPPRECIATORS000000000000000000000000000000";
-            walletStatusText.text = WalletStatusLine();
-            ownershipText.text = "Mock wallet disconnected.";
-            mintResultText.text = "Mock wallet disconnected. Set a quantity and press Mock Mint when ready.";
-            messageText.text = "Mock wallet cleared locally.";
-        }
-
-        private void SetMintQuantity(int quantity)
-        {
-            mintQuantity = Mathf.Clamp(quantity, 1, 5);
-            UpdateMintQuantityText();
-        }
-
-        private void UpdateMintQuantityText()
-        {
-            if (mintQuantityText != null)
-            {
-                mintQuantityText.text = $"Quantity: {mintQuantity}";
+                assetPreviewImage.sprite = null;
+                assetPreviewImage.color = assets.Length > 0 ? Color.white : new Color(UIFactory.PortalViolet.r, UIFactory.PortalViolet.g, UIFactory.PortalViolet.b, 0.24f);
+                if (assets.Length > 0 && !string.IsNullOrWhiteSpace(assets[0].image)) StartCoroutine(LoadAssetPreviewRoutine(assets[0].image));
             }
+            linkButton.interactable = !requestActive;
+            syncButton.interactable = !requestActive && connected;
+            disconnectButton.interactable = !requestActive && connected;
         }
 
-        private string CleanWalletAddress()
+        private void ApplyOfflineStatus()
         {
-            string walletAddress = walletInput == null ? string.Empty : walletInput.text.Trim();
-            return string.IsNullOrWhiteSpace(walletAddress)
-                ? "0xAPPRECIATORS000000000000000000000000000000"
-                : walletAddress;
+            string saved = LocalSaveSystem.LoadMockWalletAddress();
+            connectionText.text = string.IsNullOrWhiteSpace(saved) ? "DISCONNECTED" : $"LOCAL SAVE  {saved}\nSERVER STATUS UNAVAILABLE";
+            eligibilityText.text = "MEMBER\nBoss eligibility cannot be granted while the server is unavailable.";
+            syncButton.interactable = false;
+            disconnectButton.interactable = !string.IsNullOrWhiteSpace(saved);
         }
 
-        private static string WalletStatusLine()
+        private void SetMessage(string message, Color color)
         {
-            string walletAddress = LocalSaveSystem.LoadMockWalletAddress();
-            bool verified = LocalSaveSystem.LoadMockWalletVerified();
-            if (string.IsNullOrWhiteSpace(walletAddress))
-            {
-                return "No mock wallet connected.";
-            }
-
-            return verified ? $"Mock wallet connected: {walletAddress}" : $"Mock wallet saved: {walletAddress}";
+            if (messageText == null) return;
+            messageText.text = message;
+            messageText.color = color;
         }
 
-        private static string ListText(string[] values)
+        private void SetRequestState(bool active, string message, Color? color = null)
         {
-            return values == null || values.Length == 0 ? "None" : string.Join(", ", values);
+            requestActive = active;
+            if (linkButton != null) linkButton.interactable = !active;
+            if (syncButton != null) syncButton.interactable = !active && walletStatus != null && !string.IsNullOrWhiteSpace(walletStatus.walletAddress);
+            if (disconnectButton != null) disconnectButton.interactable = !active && walletStatus != null && !string.IsNullOrWhiteSpace(walletStatus.walletAddress);
+            SetMessage(message, color ?? UIFactory.Accent);
+        }
+
+        private IEnumerator LoadAssetPreviewRoutine(string imageUrl)
+        {
+            using UnityWebRequest request = UnityWebRequestTexture.GetTexture(imageUrl);
+            request.timeout = 15;
+            yield return request.SendWebRequest();
+            if (request.result != UnityWebRequest.Result.Success || assetPreviewImage == null) yield break;
+            Texture2D texture = DownloadHandlerTexture.GetContent(request);
+            if (texture == null) yield break;
+            assetPreviewImage.sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f);
+            assetPreviewImage.color = Color.white;
         }
 
         private static string AssetList(MockOwnedAsset[] assets)
         {
-            if (assets == null || assets.Length == 0)
-            {
-                return "None";
-            }
-
+            if (assets == null || assets.Length == 0) return "None";
             string[] labels = new string[assets.Length];
-            for (int i = 0; i < assets.Length; i++)
-            {
-                string scope = assets[i].cosmeticOnly ? "cosmetic" : "gameplay";
-                labels[i] = $"{assets[i].name} ({scope})";
-            }
-
+            for (int i = 0; i < assets.Length; i++) labels[i] = assets[i].name;
             return string.Join(", ", labels);
         }
 
-        private static string MintedTokenList(MockMintedToken[] tokens)
+        private static string ListText(string[] values) => values == null || values.Length == 0 ? "None" : string.Join(", ", values);
+
+        private static string ReadableError(string error)
         {
-            if (tokens == null || tokens.Length == 0)
+            if (string.IsNullOrWhiteSpace(error)) return "The wallet service did not respond.";
+            int marker = error.IndexOf("\"message\":\"", StringComparison.Ordinal);
+            if (marker >= 0)
             {
-                return "None";
+                int start = marker + 11;
+                int end = error.IndexOf('"', start);
+                if (end > start) return error.Substring(start, end - start);
             }
-
-            string[] labels = new string[tokens.Length];
-            for (int i = 0; i < tokens.Length; i++)
-            {
-                labels[i] = tokens[i].name;
-            }
-
-            return string.Join(", ", labels);
+            return error.Length > 180 ? error.Substring(0, 180) + "..." : error;
         }
 
-        private static string ShortHash(string value)
+        private static void SetHeight(GameObject target, float height)
         {
-            if (string.IsNullOrWhiteSpace(value) || value.Length <= 16)
-            {
-                return value;
-            }
+            LayoutElement layout = target.GetComponent<LayoutElement>() ?? target.AddComponent<LayoutElement>();
+            layout.minHeight = height;
+            layout.preferredHeight = height;
+        }
 
-            return $"{value.Substring(0, 10)}...{value.Substring(value.Length - 6)}";
+        private static void CompactButton(Button button)
+        {
+            if (button == null) return;
+            SetHeight(button.gameObject, 48);
+            Text label = button.GetComponentInChildren<Text>();
+            if (label == null) return;
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = 9;
+            label.resizeTextMaxSize = 16;
+        }
+
+        private static void CompactInput(InputField input)
+        {
+            if (input == null) return;
+            if (input.textComponent != null)
+            {
+                input.textComponent.fontSize = 16;
+                input.textComponent.resizeTextForBestFit = true;
+                input.textComponent.resizeTextMinSize = 10;
+                input.textComponent.resizeTextMaxSize = 16;
+                input.textComponent.verticalOverflow = VerticalWrapMode.Truncate;
+            }
+            Text placeholder = input.placeholder as Text;
+            if (placeholder == null) return;
+            placeholder.fontSize = 16;
+            placeholder.resizeTextForBestFit = true;
+            placeholder.resizeTextMinSize = 10;
+            placeholder.resizeTextMaxSize = 16;
+            placeholder.verticalOverflow = VerticalWrapMode.Truncate;
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using AppreciatorsTcg.Cards;
+using AppreciatorsTcg.Core;
 using UnityEngine;
 
 namespace AppreciatorsTcg.Data
@@ -35,21 +36,18 @@ namespace AppreciatorsTcg.Data
 
         public static List<string> StarterDeckIds()
         {
-            return new List<string>
+            EnsureLoaded();
+            List<string> eligible = allCards
+                .Where(card => PlayerDeckService.MaxCopies(card) == GameConstants.MaxNormalCardCopies)
+                .Select(card => card.id)
+                .ToList();
+            List<string> deck = new List<string>(GameConstants.DeckSize);
+            deck.AddRange(eligible.Take(GameConstants.DeckSize));
+            if (deck.Count < GameConstants.DeckSize)
             {
-                "regular_body",
-                "no_head_body",
-                "beer_helmet",
-                "devil_dog_companion",
-                "ghost_companion",
-                "pink_lemonade_background",
-                "tropical_background",
-                "blue_skin",
-                "pink_skin",
-                "yellow_skin",
-                "unicorn_head",
-                "blockchain_background"
-            };
+                deck.AddRange(eligible.Take(GameConstants.DeckSize - deck.Count));
+            }
+            return deck;
         }
 
         private static void EnsureLoaded()
