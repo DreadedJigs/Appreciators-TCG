@@ -20,6 +20,8 @@ namespace AppreciatorsTcg.UI
         private Text vaultText;
         private Image vaultFill;
         private Text bossText;
+        private Text bossModeOpenText;
+        private PremiumTextShimmer bossModeShimmer;
         private Text partyText;
         private Text resultText;
         private Text statusText;
@@ -112,6 +114,11 @@ namespace AppreciatorsTcg.UI
             UIFactory.CreateText(panel.transform, "1-OF-1 BOSS SEAT", 23, TextAnchor.MiddleCenter, UIFactory.Red, FontStyle.Bold);
             bossText = UIFactory.CreateText(panel.transform, "Waiting for summon status...", 18, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
             SetHeight(bossText.gameObject, 68);
+            bossModeOpenText = UIFactory.CreateText(panel.transform, "☻  BOSS MODE OPEN  ☻", 18, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            SetHeight(bossModeOpenText.gameObject, 26);
+            bossModeShimmer = bossModeOpenText.gameObject.AddComponent<PremiumTextShimmer>();
+            bossModeShimmer.Configure(bossModeOpenText);
+            bossModeOpenText.gameObject.SetActive(false);
             bossRoleButton = UIFactory.CreateButton(panel.transform, "CLAIM VERIFIED BOSS SEAT", ToggleBossRole, UIFactory.Red);
             return panel;
         }
@@ -209,6 +216,12 @@ namespace AppreciatorsTcg.UI
             SetButtonLabel(fundButton, summoned ? "VAULT COMPLETE" : $"FUND {pool.remainingShards:N0}");
 
             BossCurrentPlayer current = battle.currentPlayer ?? new BossCurrentPlayer();
+            if (bossModeOpenText != null)
+            {
+                bool bossModeOpen = current.oneOfOneEligible;
+                bossModeOpenText.gameObject.SetActive(bossModeOpen);
+                if (bossModeShimmer != null) bossModeShimmer.enabled = bossModeOpen;
+            }
             joinButton.interactable = summoned && !current.isBoss && (current.inParty || battle.partySize < (battle.rules?.maximumPartySize ?? 3));
             SetButtonLabel(joinButton, current.inParty ? "LEAVE PARTY" : "JOIN PARTY");
             readyButton.interactable = summoned && current.inParty;

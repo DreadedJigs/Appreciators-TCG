@@ -21,7 +21,9 @@ namespace AppreciatorsTcg.UI
         private Text connectionText;
         private Text eligibilityText;
         private Text ownershipText;
+        private Text ownershipApprovalMark;
         private Image assetPreviewImage;
+        private PremiumTextShimmer bossModeShimmer;
         private Text messageText;
         private Button linkButton;
         private Button syncButton;
@@ -151,6 +153,9 @@ namespace AppreciatorsTcg.UI
                 FontStyle.Bold);
             eligibilityText.lineSpacing = 1.12f;
             SetHeight(eligibilityText.gameObject, 48);
+            bossModeShimmer = eligibilityText.gameObject.AddComponent<PremiumTextShimmer>();
+            bossModeShimmer.Configure(eligibilityText);
+            bossModeShimmer.enabled = false;
             return panel;
         }
 
@@ -169,6 +174,14 @@ namespace AppreciatorsTcg.UI
             previewLayout.minWidth = 62;
             previewLayout.preferredWidth = 68;
             previewLayout.flexibleWidth = 0;
+            ownershipApprovalMark = UIFactory.CreateText(preview.transform, "☻", 52, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            UIFactory.Stretch(ownershipApprovalMark.rectTransform);
+            ownershipApprovalMark.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 180f);
+            ownershipApprovalMark.raycastTarget = false;
+            Outline markOutline = ownershipApprovalMark.gameObject.AddComponent<Outline>();
+            markOutline.effectColor = UIFactory.Ink;
+            markOutline.effectDistance = new Vector2(2f, -2f);
+            ownershipApprovalMark.gameObject.SetActive(false);
             ownershipText = UIFactory.CreateText(
                 assetRow.transform,
                 "COSMETIC OWNERSHIP PREVIEW\nNEVER GRANTS BOSS ELIGIBILITY",
@@ -400,9 +413,10 @@ namespace AppreciatorsTcg.UI
                 : "DISCONNECTED  •  WALLET OPTIONAL";
             connectionText.color = connected ? UIFactory.NeonCyan : UIFactory.MutedTextColor;
             eligibilityText.text = walletStatus.oneOfOneEligible && walletStatus.ownershipVerified
-                ? "1-OF-1 BOSS\nSERVER VERIFIED"
+                ? "BOSS MODE OPEN\n1-OF-1 VERIFIED"
                 : "MEMBER\nVERIFIED 1-OF-1 OWNERSHIP REQUIRED";
             eligibilityText.color = walletStatus.oneOfOneEligible ? UIFactory.Green : UIFactory.Cream;
+            if (bossModeShimmer != null) bossModeShimmer.enabled = walletStatus.oneOfOneEligible && walletStatus.ownershipVerified;
             WalletOwnedAsset[] assets = walletStatus.assets ?? Array.Empty<WalletOwnedAsset>();
             string assetList = assets.Length == 0
                 ? "NO 1-OF-1 ASSETS IN THIS WALLET"
@@ -414,6 +428,10 @@ namespace AppreciatorsTcg.UI
                 assetPreviewImage.sprite = null;
                 assetPreviewImage.color = assets.Length > 0 ? Color.white : new Color(UIFactory.PortalViolet.r, UIFactory.PortalViolet.g, UIFactory.PortalViolet.b, 0.24f);
                 if (assets.Length > 0 && !string.IsNullOrWhiteSpace(assets[0].image)) StartCoroutine(LoadAssetPreviewRoutine(assets[0].image));
+            }
+            if (ownershipApprovalMark != null)
+            {
+                ownershipApprovalMark.gameObject.SetActive(walletStatus.ownershipVerified);
             }
             linkButton.interactable = !requestActive;
             syncButton.interactable = !requestActive && connected;
