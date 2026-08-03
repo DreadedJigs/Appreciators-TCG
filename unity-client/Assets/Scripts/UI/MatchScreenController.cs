@@ -135,6 +135,8 @@ namespace AppreciatorsTcg.UI
         private Button phaseModeButton;
         private Button matchVolumeButton;
         private Button phaseNextButton;
+        private Outline phaseNextGlowOutline;
+        private Shadow phaseNextGlowShadow;
         private Button matchThemeButton;
         private GameObject matchSettingsMenu;
         private GameObject battleLedgerPanel;
@@ -289,7 +291,9 @@ namespace AppreciatorsTcg.UI
             }
 
             quitButton = UIFactory.CreateButton(screen.transform, "OPTIONS", ToggleMatchSettingsMenu, UIFactory.PortalViolet);
-            UIFactory.SetAnchors(quitButton.GetComponent<RectTransform>(), new Vector2(0.755f, 0.012f), new Vector2(0.865f, 0.060f), Vector2.zero, Vector2.zero);
+            // OPTIONS lives on the left control position; NEXT owns the right-side
+            // action position so it reads as the primary continuation affordance.
+            UIFactory.SetAnchors(quitButton.GetComponent<RectTransform>(), new Vector2(0.260f, 0.008f), new Vector2(0.365f, 0.052f), Vector2.zero, Vector2.zero);
 
             CreateMatchSettingsControls(screen.transform);
             RecordBattleLedger(matchIntro);
@@ -434,10 +438,16 @@ namespace AppreciatorsTcg.UI
             RectTransform endTurnRect = endTurnButton == null ? null : endTurnButton.GetComponent<RectTransform>();
             UIFactory.SetAnchors(
                 phaseNextButton.GetComponent<RectTransform>(),
-                endTurnRect == null ? new Vector2(0.809f, 0.036f) : endTurnRect.anchorMin,
-                endTurnRect == null ? new Vector2(0.936f, 0.275f) : endTurnRect.anchorMax,
+                endTurnRect == null ? new Vector2(0.755f, 0.012f) : endTurnRect.anchorMin,
+                endTurnRect == null ? new Vector2(0.865f, 0.060f) : endTurnRect.anchorMax,
                 Vector2.zero,
                 Vector2.zero);
+            phaseNextGlowOutline = phaseNextButton.GetComponent<Outline>() ?? phaseNextButton.gameObject.AddComponent<Outline>();
+            phaseNextGlowShadow = phaseNextButton.GetComponent<Shadow>() ?? phaseNextButton.gameObject.AddComponent<Shadow>();
+            phaseNextGlowOutline.enabled = true;
+            phaseNextGlowOutline.effectColor = new Color(UIFactory.NeonCyan.r, UIFactory.NeonCyan.g, UIFactory.NeonCyan.b, 0.62f);
+            phaseNextGlowOutline.effectDistance = new Vector2(3.5f, -3.5f);
+            phaseNextGlowShadow.enabled = false;
             phaseNextButton.gameObject.SetActive(true);
 
             matchSettingsMenu = UIFactory.CreateVerticalStack(parent, "StarSettingsMenu", UIFactory.GlassPanel, 10, 16);
@@ -808,9 +818,12 @@ namespace AppreciatorsTcg.UI
             // either player's viewing side. Both open the same playmat menu.
             UIFactory.CreatePlaymatZoneButton(parent, "PlayerStarMenuZone", new Rect(0.012f, 0.036f, 0.046f, 0.239f), ToggleMatchSettingsMenu);
             UIFactory.CreatePlaymatZoneButton(parent, "OpponentStarMenuZone", new Rect(0.942f, 0.711f, 0.046f, 0.241f), ToggleMatchSettingsMenu);
-            UIFactory.CreatePlaymatZoneButton(parent, "OpponentDeckZone", new Rect(0.054f, 0.708f, 0.134f, 0.244f), () => ShowMatStatus($"Opponent deck: {game.Opponent.DrawPile.Count} cards."));
+            // Keep the top controls exactly mirrored with the player side. The
+            // old zones were left over from the pre-mirror board and made the
+            // opponent deck/discard tap areas conflict with the Appreciation well.
+            UIFactory.CreatePlaymatZoneButton(parent, "OpponentDeckZone", new Rect(0.880f, 0.720f, 0.095f, 0.185f), () => ShowMatStatus($"Opponent deck: {game.Opponent.DrawPile.Count} cards."));
             UIFactory.CreatePlaymatZoneButton(parent, "OpponentAbilityZone", new Rect(0.383f, 0.711f, 0.417f, 0.241f), () => ShowMatStatus($"Opponent ability: {game.Opponent.Leader?.Name} - {game.Opponent.Leader?.RulesText}"));
-            UIFactory.CreatePlaymatZoneButton(parent, "OpponentDiscardZone", new Rect(0.809f, 0.706f, 0.127f, 0.246f), () => ShowMatStatus($"Opponent discard: {game.Opponent.DiscardPile.Count} cards."));
+            UIFactory.CreatePlaymatZoneButton(parent, "OpponentDiscardZone", new Rect(0.025f, 0.720f, 0.115f, 0.185f), () => ShowMatStatus($"Opponent discard: {game.Opponent.DiscardPile.Count} cards."));
 
             UIFactory.CreatePlaymatZoneButton(parent, "PlayerDiscardZone", new Rect(0.054f, 0.036f, 0.134f, 0.239f), () => ShowMatStatus($"Your discard: {game.Player.DiscardPile.Count} cards."));
             UIFactory.CreatePlaymatZoneButton(parent, "PlayerAbilityZone", new Rect(0.383f, 0.038f, 0.417f, 0.237f), UseLeaderAbility);
@@ -2024,6 +2037,7 @@ namespace AppreciatorsTcg.UI
         private void LateUpdate()
         {
             ApplyResponsiveFigmaLayout(false);
+            UpdateNextButtonAttention();
         }
 
         private void CreateFigmaBoardChrome(Transform parent)
@@ -2392,8 +2406,11 @@ namespace AppreciatorsTcg.UI
 
             SetRect(endTurnButton, new Rect(phoneLayout ? 0.800f : 0.820f, 0.012f, phoneLayout ? 0.185f : 0.150f, controlHeight));
             float nextControlHeight = phoneLayout ? 0.078f : 0.044f;
-            SetRect(phaseNextButton, new Rect(phoneLayout ? 0.280f : 0.260f, 0.008f, phoneLayout ? 0.090f : 0.105f, nextControlHeight));
-            SetRect(quitButton, new Rect(phoneLayout ? 0.665f : 0.755f, 0.012f, phoneLayout ? 0.125f : 0.110f, controlHeight));
+            // Swap the secondary Options control with the primary Next control.
+            // The latter now sits at the right edge and becomes the visual cue for
+            // phase advancement, while Options remains clear of the hand/meter.
+            SetRect(phaseNextButton, new Rect(phoneLayout ? 0.665f : 0.755f, 0.012f, phoneLayout ? 0.125f : 0.110f, nextControlHeight));
+            SetRect(quitButton, new Rect(phoneLayout ? 0.280f : 0.260f, 0.008f, phoneLayout ? 0.090f : 0.105f, controlHeight));
             SetRect(messageText, new Rect(phoneLayout ? 0.405f : 0.610f, phoneLayout ? 0.622f : 0.638f, phoneLayout ? 0.565f : 0.350f, phoneLayout ? 0.066f : 0.033f));
             messageText.alignment = TextAnchor.MiddleRight;
             messageText.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -2416,6 +2433,59 @@ namespace AppreciatorsTcg.UI
             ConfigureCompactMatchButton(quitButton, phoneLayout, "OPTIONS");
             ConfigureCompactMatchButton(phaseNextButton, phoneLayout, "NEXT");
             ConfigureCompactMatchButton(endTurnButton, phoneLayout, null);
+        }
+
+        private void UpdateNextButtonAttention()
+        {
+            if (phaseNextButton == null) return;
+
+            // Only call attention to NEXT when the game is genuinely waiting for
+            // an acknowledgement. It stays quiet while a player is choosing a
+            // card, target, or other decision.
+            bool needsNext = !tutorialMatch &&
+                phaseNextButton.gameObject.activeInHierarchy &&
+                phaseNextButton.interactable &&
+                (waitingForPhaseAdvance || mandatoryDiscardReviewActive);
+
+            if (phaseNextGlowOutline == null)
+            {
+                phaseNextGlowOutline = phaseNextButton.GetComponent<Outline>();
+            }
+            if (phaseNextGlowShadow == null)
+            {
+                phaseNextGlowShadow = phaseNextButton.GetComponent<Shadow>();
+            }
+
+            RectTransform rect = phaseNextButton.GetComponent<RectTransform>();
+            if (!needsNext)
+            {
+                if (phaseNextGlowOutline != null)
+                {
+                    Color restingOutline = ThemeService.IsDark ? UIFactory.NeonCyan : UIFactory.PortalViolet;
+                    phaseNextGlowOutline.enabled = true;
+                    phaseNextGlowOutline.effectColor = new Color(restingOutline.r, restingOutline.g, restingOutline.b, 0.62f);
+                    phaseNextGlowOutline.effectDistance = new Vector2(3.5f, -3.5f);
+                }
+                if (phaseNextGlowShadow != null) phaseNextGlowShadow.enabled = false;
+                if (rect != null) rect.localScale = Vector3.one;
+                return;
+            }
+
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5.4f);
+            Color glow = Color.Lerp(Brand("FFC700"), Brand("FFFFFF"), pulse * 0.55f);
+            if (phaseNextGlowOutline != null)
+            {
+                phaseNextGlowOutline.enabled = true;
+                phaseNextGlowOutline.effectColor = new Color(glow.r, glow.g, glow.b, 0.95f);
+                phaseNextGlowOutline.effectDistance = new Vector2(4f + pulse * 3f, -4f - pulse * 3f);
+            }
+            if (phaseNextGlowShadow != null)
+            {
+                phaseNextGlowShadow.enabled = true;
+                phaseNextGlowShadow.effectColor = new Color(glow.r, glow.g, glow.b, 0.75f);
+                phaseNextGlowShadow.effectDistance = new Vector2(0f, -1f);
+            }
+            if (rect != null) rect.localScale = Vector3.one * (1.0f + pulse * 0.055f);
         }
 
         private static void ConfigureCompactMatchButton(Button button, bool compact, string compactLabel)
