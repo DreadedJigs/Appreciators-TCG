@@ -31,6 +31,7 @@ namespace AppreciatorsTcg.UI
         private Button readyButton;
         private Button bossRoleButton;
         private Button challengeButton;
+        private Button practiceButton;
 
         private void Start()
         {
@@ -61,6 +62,7 @@ namespace AppreciatorsTcg.UI
             GameObject footer = UIFactory.CreateHorizontalStack(shell.transform, "BossFooter", Color.clear, 8, 0);
             UIFactory.SetAnchors(footer.GetComponent<RectTransform>(), new Vector2(0.03f, 0.035f), new Vector2(0.97f, 0.145f), Vector2.zero, Vector2.zero);
             challengeButton = UIFactory.CreateButton(footer.transform, "CHALLENGE", PrimaryAction, UIFactory.Red);
+            practiceButton = UIFactory.CreateButton(footer.transform, "BOSS vs AI PRACTICE", StartPractice, UIFactory.PortalViolet);
             UIFactory.CreateButton(footer.transform, "REFRESH", () => StartCoroutine(RefreshRoutine()), UIFactory.Blue);
             UIFactory.CreateButton(footer.transform, "WALLET", () => SceneManager.LoadScene("Web3MockScene"), UIFactory.PortalViolet);
             UIFactory.CreateButton(footer.transform, "MAIN MENU", () => SceneManager.LoadScene("MainMenuScene"), UIFactory.PanelAlt);
@@ -205,7 +207,7 @@ namespace AppreciatorsTcg.UI
 
             resultText.text = battle.lastBattle == null
                 ? "No challenge has resolved yet. Solo entry is allowed for demonstration, but it is a guaranteed defeat."
-                : $"{(battle.lastBattle.result ?? "resolved").Replace('-', ' ').ToUpperInvariant()}  •  {(battle.lastBattle.difficulty ?? "boss").Replace('-', ' ').ToUpperInvariant()}\n" +
+                : $"{(battle.lastBattle.practice ? "PRACTICE" : (battle.lastBattle.result ?? "resolved").Replace('-', ' ').ToUpperInvariant())}  •  {(battle.lastBattle.difficulty ?? "boss").Replace('-', ' ').ToUpperInvariant()}\n" +
                   $"PARTY {battle.lastBattle.partyPower}  vs  BOSS {battle.lastBattle.bossPower}\n{battle.lastBattle.summary ?? "Battle resolved."}";
 
             bool summoned = pool.unlocked;
@@ -216,6 +218,9 @@ namespace AppreciatorsTcg.UI
             SetButtonLabel(fundButton, summoned ? "VAULT COMPLETE" : $"FUND {pool.remainingShards:N0}");
 
             BossCurrentPlayer current = battle.currentPlayer ?? new BossCurrentPlayer();
+            bool canPractice = current.oneOfOneEligible;
+            practiceButton.interactable = !requestActive && canPractice;
+            SetButtonLabel(practiceButton, canPractice ? "BOSS vs AI PRACTICE" : "VERIFY 1-OF-1 TO PRACTICE");
             if (bossModeOpenText != null)
             {
                 bool bossModeOpen = current.oneOfOneEligible;
@@ -306,6 +311,14 @@ namespace AppreciatorsTcg.UI
         {
             if (requestActive) return;
             StartCoroutine(BossMutationRoutine("Resolving the boss challenge...", (success, error) => apiClient.ChallengeBoss(PoolId, playerId, success, error)));
+        }
+
+        private void StartPractice()
+        {
+            if (requestActive || battle?.currentPlayer?.oneOfOneEligible != true) return;
+            StartCoroutine(BossMutationRoutine(
+                "Launching Standard Boss practice against the AI party...",
+                (success, error) => apiClient.PracticeBossAgainstAi(PoolId, playerId, success, error)));
         }
 
         private delegate IEnumerator BossRequest(Action<BossBattleResponse> onSuccess, Action<string> onError);

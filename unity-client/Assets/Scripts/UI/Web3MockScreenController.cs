@@ -23,6 +23,7 @@ namespace AppreciatorsTcg.UI
         private Text ownershipText;
         private Text ownershipApprovalMark;
         private Image assetPreviewImage;
+        private Sprite verifiedOwnerPreviewSprite;
         private PremiumTextShimmer bossModeShimmer;
         private Text messageText;
         private Button linkButton;
@@ -427,7 +428,8 @@ namespace AppreciatorsTcg.UI
             {
                 assetPreviewImage.sprite = null;
                 assetPreviewImage.color = assets.Length > 0 ? Color.white : new Color(UIFactory.PortalViolet.r, UIFactory.PortalViolet.g, UIFactory.PortalViolet.b, 0.24f);
-                if (assets.Length > 0 && !string.IsNullOrWhiteSpace(assets[0].image)) StartCoroutine(LoadAssetPreviewRoutine(assets[0].image));
+                if (walletStatus.ownershipVerified) ApplyVerifiedOwnerPreview();
+                else if (assets.Length > 0 && !string.IsNullOrWhiteSpace(assets[0].image)) StartCoroutine(LoadAssetPreviewRoutine(assets[0].image));
             }
             if (ownershipApprovalMark != null)
             {
@@ -436,6 +438,27 @@ namespace AppreciatorsTcg.UI
             linkButton.interactable = !requestActive;
             syncButton.interactable = !requestActive && connected;
             disconnectButton.interactable = !requestActive && connected;
+        }
+
+        private void ApplyVerifiedOwnerPreview()
+        {
+            if (assetPreviewImage == null) return;
+            if (verifiedOwnerPreviewSprite == null)
+            {
+                Texture2D texture = Resources.Load<Texture2D>("Wallet/VerifiedOwnerCardReverse");
+                if (texture != null)
+                {
+                    verifiedOwnerPreviewSprite = Sprite.Create(
+                        texture,
+                        new Rect(0f, 0f, texture.width, texture.height),
+                        new Vector2(0.5f, 0.5f),
+                        100f);
+                }
+            }
+            if (verifiedOwnerPreviewSprite == null) return;
+            assetPreviewImage.sprite = verifiedOwnerPreviewSprite;
+            assetPreviewImage.preserveAspect = true;
+            assetPreviewImage.color = Color.white;
         }
 
         private void ApplyOfflineStatus()

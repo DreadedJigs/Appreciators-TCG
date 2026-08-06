@@ -154,6 +154,41 @@ export function startBossBattle(payload = {}) {
   return { success: true, battle: publicBattle(battle, playerId) };
 }
 
+// A private practice encounter for verified 1-of-1 holders.  It deliberately
+// does not alter the shared party, vault, or raid matchmaking state.
+export function startBossPractice(payload = {}) {
+  const battle = getOrCreateBattle(payload.poolId);
+  const playerId = requirePlayerId(payload.playerId);
+  const wallet = wallets.get(playerId);
+  if (!wallet?.oneOfOneEligible || !wallet.ownershipVerified) {
+    throw requestError(
+      "Verify ownership of a supported 1-of-1 wallet to unlock Boss vs AI Practice.",
+      403,
+      "ONE_OF_ONE_HOLDER_REQUIRED"
+    );
+  }
+
+  const now = new Date().toISOString();
+  battle.battleNumber += 1;
+  battle.lastBattle = {
+    battleId: `${battle.poolId}_practice_${battle.battleNumber}`,
+    initiatedBy: "verified-boss-holder",
+    partySize: 3,
+    partyPower: 165,
+    bossPower: 180,
+    result: "boss-victory",
+    difficulty: "standard-ai-practice",
+    summary: "Practice complete: your verified 1-of-1 Boss defeated the Standard AI party (180 HP, 3 AP).",
+    resolvedAt: now,
+    practice: true,
+    bossHp: 180,
+    actionPoints: 3
+  };
+  battle.updatedAt = now;
+  persist({ required: true });
+  return { success: true, battle: publicBattle(battle, playerId) };
+}
+
 export function linkWalletAccount(payload = {}) {
   loadIfNeeded();
   const playerId = requirePlayerId(payload.playerId);
@@ -289,6 +324,7 @@ function publicBattle(battle, rawPlayerId) {
     status: pool.unlocked ? battle.status : "funding",
     rules: {
       soloAlwaysLoses: true,
+      verifiedHolderPracticeAvailable: true,
       minimumPartySize: BOSS_MINIMUM_PARTY_SIZE,
       nominalPartySize: BOSS_NOMINAL_PARTY_SIZE,
       maximumPartySize: BOSS_MAXIMUM_PARTY_SIZE

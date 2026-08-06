@@ -68,7 +68,8 @@ import {
   linkVerifiedWalletAccount,
   releaseBossRole,
   setBossPartyReady,
-  startBossBattle
+  startBossBattle,
+  startBossPractice
 } from "./bossBattleStore.js";
 import { createWalletChallenge, verifyWalletChallenge } from "./walletAuthStore.js";
 
@@ -339,6 +340,7 @@ export function createApp() {
   app.post("/api/boss-battles/:poolId/claim-boss", economyWriteLimiter, bossMutation(claimBossRole));
   app.post("/api/boss-battles/:poolId/release-boss", economyWriteLimiter, bossMutation(releaseBossRole));
   app.post("/api/boss-battles/:poolId/challenge", economyWriteLimiter, bossMutation(startBossBattle));
+  app.post("/api/boss-battles/:poolId/practice", economyWriteLimiter, bossMutation(startBossPractice));
 
   const resetTestInventoryHandler = (req, res, next) => {
     try {

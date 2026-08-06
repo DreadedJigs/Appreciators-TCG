@@ -542,6 +542,21 @@ test("wallet account status never grants boss eligibility from the client", asyn
     assert.equal(testHolder.body.wallet.oneOfOneEligible, true);
     assert.equal(testHolder.body.wallet.ownershipVerified, true);
 
+    const practice = await request(server, "/api/boss-battles/alpha_boss/practice", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "wallet_boss" })
+    });
+    assert.equal(practice.response.status, 200);
+    assert.equal(practice.body.battle.lastBattle.practice, true);
+    assert.equal(practice.body.battle.lastBattle.difficulty, "standard-ai-practice");
+
+    const blockedPractice = await request(server, "/api/boss-battles/alpha_boss/practice", {
+      method: "POST",
+      body: JSON.stringify({ playerId: "wallet_member" })
+    });
+    assert.equal(blockedPractice.response.status, 403);
+    assert.equal(blockedPractice.body.errorCode, "ONE_OF_ONE_HOLDER_REQUIRED");
+
     const forged = await request(server, "/api/wallet/account/link", {
       method: "POST",
       body: JSON.stringify({ playerId: "forged", walletAddress: "not-a-wallet", oneOfOneEligible: true })

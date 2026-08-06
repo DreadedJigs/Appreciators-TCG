@@ -275,6 +275,11 @@ namespace AppreciatorsTcg.Data
             yield return PostBossMutation(poolId, "challenge", playerId, string.Empty, false, onSuccess, onError);
         }
 
+        public IEnumerator PracticeBossAgainstAi(string poolId, string playerId, System.Action<BossBattleResponse> onSuccess, System.Action<string> onError)
+        {
+            yield return PostBossMutation(poolId, "practice", playerId, string.Empty, false, onSuccess, onError);
+        }
+
         public IEnumerator GetWalletAccount(string playerId, System.Action<WalletAccountResponse> onSuccess, System.Action<string> onError)
         {
             yield return GetJson($"/api/wallet/account?playerId={UnityWebRequest.EscapeURL(playerId ?? string.Empty)}", onSuccess, onError, PackRequestTimeoutSeconds);

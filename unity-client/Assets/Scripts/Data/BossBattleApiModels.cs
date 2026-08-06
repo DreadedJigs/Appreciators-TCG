@@ -6,6 +6,7 @@ namespace AppreciatorsTcg.Data
     public class BossBattleRules
     {
         public bool soloAlwaysLoses;
+        public bool verifiedHolderPracticeAvailable;
         public int minimumPartySize;
         public int nominalPartySize;
         public int maximumPartySize;
@@ -52,6 +53,9 @@ namespace AppreciatorsTcg.Data
         public string difficulty;
         public string summary;
         public string resolvedAt;
+        public bool practice;
+        public int bossHp;
+        public int actionPoints;
     }
 
     [Serializable]
