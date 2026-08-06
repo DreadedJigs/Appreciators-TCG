@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using AppreciatorsTcg.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -5,65 +7,73 @@ using UnityEngine.UI;
 
 namespace AppreciatorsTcg.UI
 {
-    // A local, consequence-free boss drill. The real cooperative encounter
-    // remains in the Boss Arena; this screen gives verified holders a fast way
-    // to learn the 180 HP / three-action Boss kit against a full AI party.
+    // A Showdown-style, consequence-free raid drill. Once both sides are on
+    // screen the encounter resolves itself; the battle log is the source of
+    // truth for every attack, block, Shield interaction, and result.
     public sealed class BossPracticeMatchController : ScreenControllerBase
     {
-        private readonly int[] aiHealth = { 30, 30, 30 };
-        private readonly string[] aiNames = { "AI LEARN", "AI BUILD", "AI GROW" };
         private const int BossMaximumHealth = 180;
+        private const int AiMaximumHealth = 30;
+        private const int MaximumRounds = 12;
+        private readonly int[] aiHealth = { AiMaximumHealth, AiMaximumHealth, AiMaximumHealth };
+        private readonly string[] aiNames = { "AI LEARN", "AI BUILD", "AI GROW" };
+        private readonly List<string> showdownLog = new List<string>();
+        private readonly System.Random random = new System.Random(6666);
+
         private int bossHealth = BossMaximumHealth;
         private int shield;
-        private int actionPoints = 3;
-        private int round = 1;
+        private int actionPoints;
+        private int round;
         private int signatureCooldown;
         private bool aiExhausted;
         private bool complete;
+        private bool battleRunning;
 
         private Text bossStats;
         private Text statusText;
-        private Text[] aiStats = new Text[3];
-        private Button strikeButton;
-        private Button crushButton;
-        private Button braceButton;
-        private Button signatureButton;
-        private Button endTurnButton;
+        private Text combatLogText;
+        private readonly Text[] aiStats = new Text[3];
+        private RectTransform bossVisual;
+        private readonly RectTransform[] aiVisuals = new RectTransform[3];
+        private Button replayButton;
 
         private void Start()
         {
             LocalSaveSystem.ClearPendingMatchContext();
-
             GameObject shell = UIFactory.CreatePanel(Root, "BossPracticeShell", UIFactory.GlassPanel);
             UIFactory.SetAnchors(shell.GetComponent<RectTransform>(), new Vector2(0.025f, 0.03f), new Vector2(0.975f, 0.97f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(shell, UIFactory.Red);
 
-            GameObject header = UIFactory.CreateVerticalStack(shell.transform, "PracticeHeader", UIFactory.PanelAlt, 3, 10);
-            UIFactory.SetAnchors(header.GetComponent<RectTransform>(), new Vector2(0.03f, 0.855f), new Vector2(0.97f, 0.97f), Vector2.zero, Vector2.zero);
-            UIFactory.MakeDimensionalPanel(header, UIFactory.Accent);
-            Text title = UIFactory.CreateText(header.transform, "1-OF-1 BOSS vs AI PRACTICE", 31, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
-            SetHeight(title.gameObject, 34);
-            Text subtitle = UIFactory.CreateText(header.transform, "YOU ARE THE BOSS  •  3 AI MEMBERS  •  PRACTICE ONLY", 15, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
-            SetHeight(subtitle.gameObject, 22);
-
+            CreateHeader(shell.transform);
             CreateBossSeat(shell.transform);
             CreateAiParty(shell.transform);
-            CreateActions(shell.transform);
+            CreateCombatLog(shell.transform);
+            CreateFooter(shell.transform);
+            ResetEncounter();
+            StartCoroutine(RunShowdown());
+        }
 
-            statusText = UIFactory.CreateText(shell.transform, string.Empty, 18, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
-            UIFactory.SetAnchors(statusText.rectTransform, new Vector2(0.05f, 0.165f), new Vector2(0.95f, 0.225f), Vector2.zero, Vector2.zero);
-            RefreshBoard("Boss turn: spend up to 3 Action Points, then let the AI party answer.");
+        private void CreateHeader(Transform parent)
+        {
+            GameObject header = UIFactory.CreateVerticalStack(parent, "PracticeHeader", UIFactory.PanelAlt, 3, 10);
+            UIFactory.SetAnchors(header.GetComponent<RectTransform>(), new Vector2(0.03f, 0.855f), new Vector2(0.97f, 0.97f), Vector2.zero, Vector2.zero);
+            UIFactory.MakeDimensionalPanel(header, UIFactory.Accent);
+            Text title = UIFactory.CreateText(header.transform, "1-OF-1 BOSS SHOWDOWN", 31, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            SetHeight(title.gameObject, 34);
+            Text subtitle = UIFactory.CreateText(header.transform, "AUTO BATTLE  •  VERIFIED BOSS vs 3 AI MEMBERS  •  PRACTICE ONLY", 15, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            SetHeight(subtitle.gameObject, 22);
         }
 
         private void CreateBossSeat(Transform parent)
         {
             GameObject panel = UIFactory.CreateVerticalStack(parent, "VerifiedBossSeat", UIFactory.Panel, 7, 12);
-            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.05f, 0.285f), new Vector2(0.355f, 0.825f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.05f, 0.335f), new Vector2(0.355f, 0.825f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(panel, UIFactory.Red);
             Text label = UIFactory.CreateText(panel.transform, "YOUR VERIFIED 1-OF-1 BOSS", 18, TextAnchor.MiddleCenter, UIFactory.Red, FontStyle.Bold);
             SetHeight(label.gameObject, 28);
 
             GameObject portrait = UIFactory.CreatePanel(panel.transform, "VerifiedOwnerCard", UIFactory.Ink);
+            bossVisual = portrait.GetComponent<RectTransform>();
             LayoutElement portraitLayout = portrait.AddComponent<LayoutElement>();
             portraitLayout.flexibleHeight = 1;
             Image portraitImage = portrait.GetComponent<Image>();
@@ -81,11 +91,12 @@ namespace AppreciatorsTcg.UI
         private void CreateAiParty(Transform parent)
         {
             GameObject panel = UIFactory.CreateHorizontalStack(parent, "AiMemberParty", UIFactory.Panel, 12, 14);
-            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.38f, 0.285f), new Vector2(0.95f, 0.825f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.38f, 0.335f), new Vector2(0.95f, 0.825f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(panel, UIFactory.Blue);
             for (int index = 0; index < 3; index += 1)
             {
                 GameObject member = UIFactory.CreateVerticalStack(panel.transform, $"AiMember{index + 1}", UIFactory.GlassPanel, 6, 10);
+                aiVisuals[index] = member.GetComponent<RectTransform>();
                 UIFactory.MakeDimensionalPanel(member, index == 0 ? UIFactory.Blue : index == 1 ? UIFactory.Green : UIFactory.PortalViolet);
                 Text name = UIFactory.CreateText(member.transform, aiNames[index], 19, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
                 SetHeight(name.gameObject, 28);
@@ -99,109 +110,210 @@ namespace AppreciatorsTcg.UI
             }
         }
 
-        private void CreateActions(Transform parent)
+        private void CreateCombatLog(Transform parent)
         {
-            GameObject actions = UIFactory.CreateHorizontalStack(parent, "BossActionBar", Color.clear, 9, 0);
-            UIFactory.SetAnchors(actions.GetComponent<RectTransform>(), new Vector2(0.05f, 0.065f), new Vector2(0.95f, 0.145f), Vector2.zero, Vector2.zero);
-            strikeButton = UIFactory.CreateButton(actions.transform, "STRIKE • 1 AP", Strike, UIFactory.Red);
-            crushButton = UIFactory.CreateButton(actions.transform, "CRUSH • 2 AP", Crush, UIFactory.Accent);
-            braceButton = UIFactory.CreateButton(actions.transform, "BRACE • 1 AP", Brace, UIFactory.Blue);
-            signatureButton = UIFactory.CreateButton(actions.transform, "GALLERY LOCK • 3 AP", GalleryLock, UIFactory.PortalViolet);
-            endTurnButton = UIFactory.CreateButton(actions.transform, "END BOSS TURN", EndBossTurn, UIFactory.Green);
+            GameObject panel = UIFactory.CreatePanel(parent, "ShowdownLog", new Color(UIFactory.Ink.r, UIFactory.Ink.g, UIFactory.Ink.b, 0.92f));
+            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.05f, 0.165f), new Vector2(0.95f, 0.305f), Vector2.zero, Vector2.zero);
+            UIFactory.MakeDimensionalPanel(panel, UIFactory.NeonCyan);
+            combatLogText = UIFactory.CreateText(panel.transform, string.Empty, 15, TextAnchor.UpperLeft, UIFactory.Cream, FontStyle.Bold);
+            combatLogText.resizeTextForBestFit = true;
+            combatLogText.resizeTextMinSize = 10;
+            combatLogText.resizeTextMaxSize = 15;
+            combatLogText.lineSpacing = 1.12f;
+            UIFactory.SetAnchors(combatLogText.rectTransform, new Vector2(0.025f, 0.08f), new Vector2(0.975f, 0.92f), Vector2.zero, Vector2.zero);
+            statusText = UIFactory.CreateText(parent, "PREPARING SHOWDOWN...", 17, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            UIFactory.SetAnchors(statusText.rectTransform, new Vector2(0.05f, 0.305f), new Vector2(0.95f, 0.335f), Vector2.zero, Vector2.zero);
+        }
+
+        private void CreateFooter(Transform parent)
+        {
+            GameObject actions = UIFactory.CreateHorizontalStack(parent, "ShowdownFooter", Color.clear, 10, 0);
+            UIFactory.SetAnchors(actions.GetComponent<RectTransform>(), new Vector2(0.05f, 0.065f), new Vector2(0.95f, 0.135f), Vector2.zero, Vector2.zero);
+            replayButton = UIFactory.CreateButton(actions.transform, "REPLAY SHOWDOWN", BeginReplay, UIFactory.Green);
+            replayButton.interactable = false;
             UIFactory.CreateButton(actions.transform, "EXIT PRACTICE", () => SceneManager.LoadScene("BossBattleScene"), UIFactory.PanelAlt);
         }
 
-        private void Strike()
+        private void BeginReplay()
         {
-            if (!SpendActions(1, "Strike")) return;
-            int target = NextAiTarget();
-            if (target < 0) return;
-            aiHealth[target] = Mathf.Max(0, aiHealth[target] - 4);
-            RefreshBoard($"Strike deals 4 damage to {aiNames[target]}.");
-            CheckComplete();
+            if (battleRunning) return;
+            ResetEncounter();
+            StartCoroutine(RunShowdown());
         }
 
-        private void Crush()
+        private void ResetEncounter()
         {
-            if (!SpendActions(2, "Crush")) return;
-            int target = NextAiTarget();
-            if (target < 0) return;
-            aiHealth[target] = Mathf.Max(0, aiHealth[target] - 7);
-            RefreshBoard($"Crush deals 7 damage and exhausts {aiNames[target]}.");
-            CheckComplete();
-        }
-
-        private void Brace()
-        {
-            if (!SpendActions(1, "Brace")) return;
-            int before = shield;
-            shield = Mathf.Min(10, shield + 5);
-            RefreshBoard($"Brace grants {shield - before} Shield. Shield expires when your next Boss turn begins.");
-        }
-
-        private void GalleryLock()
-        {
-            if (signatureCooldown > 0)
-            {
-                RefreshBoard($"Gallery Lock is on cooldown for {signatureCooldown} Boss turn(s).");
-                return;
-            }
-            if (!SpendActions(3, "Gallery Lock")) return;
-            aiExhausted = true;
-            signatureCooldown = 2;
-            RefreshBoard("Gallery Lock exhausts the AI party. Their next attack is weakened.");
-        }
-
-        private void EndBossTurn()
-        {
-            if (complete) return;
-            int incomingDamage = 0;
-            for (int index = 0; index < aiHealth.Length; index += 1)
-            {
-                if (aiHealth[index] > 0) incomingDamage += aiExhausted ? 1 : 3;
-            }
-            int absorbed = Mathf.Min(shield, incomingDamage);
-            shield -= absorbed;
-            bossHealth = Mathf.Max(0, bossHealth - (incomingDamage - absorbed));
-            aiExhausted = false;
-            signatureCooldown = Mathf.Max(0, signatureCooldown - 1);
-            round += 1;
-            actionPoints = 3;
+            for (int index = 0; index < aiHealth.Length; index += 1) aiHealth[index] = AiMaximumHealth;
+            bossHealth = BossMaximumHealth;
             shield = 0;
-            RefreshBoard($"AI party attacks for {incomingDamage}; Shield absorbed {absorbed}. Boss turn {round} begins.");
-            if (bossHealth <= 0)
+            actionPoints = 0;
+            round = 1;
+            signatureCooldown = 0;
+            aiExhausted = false;
+            complete = false;
+            battleRunning = false;
+            showdownLog.Clear();
+            AppendLog("SHOWDOWN LOADED — verified Boss enters against AI Learn, Build, and Grow.");
+            RefreshBoard("BATTLE ENDS AFTER A VICTORY, DEFEAT, OR ROUND 12.");
+            if (replayButton != null) replayButton.interactable = false;
+        }
+
+        private IEnumerator RunShowdown()
+        {
+            battleRunning = true;
+            statusText.text = "BATTLE STARTING...";
+            yield return new WaitForSecondsRealtime(0.8f);
+            AppendLog("ARENA LOCKED — the Boss wins initiative.");
+            yield return new WaitForSecondsRealtime(0.7f);
+
+            while (!complete && round <= MaximumRounds)
+            {
+                yield return BossTurn();
+                if (complete) break;
+                yield return AiTurn();
+                if (complete) break;
+                round += 1;
+            }
+
+            if (!complete)
             {
                 complete = true;
-                RefreshBoard("PRACTICE DEFEAT — the AI party has downed the Boss. Restart from Boss Battles to try again.");
+                AppendLog("ROUND LIMIT REACHED — the Boss survives the encounter and wins the showdown.");
             }
+            battleRunning = false;
+            RefreshBoard(complete && bossHealth > 0 && !AnyAiAlive() ? "BOSS VICTORY" : bossHealth <= 0 ? "AI PARTY VICTORY" : "BOSS VICTORY — ROUND LIMIT");
+            replayButton.interactable = true;
         }
 
-        private bool SpendActions(int cost, string action)
+        private IEnumerator BossTurn()
         {
-            if (complete) return false;
-            if (actionPoints < cost)
+            actionPoints = 3;
+            statusText.text = $"ROUND {round} — BOSS TURN";
+            AppendLog($"ROUND {round}: BOSS TURN — 3 Action Points available.");
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            if (signatureCooldown == 0 && round % 3 == 0)
             {
-                RefreshBoard($"{action} requires {cost} AP. You have {actionPoints} AP remaining.");
-                return false;
+                actionPoints = 0;
+                signatureCooldown = 2;
+                aiExhausted = true;
+                AppendLog("BOSS uses GALLERY LOCK — all AI members are exhausted; their next attack is weakened.");
+                yield return Pulse(bossVisual, UIFactory.PortalViolet, 0.32f);
+                for (int index = 0; index < aiVisuals.Length; index += 1) yield return Pulse(aiVisuals[index], UIFactory.PortalViolet, 0.13f);
+                RefreshBoard("GALLERY LOCK RESOLVED");
+                yield return new WaitForSecondsRealtime(0.45f);
+                yield break;
             }
-            actionPoints -= cost;
-            return true;
+
+            if (bossHealth <= 100 && actionPoints > 0)
+            {
+                actionPoints -= 1;
+                shield = Mathf.Min(10, shield + 5);
+                AppendLog("BOSS uses BRACE — gains 5 temporary Shield.");
+                yield return Pulse(bossVisual, UIFactory.Blue, 0.28f);
+                RefreshBoard("BOSS BRACES");
+                yield return new WaitForSecondsRealtime(0.35f);
+            }
+
+            while (actionPoints > 0 && AnyAiAlive())
+            {
+                int target = StrongestAiTarget();
+                bool crush = actionPoints >= 2 && aiHealth[target] >= 7;
+                int cost = crush ? 2 : 1;
+                int baseDamage = crush ? 7 : 4;
+                actionPoints -= cost;
+                bool blocked = random.NextDouble() < 0.28d;
+                int damage = blocked ? Mathf.Max(1, baseDamage - 3) : baseDamage;
+                aiHealth[target] = Mathf.Max(0, aiHealth[target] - damage);
+                AppendLog(blocked
+                    ? $"BOSS uses {(crush ? "CRUSH" : "STRIKE")} on {aiNames[target]}; {aiNames[target]} blocks, taking {damage}."
+                    : $"BOSS uses {(crush ? "CRUSH" : "STRIKE")} on {aiNames[target]} for {damage} damage.");
+                yield return Pulse(bossVisual, UIFactory.Red, 0.18f);
+                yield return Pulse(aiVisuals[target], blocked ? UIFactory.Blue : UIFactory.HeartRed, 0.26f);
+                RefreshBoard("BOSS ACTION RESOLVED");
+                yield return new WaitForSecondsRealtime(0.45f);
+                if (!AnyAiAlive())
+                {
+                    complete = true;
+                    AppendLog("ALL THREE AI MEMBERS ARE DOWN — BOSS WINS THE SHOWDOWN.");
+                }
+            }
         }
 
-        private int NextAiTarget()
+        private IEnumerator AiTurn()
+        {
+            statusText.text = $"ROUND {round} — AI PARTY TURN";
+            AppendLog("AI PARTY TURN — surviving members coordinate their response.");
+            yield return new WaitForSecondsRealtime(0.45f);
+            for (int index = 0; index < aiHealth.Length && !complete; index += 1)
+            {
+                if (aiHealth[index] <= 0) continue;
+                int damage = aiExhausted ? 1 : 3;
+                bool bossBlocks = shield > 0 || random.NextDouble() < 0.22d;
+                int shieldAbsorbed = Mathf.Min(shield, damage);
+                shield -= shieldAbsorbed;
+                int remaining = Mathf.Max(0, damage - shieldAbsorbed - (bossBlocks && shieldAbsorbed == 0 ? 2 : 0));
+                bossHealth = Mathf.Max(0, bossHealth - remaining);
+                AppendLog(bossBlocks
+                    ? $"{aiNames[index]} attacks; BOSS blocks and takes {remaining} damage."
+                    : $"{aiNames[index]} attacks the BOSS for {remaining} damage.");
+                yield return Pulse(aiVisuals[index], UIFactory.Green, 0.18f);
+                yield return Pulse(bossVisual, bossBlocks ? UIFactory.Blue : UIFactory.HeartRed, 0.26f);
+                RefreshBoard("AI ACTION RESOLVED");
+                yield return new WaitForSecondsRealtime(0.4f);
+                if (bossHealth <= 0)
+                {
+                    complete = true;
+                    AppendLog("THE BOSS HAS BEEN DOWNED — AI PARTY WINS THE SHOWDOWN.");
+                }
+            }
+            aiExhausted = false;
+            shield = 0;
+            signatureCooldown = Mathf.Max(0, signatureCooldown - 1);
+        }
+
+        private IEnumerator Pulse(RectTransform visual, Color tint, float duration)
+        {
+            if (visual == null) yield break;
+            Image image = visual.GetComponent<Image>();
+            Color originalColor = image == null ? Color.white : image.color;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float wave = Mathf.Sin(Mathf.Clamp01(elapsed / duration) * Mathf.PI);
+                visual.localScale = Vector3.one * (1f + wave * 0.09f);
+                if (image != null) image.color = Color.Lerp(originalColor, tint, wave * 0.42f);
+                yield return null;
+            }
+            visual.localScale = Vector3.one;
+            if (image != null) image.color = originalColor;
+        }
+
+        private int StrongestAiTarget()
+        {
+            int selected = 0;
+            for (int index = 1; index < aiHealth.Length; index += 1)
+            {
+                if (aiHealth[index] > aiHealth[selected]) selected = index;
+            }
+            return selected;
+        }
+
+        private bool AnyAiAlive()
         {
             for (int index = 0; index < aiHealth.Length; index += 1)
             {
-                if (aiHealth[index] > 0) return index;
+                if (aiHealth[index] > 0) return true;
             }
-            return -1;
+            return false;
         }
 
-        private void CheckComplete()
+        private void AppendLog(string entry)
         {
-            if (System.Array.Exists(aiHealth, value => value > 0)) return;
-            complete = true;
-            RefreshBoard("PRACTICE VICTORY — your 1-of-1 Boss defeated all three AI members.");
+            showdownLog.Add($"> {entry}");
+            while (showdownLog.Count > 6) showdownLog.RemoveAt(0);
+            if (combatLogText != null) combatLogText.text = string.Join("\n", showdownLog);
         }
 
         private void RefreshBoard(string message)
@@ -210,16 +322,10 @@ namespace AppreciatorsTcg.UI
             for (int index = 0; index < aiStats.Length; index += 1)
             {
                 bool alive = aiHealth[index] > 0;
-                aiStats[index].text = alive ? $"HP {aiHealth[index]}/30\nREADY" : "DEFEATED";
+                aiStats[index].text = alive ? $"HP {aiHealth[index]}/{AiMaximumHealth}\n{(aiExhausted ? "EXHAUSTED" : "READY")}" : "DEFEATED";
                 aiStats[index].color = alive ? UIFactory.Cream : UIFactory.MutedTextColor;
             }
-            statusText.text = message;
-            bool canAct = !complete && actionPoints > 0;
-            strikeButton.interactable = canAct;
-            crushButton.interactable = !complete && actionPoints >= 2;
-            braceButton.interactable = canAct;
-            signatureButton.interactable = !complete && actionPoints >= 3 && signatureCooldown <= 0;
-            endTurnButton.interactable = !complete;
+            if (statusText != null) statusText.text = message;
         }
 
         private static void SetHeight(GameObject target, float height)
