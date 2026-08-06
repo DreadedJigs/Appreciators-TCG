@@ -316,9 +316,24 @@ namespace AppreciatorsTcg.UI
         private void StartPractice()
         {
             if (requestActive || battle?.currentPlayer?.oneOfOneEligible != true) return;
-            StartCoroutine(BossMutationRoutine(
-                "Launching Standard Boss practice against the AI party...",
-                (success, error) => apiClient.PracticeBossAgainstAi(PoolId, playerId, success, error)));
+            StartCoroutine(LaunchPracticeRoutine());
+        }
+
+        private IEnumerator LaunchPracticeRoutine()
+        {
+            requestActive = true;
+            SetStatus("Creating your 1-of-1 Boss practice match...", UIFactory.Accent);
+            BossBattleResponse response = null;
+            string requestError = null;
+            yield return apiClient.PracticeBossAgainstAi(PoolId, playerId, value => response = value, error => requestError = error);
+            requestActive = false;
+            if (response?.success == true)
+            {
+                LocalSaveSystem.SavePendingMatchContext("Boss AI Practice", string.Empty, response.battle?.lastBattle?.battleId ?? string.Empty, "AI Party", playerId, "Boss");
+                SceneManager.LoadScene("MatchScene");
+                yield break;
+            }
+            SetStatus(ReadableError(requestError), UIFactory.Red);
         }
 
         private delegate IEnumerator BossRequest(Action<BossBattleResponse> onSuccess, Action<string> onError);

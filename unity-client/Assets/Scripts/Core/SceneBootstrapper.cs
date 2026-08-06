@@ -34,7 +34,14 @@ namespace AppreciatorsTcg.Core
                     gameObject.AddComponent<PackOpeningController>();
                     break;
                 case "MatchScene":
-                    gameObject.AddComponent<MatchScreenController>();
+                    if (LocalSaveSystem.LoadPendingMatchMode() == "Boss AI Practice")
+                    {
+                        gameObject.AddComponent<BossPracticeMatchController>();
+                    }
+                    else
+                    {
+                        gameObject.AddComponent<MatchScreenController>();
+                    }
                     break;
                 case "ResultsScene":
                     gameObject.AddComponent<ResultsScreenController>();
