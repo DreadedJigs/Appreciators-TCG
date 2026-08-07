@@ -325,11 +325,12 @@ namespace AppreciatorsTcg.UI
             SetStatus("Creating your 1-of-1 Boss practice match...", UIFactory.Accent);
             BossBattleResponse response = null;
             string requestError = null;
-            yield return apiClient.PracticeBossAgainstAi(PoolId, playerId, value => response = value, error => requestError = error);
+            yield return apiClient.PracticeBossAgainstAi(PoolId, playerId, LocalSaveSystem.LoadSelectedBossTokenId(), value => response = value, error => requestError = error);
             requestActive = false;
             if (response?.success == true)
             {
-                LocalSaveSystem.SavePendingMatchContext("Boss AI Practice", string.Empty, response.battle?.lastBattle?.battleId ?? string.Empty, "AI Party", playerId, "Boss");
+                string bossName = response.battle?.lastBattle?.bossAsset?.name;
+                LocalSaveSystem.SavePendingMatchContext("Boss AI Practice", string.Empty, response.battle?.lastBattle?.battleId ?? string.Empty, string.IsNullOrWhiteSpace(bossName) ? "Verified 1-of-1" : bossName, playerId, "Boss");
                 SceneManager.LoadScene("MatchScene");
                 yield break;
             }

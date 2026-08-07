@@ -18,7 +18,7 @@ namespace AppreciatorsTcg.UI
         private readonly int[] aiHealth = { AiMaximumHealth, AiMaximumHealth, AiMaximumHealth };
         private readonly string[] aiNames = { "AI LEARN", "AI BUILD", "AI GROW" };
         private readonly List<string> showdownLog = new List<string>();
-        private readonly System.Random random = new System.Random(6666);
+        private System.Random random;
 
         private int bossHealth = BossMaximumHealth;
         private int shield;
@@ -39,13 +39,15 @@ namespace AppreciatorsTcg.UI
 
         private void Start()
         {
+            string bossName = LocalSaveSystem.LoadPendingOpponentName();
             LocalSaveSystem.ClearPendingMatchContext();
-            GameObject shell = UIFactory.CreatePanel(Root, "BossPracticeShell", UIFactory.GlassPanel);
-            UIFactory.SetAnchors(shell.GetComponent<RectTransform>(), new Vector2(0.025f, 0.03f), new Vector2(0.975f, 0.97f), Vector2.zero, Vector2.zero);
-            UIFactory.MakeDimensionalPanel(shell, UIFactory.Red);
+            random = new System.Random(System.Environment.TickCount);
+            RectTransform playmat = UIFactory.CreateOfficialPlaymatRoot(Root);
+            GameObject shell = UIFactory.CreatePanel(playmat, "BossPracticeShell", Color.clear);
+            UIFactory.SetAnchors(shell.GetComponent<RectTransform>(), new Vector2(0.02f, 0.025f), new Vector2(0.98f, 0.975f), Vector2.zero, Vector2.zero);
 
             CreateHeader(shell.transform);
-            CreateBossSeat(shell.transform);
+            CreateBossSeat(shell.transform, bossName);
             CreateAiParty(shell.transform);
             CreateCombatLog(shell.transform);
             CreateFooter(shell.transform);
@@ -56,20 +58,23 @@ namespace AppreciatorsTcg.UI
         private void CreateHeader(Transform parent)
         {
             GameObject header = UIFactory.CreateVerticalStack(parent, "PracticeHeader", UIFactory.PanelAlt, 3, 10);
-            UIFactory.SetAnchors(header.GetComponent<RectTransform>(), new Vector2(0.03f, 0.855f), new Vector2(0.97f, 0.97f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(header.GetComponent<RectTransform>(), new Vector2(0.18f, 0.915f), new Vector2(0.82f, 0.985f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(header, UIFactory.Accent);
-            Text title = UIFactory.CreateText(header.transform, "1-OF-1 BOSS SHOWDOWN", 31, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            Text title = UIFactory.CreateText(header.transform, "1-OF-1 BOSS SHOWDOWN", 25, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
             SetHeight(title.gameObject, 34);
             Text subtitle = UIFactory.CreateText(header.transform, "AUTO BATTLE  •  VERIFIED BOSS vs 3 AI MEMBERS  •  PRACTICE ONLY", 15, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
             SetHeight(subtitle.gameObject, 22);
         }
 
-        private void CreateBossSeat(Transform parent)
+        private void CreateBossSeat(Transform parent, string selectedBossName)
         {
             GameObject panel = UIFactory.CreateVerticalStack(parent, "VerifiedBossSeat", UIFactory.Panel, 7, 12);
-            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.05f, 0.335f), new Vector2(0.355f, 0.825f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.18f, 0.59f), new Vector2(0.82f, 0.90f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(panel, UIFactory.Red);
-            Text label = UIFactory.CreateText(panel.transform, "YOUR VERIFIED 1-OF-1 BOSS", 18, TextAnchor.MiddleCenter, UIFactory.Red, FontStyle.Bold);
+            string labelText = string.IsNullOrWhiteSpace(selectedBossName) || selectedBossName == "AI Party"
+                ? "YOUR VERIFIED 1-OF-1 BOSS"
+                : selectedBossName.ToUpperInvariant() + "  •  1-OF-1 BOSS";
+            Text label = UIFactory.CreateText(panel.transform, labelText, 18, TextAnchor.MiddleCenter, UIFactory.Red, FontStyle.Bold);
             SetHeight(label.gameObject, 28);
 
             GameObject portrait = UIFactory.CreatePanel(panel.transform, "VerifiedOwnerCard", UIFactory.Ink);
@@ -91,7 +96,7 @@ namespace AppreciatorsTcg.UI
         private void CreateAiParty(Transform parent)
         {
             GameObject panel = UIFactory.CreateHorizontalStack(parent, "AiMemberParty", UIFactory.Panel, 12, 14);
-            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.38f, 0.335f), new Vector2(0.95f, 0.825f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.12f, 0.10f), new Vector2(0.88f, 0.40f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(panel, UIFactory.Blue);
             for (int index = 0; index < 3; index += 1)
             {
@@ -113,7 +118,7 @@ namespace AppreciatorsTcg.UI
         private void CreateCombatLog(Transform parent)
         {
             GameObject panel = UIFactory.CreatePanel(parent, "ShowdownLog", new Color(UIFactory.Ink.r, UIFactory.Ink.g, UIFactory.Ink.b, 0.92f));
-            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.05f, 0.165f), new Vector2(0.95f, 0.305f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.08f, 0.43f), new Vector2(0.92f, 0.55f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(panel, UIFactory.NeonCyan);
             combatLogText = UIFactory.CreateText(panel.transform, string.Empty, 15, TextAnchor.UpperLeft, UIFactory.Cream, FontStyle.Bold);
             combatLogText.resizeTextForBestFit = true;
@@ -122,13 +127,13 @@ namespace AppreciatorsTcg.UI
             combatLogText.lineSpacing = 1.12f;
             UIFactory.SetAnchors(combatLogText.rectTransform, new Vector2(0.025f, 0.08f), new Vector2(0.975f, 0.92f), Vector2.zero, Vector2.zero);
             statusText = UIFactory.CreateText(parent, "PREPARING SHOWDOWN...", 17, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
-            UIFactory.SetAnchors(statusText.rectTransform, new Vector2(0.05f, 0.305f), new Vector2(0.95f, 0.335f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(statusText.rectTransform, new Vector2(0.08f, 0.55f), new Vector2(0.92f, 0.585f), Vector2.zero, Vector2.zero);
         }
 
         private void CreateFooter(Transform parent)
         {
             GameObject actions = UIFactory.CreateHorizontalStack(parent, "ShowdownFooter", Color.clear, 10, 0);
-            UIFactory.SetAnchors(actions.GetComponent<RectTransform>(), new Vector2(0.05f, 0.065f), new Vector2(0.95f, 0.135f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(actions.GetComponent<RectTransform>(), new Vector2(0.30f, 0.015f), new Vector2(0.70f, 0.075f), Vector2.zero, Vector2.zero);
             replayButton = UIFactory.CreateButton(actions.transform, "REPLAY SHOWDOWN", BeginReplay, UIFactory.Green);
             replayButton.interactable = false;
             UIFactory.CreateButton(actions.transform, "EXIT PRACTICE", () => SceneManager.LoadScene("BossBattleScene"), UIFactory.PanelAlt);
@@ -192,7 +197,7 @@ namespace AppreciatorsTcg.UI
             AppendLog($"ROUND {round}: BOSS TURN — 3 Action Points available.");
             yield return new WaitForSecondsRealtime(0.5f);
 
-            if (signatureCooldown == 0 && round % 3 == 0)
+            if (signatureCooldown == 0 && round % 4 == 0)
             {
                 actionPoints = 0;
                 signatureCooldown = 2;
@@ -205,7 +210,7 @@ namespace AppreciatorsTcg.UI
                 yield break;
             }
 
-            if (bossHealth <= 100 && actionPoints > 0)
+            if (bossHealth <= 85 && actionPoints > 0)
             {
                 actionPoints -= 1;
                 shield = Mathf.Min(10, shield + 5);
@@ -248,8 +253,9 @@ namespace AppreciatorsTcg.UI
             for (int index = 0; index < aiHealth.Length && !complete; index += 1)
             {
                 if (aiHealth[index] <= 0) continue;
-                int damage = aiExhausted ? 1 : 3;
-                bool bossBlocks = shield > 0 || random.NextDouble() < 0.22d;
+                int damage = aiExhausted ? 5 : 7;
+                if (random.NextDouble() < 0.24d) damage += 2;
+                bool bossBlocks = shield > 0 || random.NextDouble() < 0.12d;
                 int shieldAbsorbed = Mathf.Min(shield, damage);
                 shield -= shieldAbsorbed;
                 int remaining = Mathf.Max(0, damage - shieldAbsorbed - (bossBlocks && shieldAbsorbed == 0 ? 2 : 0));
@@ -265,6 +271,28 @@ namespace AppreciatorsTcg.UI
                 {
                     complete = true;
                     AppendLog("THE BOSS HAS BEEN DOWNED — AI PARTY WINS THE SHOWDOWN.");
+                }
+            }
+            int survivingMembers = 0;
+            for (int index = 0; index < aiHealth.Length; index += 1)
+            {
+                if (aiHealth[index] > 0) survivingMembers += 1;
+            }
+            // A coordinated three-player party gets one transparent team play
+            // roughly half of its turns. This offsets the Boss' larger health pool
+            // and keeps the automatic practice encounter close to a 50/50 result.
+            if (!complete && survivingMembers >= 2 && random.NextDouble() < 0.50d)
+            {
+                const int comboDamage = 8;
+                bossHealth = Mathf.Max(0, bossHealth - comboDamage);
+                AppendLog($"AI PARTY COMBO â€” Learn, Build, and Grow chain for {comboDamage} damage.");
+                yield return Pulse(bossVisual, UIFactory.HeartRed, 0.30f);
+                RefreshBoard("AI PARTY COMBO RESOLVED");
+                yield return new WaitForSecondsRealtime(0.35f);
+                if (bossHealth <= 0)
+                {
+                    complete = true;
+                    AppendLog("THE BOSS HAS BEEN DOWNED â€” AI PARTY WINS THE SHOWDOWN.");
                 }
             }
             aiExhausted = false;

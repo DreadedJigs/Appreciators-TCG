@@ -19,6 +19,7 @@ namespace AppreciatorsTcg.Core
         private const string PendingPlayerRoleKey = "appreciators.pendingPlayerRole";
         private const string MockWalletAddressKey = "appreciators.mockWalletAddress";
         private const string MockWalletVerifiedKey = "appreciators.mockWalletVerified";
+        private const string SelectedBossTokenIdKey = "appreciators.selectedBossTokenId";
         private const string PlayerIdKey = "appreciators.playerId";
         private const string AccountNameKey = "appreciators.accountName.v1";
         private const string PendingPackRequestIdKey = "appreciators.pendingPackRequestId";
@@ -221,6 +222,17 @@ namespace AppreciatorsTcg.Core
             PlayerPrefs.DeleteKey(MockWalletAddressKey);
             PlayerPrefs.DeleteKey(MockWalletVerifiedKey);
             PlayerPrefs.Save();
+        }
+
+        public static void SaveSelectedBossTokenId(string tokenId)
+        {
+            PlayerPrefs.SetString(SelectedBossTokenIdKey, tokenId ?? string.Empty);
+            PlayerPrefs.Save();
+        }
+
+        public static string LoadSelectedBossTokenId()
+        {
+            return PlayerPrefs.GetString(SelectedBossTokenIdKey, string.Empty);
         }
 
         public static void SavePendingMatchContext(string mode, string inviteCode, string matchId, string opponentName, string playerId, string playerRole)

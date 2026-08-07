@@ -247,37 +247,37 @@ namespace AppreciatorsTcg.Data
 
         public IEnumerator JoinBossParty(string poolId, string playerId, string displayName, System.Action<BossBattleResponse> onSuccess, System.Action<string> onError)
         {
-            yield return PostBossMutation(poolId, "join", playerId, displayName, false, onSuccess, onError);
+            yield return PostBossMutation(poolId, "join", playerId, displayName, false, string.Empty, onSuccess, onError);
         }
 
         public IEnumerator LeaveBossParty(string poolId, string playerId, System.Action<BossBattleResponse> onSuccess, System.Action<string> onError)
         {
-            yield return PostBossMutation(poolId, "leave", playerId, string.Empty, false, onSuccess, onError);
+            yield return PostBossMutation(poolId, "leave", playerId, string.Empty, false, string.Empty, onSuccess, onError);
         }
 
         public IEnumerator SetBossPartyReady(string poolId, string playerId, bool ready, System.Action<BossBattleResponse> onSuccess, System.Action<string> onError)
         {
-            yield return PostBossMutation(poolId, "ready", playerId, string.Empty, ready, onSuccess, onError);
+            yield return PostBossMutation(poolId, "ready", playerId, string.Empty, ready, string.Empty, onSuccess, onError);
         }
 
         public IEnumerator ClaimBossRole(string poolId, string playerId, string displayName, System.Action<BossBattleResponse> onSuccess, System.Action<string> onError)
         {
-            yield return PostBossMutation(poolId, "claim-boss", playerId, displayName, false, onSuccess, onError);
+            yield return PostBossMutation(poolId, "claim-boss", playerId, displayName, false, string.Empty, onSuccess, onError);
         }
 
         public IEnumerator ReleaseBossRole(string poolId, string playerId, System.Action<BossBattleResponse> onSuccess, System.Action<string> onError)
         {
-            yield return PostBossMutation(poolId, "release-boss", playerId, string.Empty, false, onSuccess, onError);
+            yield return PostBossMutation(poolId, "release-boss", playerId, string.Empty, false, string.Empty, onSuccess, onError);
         }
 
         public IEnumerator ChallengeBoss(string poolId, string playerId, System.Action<BossBattleResponse> onSuccess, System.Action<string> onError)
         {
-            yield return PostBossMutation(poolId, "challenge", playerId, string.Empty, false, onSuccess, onError);
+            yield return PostBossMutation(poolId, "challenge", playerId, string.Empty, false, string.Empty, onSuccess, onError);
         }
 
-        public IEnumerator PracticeBossAgainstAi(string poolId, string playerId, System.Action<BossBattleResponse> onSuccess, System.Action<string> onError)
+        public IEnumerator PracticeBossAgainstAi(string poolId, string playerId, string selectedBossTokenId, System.Action<BossBattleResponse> onSuccess, System.Action<string> onError)
         {
-            yield return PostBossMutation(poolId, "practice", playerId, string.Empty, false, onSuccess, onError);
+            yield return PostBossMutation(poolId, "practice", playerId, string.Empty, false, selectedBossTokenId, onSuccess, onError);
         }
 
         public IEnumerator GetWalletAccount(string playerId, System.Action<WalletAccountResponse> onSuccess, System.Action<string> onError)
@@ -321,12 +321,19 @@ namespace AppreciatorsTcg.Data
             yield return PostJson("/api/wallet/account/disconnect", payload, onSuccess, onError, PackRequestTimeoutSeconds);
         }
 
+        public IEnumerator GrantAdminAccess(string playerId, string walletAddress, System.Action<AdminGrantResponse> onSuccess, System.Action<string> onError)
+        {
+            AdminGrantRequest payload = new AdminGrantRequest { playerId = playerId, walletAddress = walletAddress };
+            yield return PostJson("/api/admin/wallets/add", payload, onSuccess, onError, PackRequestTimeoutSeconds);
+        }
+
         private IEnumerator PostBossMutation(
             string poolId,
             string action,
             string playerId,
             string displayName,
             bool ready,
+            string selectedBossTokenId,
             System.Action<BossBattleResponse> onSuccess,
             System.Action<string> onError)
         {
@@ -334,7 +341,8 @@ namespace AppreciatorsTcg.Data
             {
                 playerId = playerId,
                 displayName = displayName,
-                ready = ready
+                ready = ready,
+                selectedBossTokenId = selectedBossTokenId
             };
             yield return PostJson(
                 $"/api/boss-battles/{UnityWebRequest.EscapeURL(poolId ?? string.Empty)}/{UnityWebRequest.EscapeURL(action ?? string.Empty)}",

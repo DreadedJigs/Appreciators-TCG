@@ -90,6 +90,7 @@ namespace AppreciatorsTcg.Packs
         private GameObject activeRevealCard;
         private readonly PackOpeningFlow openingFlow = new PackOpeningFlow();
         private bool revealConfirmationRequested;
+        private Button devButton;
 
         private void Start()
         {
@@ -226,7 +227,7 @@ namespace AppreciatorsTcg.Packs
             fastOpenButton = UIFactory.CreateButton(primaryActions.transform, "FAST OPEN", () => BeginOpen(true), UIFactory.Accent);
             UIFactory.CreateButton(primaryActions.transform, "ODDS", ToggleOdds, UIFactory.Blue);
             collectionButton = UIFactory.CreateButton(primaryActions.transform, "COLLECTION", () => SceneManager.LoadScene("CollectionScene"), UIFactory.PanelAlt);
-            Button devButton = UIFactory.CreateButton(primaryActions.transform, "DEV", ToggleDebugPanel, UIFactory.PortalViolet);
+            devButton = UIFactory.CreateButton(primaryActions.transform, "DEV", ToggleDebugPanel, UIFactory.PortalViolet);
             devButton.gameObject.SetActive(HasAdminAccess());
             backButton = BackButton(primaryActions.transform);
 
@@ -428,6 +429,7 @@ namespace AppreciatorsTcg.Packs
         {
             yield return RefreshServerInventoryRoutine();
             yield return RefreshBossPoolRoutine();
+            yield return RefreshDevAccessRoutine();
             if (!serverInventoryReady || string.IsNullOrWhiteSpace(pendingOpenRequestId))
             {
                 yield break;
@@ -446,6 +448,15 @@ namespace AppreciatorsTcg.Packs
                 packPromptText.text = "TAP RESUME OR HOLD PACK";
             }
             ShowPackStage();
+        }
+
+        private IEnumerator RefreshDevAccessRoutine()
+        {
+            if (devButton == null) yield break;
+            WalletAccountResponse response = null;
+            string requestError = null;
+            yield return apiClient.GetWalletAccount(playerId, value => response = value, error => requestError = error);
+            devButton.gameObject.SetActive(response?.wallet?.isAdmin == true && response.wallet.signatureVerified);
         }
 
         private GameObject CreateSection(Transform parent, string title)

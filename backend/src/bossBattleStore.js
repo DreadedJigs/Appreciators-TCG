@@ -5,9 +5,11 @@ import { getBossPoolStatus } from "./packInventoryStore.js";
 export const BOSS_MINIMUM_PARTY_SIZE = 2;
 export const BOSS_NOMINAL_PARTY_SIZE = 3;
 export const BOSS_MAXIMUM_PARTY_SIZE = 3;
+export const ROOT_ADMIN_WALLET = "0xd7941ba4c875569f7730d28c22a7b3ce62a1d4d4";
 
 const battles = new Map();
 const wallets = new Map();
+const adminWallets = new Set([ROOT_ADMIN_WALLET]);
 const persistenceEnabled =
   process.env.BOSS_BATTLE_PERSISTENCE === "true" ||
   (process.env.NODE_ENV === "production" && process.env.BOSS_BATTLE_PERSISTENCE !== "false");
@@ -167,6 +169,7 @@ export function startBossPractice(payload = {}) {
       "ONE_OF_ONE_HOLDER_REQUIRED"
     );
   }
+  const selectedBossAsset = selectVerifiedBossAsset(wallet, payload.selectedBossTokenId);
 
   const now = new Date().toISOString();
   battle.battleNumber += 1;
@@ -178,15 +181,33 @@ export function startBossPractice(payload = {}) {
     bossPower: 180,
     result: "practice-launched",
     difficulty: "standard-ai-practice",
-    summary: "Boss vs AI Practice launched: take your verified 1-of-1 Boss into a live 180 HP, 3 AP drill against three AI members.",
+    summary: `Boss vs AI Practice launched with ${selectedBossAsset.name}: a balanced 180 HP, 3 AP showdown against three AI members.`,
     resolvedAt: now,
     practice: true,
     bossHp: 180,
-    actionPoints: 3
+    actionPoints: 3,
+    bossAsset: selectedBossAsset
   };
   battle.updatedAt = now;
   persist({ required: true });
   return { success: true, battle: publicBattle(battle, playerId) };
+}
+
+export function grantAdminAccess(payload = {}) {
+  loadIfNeeded();
+  const playerId = requirePlayerId(payload.playerId);
+  const requester = wallets.get(playerId);
+  if (!isWalletAdmin(requester) || requester.signatureVerified !== true) {
+    throw requestError("A signed admin wallet is required to manage the admin list.", 403, "ADMIN_REQUIRED");
+  }
+  const walletAddress = normalizeWalletAddress(payload.walletAddress).toLowerCase();
+  adminWallets.add(walletAddress);
+  persist({ required: true });
+  return {
+    success: true,
+    admins: publicAdminWallets(),
+    message: `${shortWallet(walletAddress)} can now access administrator tools after signing in.`
+  };
 }
 
 export function linkWalletAccount(payload = {}) {
@@ -206,6 +227,12 @@ export function linkWalletAccount(payload = {}) {
     oneOfOneEligible: allowlisted,
     holderRole: allowlisted ? "1-of-1 Boss" : "Member",
     eligibilitySource: allowlisted ? "server allowlist" : "not verified",
+    assets: allowlisted ? [{
+      tokenId: 1618,
+      name: "QA Verified 1-of-1",
+      image: "",
+      oneOfOne: true
+    }] : [],
     updatedAt: now
   };
   wallets.set(playerId, wallet);
@@ -286,6 +313,8 @@ export function disconnectWalletAccount(payload = {}) {
 export function resetBossBattlesForTests() {
   battles.clear();
   wallets.clear();
+  adminWallets.clear();
+  adminWallets.add(ROOT_ADMIN_WALLET);
   loaded = true;
 }
 
@@ -357,7 +386,7 @@ function provisionalBoss() {
 }
 
 function publicWallet(wallet) {
-  return { ...wallet };
+  return { ...wallet, isAdmin: isWalletAdmin(wallet) };
 }
 
 function emptyWallet(playerId) {
@@ -375,8 +404,36 @@ function emptyWallet(playerId) {
     originalsBalance: 0,
     assets: [],
     verificationError: "",
+    isAdmin: false,
     updatedAt: ""
   };
+}
+
+function selectVerifiedBossAsset(wallet, requestedTokenId) {
+  const eligibleAssets = (wallet.assets || []).filter((asset) => asset?.oneOfOne === true);
+  if (eligibleAssets.length === 0) {
+    throw requestError("No server-verified 1-of-1 asset is available for this wallet.", 403, "BOSS_ASSET_REQUIRED");
+  }
+  const selectedTokenId = String(requestedTokenId || "").trim();
+  const selected = selectedTokenId
+    ? eligibleAssets.find((asset) => String(asset.tokenId) === selectedTokenId)
+    : eligibleAssets[0];
+  if (!selected) {
+    throw requestError("Choose a verified 1-of-1 currently held by this wallet before starting practice.", 403, "BOSS_ASSET_NOT_OWNED");
+  }
+  return {
+    tokenId: String(selected.tokenId),
+    name: safeDisplayName(selected.name || "Verified 1-of-1"),
+    image: String(selected.image || "").slice(0, 512)
+  };
+}
+
+function isWalletAdmin(wallet) {
+  return Boolean(wallet?.walletAddress && adminWallets.has(String(wallet.walletAddress).toLowerCase()));
+}
+
+function publicAdminWallets() {
+  return [...adminWallets].sort().map((walletAddress) => ({ walletAddress, displayAddress: shortWallet(walletAddress) }));
 }
 
 function oneOfOneAllowlist() {
@@ -438,6 +495,9 @@ function loadIfNeeded() {
     const stored = JSON.parse(readFileSync(persistencePath, "utf8"));
     for (const battle of stored.battles || []) if (battle?.poolId) battles.set(battle.poolId, battle);
     for (const wallet of stored.wallets || []) if (wallet?.playerId) wallets.set(wallet.playerId, wallet);
+    for (const walletAddress of stored.adminWallets || []) {
+      try { adminWallets.add(normalizeWalletAddress(walletAddress).toLowerCase()); } catch { /* Ignore corrupt entries. */ }
+    }
   } catch (error) {
     if (error.code !== "ENOENT") console.warn(`Boss battle persistence could not load ${persistencePath}: ${error.message}`);
   }
@@ -451,7 +511,8 @@ function persist({ required = false } = {}) {
     writeFileSync(temporaryPath, JSON.stringify({
       savedAt: new Date().toISOString(),
       battles: [...battles.values()],
-      wallets: [...wallets.values()]
+      wallets: [...wallets.values()],
+      adminWallets: [...adminWallets]
     }, null, 2));
     renameSync(temporaryPath, persistencePath);
     return true;

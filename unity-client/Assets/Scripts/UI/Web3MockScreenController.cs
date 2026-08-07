@@ -17,6 +17,7 @@ namespace AppreciatorsTcg.UI
         private string playerId;
         private InputField walletInput;
         private InputField apiInput;
+        private InputField adminWalletInput;
         private Text accountText;
         private Text connectionText;
         private Text eligibilityText;
@@ -29,9 +30,11 @@ namespace AppreciatorsTcg.UI
         private Button linkButton;
         private Button syncButton;
         private Button disconnectButton;
+        private GameObject adminControls;
         private WalletAccountStatus walletStatus;
         private WalletChallengeResponse activeChallenge;
         private string pendingWalletAddress;
+        private int selectedBossAssetIndex;
         private bool requestActive;
 
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -192,6 +195,14 @@ namespace AppreciatorsTcg.UI
             ownershipText.lineSpacing = 1.10f;
             LayoutElement ownershipLayout = ownershipText.gameObject.AddComponent<LayoutElement>();
             ownershipLayout.flexibleWidth = 1;
+            GameObject bossChoice = UIFactory.CreateHorizontalStack(panel.transform, "BossAssetChoice", Color.clear, 6, 0);
+            SetHeight(bossChoice, 34);
+            Button previous = UIFactory.CreateButton(bossChoice.transform, "< 1/1", SelectPreviousBossAsset, UIFactory.PortalViolet);
+            Button choose = UIFactory.CreateButton(bossChoice.transform, "USE AS BOSS", SaveSelectedBossAsset, UIFactory.Green);
+            Button next = UIFactory.CreateButton(bossChoice.transform, "1/1 >", SelectNextBossAsset, UIFactory.PortalViolet);
+            CompactButton(previous);
+            CompactButton(choose);
+            CompactButton(next);
             return panel;
         }
 
@@ -203,6 +214,13 @@ namespace AppreciatorsTcg.UI
             apiInput = UIFactory.CreateInputField(panel.transform, AppConfig.DefaultApiBaseUrl, AppConfig.ApiBaseUrl);
             SetHeight(apiInput.gameObject, 54);
             CompactInput(apiInput);
+            adminControls = UIFactory.CreateHorizontalStack(panel.transform, "AdminControls", Color.clear, 6, 0);
+            SetHeight(adminControls, 42);
+            adminWalletInput = UIFactory.CreateInputField(adminControls.transform, "ADMIN WALLET", string.Empty);
+            CompactInput(adminWalletInput);
+            Button addAdmin = UIFactory.CreateButton(adminControls.transform, "ADD ADMIN", AddAdmin, UIFactory.Red);
+            CompactButton(addAdmin);
+            adminControls.SetActive(false);
             return panel;
         }
 
@@ -419,17 +437,26 @@ namespace AppreciatorsTcg.UI
             eligibilityText.color = walletStatus.oneOfOneEligible ? UIFactory.Green : UIFactory.Cream;
             if (bossModeShimmer != null) bossModeShimmer.enabled = walletStatus.oneOfOneEligible && walletStatus.ownershipVerified;
             WalletOwnedAsset[] assets = walletStatus.assets ?? Array.Empty<WalletOwnedAsset>();
+            if (assets.Length == 0) selectedBossAssetIndex = 0;
+            else
+            {
+                string savedTokenId = LocalSaveSystem.LoadSelectedBossTokenId();
+                int savedIndex = Array.FindIndex(assets, asset => asset != null && asset.tokenId.ToString() == savedTokenId);
+                if (savedIndex >= 0) selectedBossAssetIndex = savedIndex;
+                selectedBossAssetIndex = Mathf.Clamp(selectedBossAssetIndex, 0, assets.Length - 1);
+            }
             string assetList = assets.Length == 0
                 ? "NO 1-OF-1 ASSETS IN THIS WALLET"
                 : string.Join("  •  ", Array.ConvertAll(assets, asset => $"{asset.name} #{asset.tokenId}"));
-            ownershipText.text = $"ORIGINALS  {walletStatus.originalsBalance}\n{assetList}";
+            string selectedLabel = assets.Length > 0 ? $"\nBOSS SELECTED  {assets[selectedBossAssetIndex].name} #{assets[selectedBossAssetIndex].tokenId}" : string.Empty;
+            ownershipText.text = $"ORIGINALS  {walletStatus.originalsBalance}\n{assetList}{selectedLabel}";
             ownershipText.color = assets.Length > 0 ? UIFactory.Green : UIFactory.Cream;
             if (assetPreviewImage != null)
             {
                 assetPreviewImage.sprite = null;
                 assetPreviewImage.color = assets.Length > 0 ? Color.white : new Color(UIFactory.PortalViolet.r, UIFactory.PortalViolet.g, UIFactory.PortalViolet.b, 0.24f);
                 if (walletStatus.ownershipVerified) ApplyVerifiedOwnerPreview();
-                else if (assets.Length > 0 && !string.IsNullOrWhiteSpace(assets[0].image)) StartCoroutine(LoadAssetPreviewRoutine(assets[0].image));
+                else if (assets.Length > 0 && !string.IsNullOrWhiteSpace(assets[selectedBossAssetIndex].image)) StartCoroutine(LoadAssetPreviewRoutine(assets[selectedBossAssetIndex].image));
             }
             if (ownershipApprovalMark != null)
             {
@@ -438,6 +465,61 @@ namespace AppreciatorsTcg.UI
             linkButton.interactable = !requestActive;
             syncButton.interactable = !requestActive && connected;
             disconnectButton.interactable = !requestActive && connected;
+            if (adminControls != null) adminControls.SetActive(walletStatus.isAdmin && walletStatus.signatureVerified);
+        }
+
+        private void AddAdmin()
+        {
+            if (requestActive || adminWalletInput == null) return;
+            StartCoroutine(AddAdminRoutine(adminWalletInput.text.Trim()));
+        }
+
+        private IEnumerator AddAdminRoutine(string walletAddress)
+        {
+            requestActive = true;
+            AdminGrantResponse response = null;
+            string requestError = null;
+            yield return apiClient.GrantAdminAccess(playerId, walletAddress, value => response = value, error => requestError = error);
+            requestActive = false;
+            if (response?.success == true)
+            {
+                adminWalletInput.text = string.Empty;
+                SetMessage(response.message, UIFactory.Green);
+            }
+            else SetMessage(ReadableError(requestError), UIFactory.Red);
+            ApplyWalletStatus();
+        }
+
+        private void SelectPreviousBossAsset()
+        {
+            SelectBossAsset(-1);
+        }
+
+        private void SelectNextBossAsset()
+        {
+            SelectBossAsset(1);
+        }
+
+        private void SelectBossAsset(int direction)
+        {
+            WalletOwnedAsset[] assets = walletStatus?.assets ?? Array.Empty<WalletOwnedAsset>();
+            if (assets.Length == 0) return;
+            selectedBossAssetIndex = (selectedBossAssetIndex + direction + assets.Length) % assets.Length;
+            LocalSaveSystem.SaveSelectedBossTokenId(assets[selectedBossAssetIndex].tokenId.ToString());
+            ApplyWalletStatus();
+            SetMessage($"Selected {assets[selectedBossAssetIndex].name} as the Boss Battle 1-of-1.", UIFactory.Green);
+        }
+
+        private void SaveSelectedBossAsset()
+        {
+            WalletOwnedAsset[] assets = walletStatus?.assets ?? Array.Empty<WalletOwnedAsset>();
+            if (assets.Length == 0)
+            {
+                SetMessage("No server-verified 1-of-1 asset is available to select.", UIFactory.Red);
+                return;
+            }
+            LocalSaveSystem.SaveSelectedBossTokenId(assets[selectedBossAssetIndex].tokenId.ToString());
+            SetMessage($"{assets[selectedBossAssetIndex].name} will enter Boss Battle as your selected 1-of-1.", UIFactory.Green);
         }
 
         private void ApplyVerifiedOwnerPreview()

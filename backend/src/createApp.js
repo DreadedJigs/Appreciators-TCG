@@ -60,6 +60,7 @@ import {
 import {
   claimBossRole,
   disconnectWalletAccount,
+  grantAdminAccess,
   getBossBattleState,
   getWalletAccount,
   joinBossParty,
@@ -563,6 +564,14 @@ export function createApp() {
   app.post("/api/wallet/account/disconnect", economyWriteLimiter, (req, res, next) => {
     try {
       res.json(disconnectWalletAccount(req.body));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/admin/wallets/add", economyWriteLimiter, (req, res, next) => {
+    try {
+      res.json(grantAdminAccess(req.body));
     } catch (error) {
       next(error);
     }

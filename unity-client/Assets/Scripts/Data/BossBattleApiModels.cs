@@ -56,6 +56,7 @@ namespace AppreciatorsTcg.Data
         public bool practice;
         public int bossHp;
         public int actionPoints;
+        public WalletOwnedAsset bossAsset;
     }
 
     [Serializable]
@@ -88,6 +89,7 @@ namespace AppreciatorsTcg.Data
         public string playerId;
         public string displayName;
         public bool ready;
+        public string selectedBossTokenId;
     }
 
     [Serializable]
@@ -101,6 +103,7 @@ namespace AppreciatorsTcg.Data
         public bool signatureVerified;
         public bool ownershipVerified;
         public bool oneOfOneEligible;
+        public bool isAdmin;
         public string holderRole;
         public string eligibilitySource;
         public int originalsBalance;
@@ -153,5 +156,19 @@ namespace AppreciatorsTcg.Data
         public string walletAddress;
         public string challengeId;
         public string signature;
+    }
+
+    [Serializable]
+    public class AdminGrantRequest
+    {
+        public string playerId;
+        public string walletAddress;
+    }
+
+    [Serializable]
+    public class AdminGrantResponse
+    {
+        public bool success;
+        public string message;
     }
 }
