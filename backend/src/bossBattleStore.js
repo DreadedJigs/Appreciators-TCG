@@ -422,7 +422,7 @@ function selectVerifiedBossAsset(wallet, requestedTokenId) {
     throw requestError("Choose a verified 1-of-1 currently held by this wallet before starting practice.", 403, "BOSS_ASSET_NOT_OWNED");
   }
   return {
-    tokenId: String(selected.tokenId),
+    tokenId: selected.tokenId,
     name: safeDisplayName(selected.name || "Verified 1-of-1"),
     image: String(selected.image || "").slice(0, 512)
   };
