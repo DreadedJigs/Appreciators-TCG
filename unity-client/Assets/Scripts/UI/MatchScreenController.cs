@@ -66,6 +66,8 @@ namespace AppreciatorsTcg.UI
         private Text playerLeaderText;
         private RectTransform opponentHandContent;
         private RectTransform lanesContent;
+        private RectTransform battlefieldDropRect;
+        private GameObject battlefieldDropHint;
         private RectTransform handContent;
         private RectTransform opponentShardContent;
         private RectTransform playerShardContent;
@@ -2889,15 +2891,33 @@ namespace AppreciatorsTcg.UI
                 Color.clear);
             UIFactory.SetAnchors(
                 lanePanel.GetComponent<RectTransform>(),
-                new Vector2(0.035f, 0.325f),
-                new Vector2(0.965f, 0.500f),
+                new Vector2(0.035f, 0.285f),
+                new Vector2(0.965f, 0.685f),
                 Vector2.zero,
                 Vector2.zero);
+            battlefieldDropRect = lanePanel.GetComponent<RectTransform>();
             PlaymatZoneMotion motion = lanePanel.AddComponent<PlaymatZoneMotion>();
             motion.Configure(false, Color.clear);
             MatchLaneDropZone dropZone = lanePanel.AddComponent<MatchLaneDropZone>();
             dropZone.Controller = this;
             dropZone.Lane = LaneType.Community;
+
+            battlefieldDropHint = UIFactory.CreatePanel(lanesContent, "BattlefieldDropHint", new Color(UIFactory.NeonCyan.r, UIFactory.NeonCyan.g, UIFactory.NeonCyan.b, 0.10f));
+            RectTransform hintRect = battlefieldDropHint.GetComponent<RectTransform>();
+            UIFactory.SetAnchors(hintRect, new Vector2(0.055f, 0.305f), new Vector2(0.945f, 0.665f), Vector2.zero, Vector2.zero);
+            Image hintImage = battlefieldDropHint.GetComponent<Image>();
+            hintImage.raycastTarget = false;
+            Outline hintOutline = battlefieldDropHint.AddComponent<Outline>();
+            hintOutline.effectColor = UIFactory.NeonCyan;
+            hintOutline.effectDistance = new Vector2(4f, -4f);
+            Text hintText = UIFactory.CreateText(battlefieldDropHint.transform, "DROP ANYWHERE ON THE BATTLEFIELD", 22, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            UIFactory.Stretch(hintText.rectTransform);
+            hintText.raycastTarget = false;
+            hintText.resizeTextForBestFit = true;
+            hintText.resizeTextMinSize = 13;
+            hintText.resizeTextMaxSize = 22;
+            battlefieldDropHint.SetActive(selectedHandIndex >= 0 && CanStartCardDrag(selectedHandIndex));
+            battlefieldDropHint.transform.SetSiblingIndex(1);
 
             GameObject opponentRow = CreateBoardCardRow(lanesContent, lane, OwnerSide.Opponent);
             UIFactory.SetAnchors(opponentRow.GetComponent<RectTransform>(), new Vector2(0.120f, 0.505f), new Vector2(0.880f, 0.665f), Vector2.zero, Vector2.zero);
@@ -3281,17 +3301,35 @@ namespace AppreciatorsTcg.UI
         {
             selectedHandIndex = handIndex;
             RefreshTransientHandUi();
+            SetBattlefieldDropHighlight(true);
         }
 
         public void CancelDraggingHandCard()
         {
             selectedHandIndex = -1;
             RefreshTransientHandUi();
+            SetBattlefieldDropHighlight(false);
+        }
+
+        public void SetBattlefieldDropHighlight(bool visible)
+        {
+            if (battlefieldDropHint != null)
+            {
+                battlefieldDropHint.SetActive(visible);
+                if (visible) battlefieldDropHint.transform.SetAsLastSibling();
+            }
+        }
+
+        public bool IsBattlefieldDropPoint(Vector2 screenPoint, Camera eventCamera)
+        {
+            return battlefieldDropRect != null &&
+                RectTransformUtility.RectangleContainsScreenPoint(battlefieldDropRect, screenPoint, eventCamera);
         }
 
         public void PlayHandCardFromDrop(int handIndex, LaneType lane)
         {
             selectedHandIndex = handIndex;
+            SetBattlefieldDropHighlight(false);
             ShowPlayChoiceDialog(handIndex);
         }
 

@@ -87,6 +87,7 @@ namespace AppreciatorsTcg.UI
             if (shardDropZone != null && shardDropZone.Controller == Controller)
             {
                 DestroyGhost();
+                Controller.SetBattlefieldDropHighlight(false);
                 Controller.DiscardHandCard(HandIndex);
                 return;
             }
@@ -95,6 +96,17 @@ namespace AppreciatorsTcg.UI
             {
                 DestroyGhost();
                 Controller.PlayHandCardFromDrop(HandIndex, dropZone.Lane);
+                return;
+            }
+
+            // Mobile cards, art, and HUD elements can sit above the transparent
+            // surface in the raycast stack. Treat every point inside the shared
+            // battlefield as a valid Build drop rather than requiring a precise
+            // pixel-perfect hit on the hidden lane zone.
+            if (Controller.IsBattlefieldDropPoint(eventData.position, eventData.pressEventCamera))
+            {
+                DestroyGhost();
+                Controller.PlayHandCardFromDrop(HandIndex, LaneType.Community);
                 return;
             }
 
