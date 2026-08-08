@@ -18,11 +18,13 @@ namespace AppreciatorsTcg.UI
         {
             if (parent == null) yield break;
             Clear();
-            string label = phase == BattleTurnPhase.GatherGrowth ? "GATHER GROWTH" :
+            string label = phase == BattleTurnPhase.GatherGrowth ? "GROW PHASE" :
                 phase == BattleTurnPhase.Cycle ? "CYCLE" :
                 phase == BattleTurnPhase.BuildOrDiscard ? "BUILD OR DISCARD" :
                 phase == BattleTurnPhase.Discard ? "DISCARD PHASE" :
                 phase == BattleTurnPhase.EndTurn ? "END TURN" : $"{phase.ToString().ToUpperInvariant()} PHASE";
+            string caption = phase == BattleTurnPhase.Learn ? "PLAN YOUR PLAY" :
+                phase == BattleTurnPhase.GatherGrowth ? "STACK APPRECIATION" : string.Empty;
             UiAudioService.PlayPhaseSweep(label);
             GameObject banner = UIFactory.CreatePanel(parent, "PhaseAnnouncement", ThemeService.IsDark
                 ? new Color(0.035f, 0.02f, 0.16f, 0.96f)
@@ -33,7 +35,12 @@ namespace AppreciatorsTcg.UI
             CanvasGroup group = banner.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
             Text text = UIFactory.CreateText(banner.transform, label, 34, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
-            UIFactory.Stretch(text.rectTransform);
+            UIFactory.SetAnchors(text.rectTransform, new Vector2(0.04f, string.IsNullOrEmpty(caption) ? 0.08f : 0.38f), new Vector2(0.96f, string.IsNullOrEmpty(caption) ? 0.92f : 0.96f), Vector2.zero, Vector2.zero);
+            if (!string.IsNullOrEmpty(caption))
+            {
+                Text captionText = UIFactory.CreateText(banner.transform, caption, 17, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+                UIFactory.SetAnchors(captionText.rectTransform, new Vector2(0.08f, 0.08f), new Vector2(0.92f, 0.40f), Vector2.zero, Vector2.zero);
+            }
             banner.transform.SetAsLastSibling();
 
             float travel = ThemeService.ReducedMotion ? 0.10f : 0.30f;

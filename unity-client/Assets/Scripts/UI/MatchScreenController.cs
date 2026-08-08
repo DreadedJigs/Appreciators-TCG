@@ -112,6 +112,7 @@ namespace AppreciatorsTcg.UI
         private GameObject tutorialPanel;
         private GameObject tutorialHighlight;
         private Text tutorialTitle;
+        private Text tutorialCaption;
         private Text tutorialBody;
         private Button tutorialNextButton;
         private Button tutorialPreviousButton;
@@ -954,6 +955,11 @@ namespace AppreciatorsTcg.UI
             LayoutElement titleLayout = tutorialTitle.gameObject.AddComponent<LayoutElement>();
             titleLayout.minHeight = 58;
             titleLayout.preferredHeight = 64;
+            tutorialCaption = UIFactory.CreateText(tutorialPanel.transform, string.Empty, 24, TextAnchor.MiddleCenter, UIFactory.NeonCyan, FontStyle.Bold);
+            LayoutElement captionLayout = tutorialCaption.gameObject.AddComponent<LayoutElement>();
+            captionLayout.minHeight = 30;
+            captionLayout.preferredHeight = 34;
+            tutorialCaption.gameObject.SetActive(false);
             tutorialBody = UIFactory.CreateText(tutorialPanel.transform, string.Empty, 46, TextAnchor.MiddleLeft, UIFactory.Cream, FontStyle.Bold);
             LayoutElement bodyLayout = tutorialBody.gameObject.AddComponent<LayoutElement>();
             bodyLayout.flexibleHeight = 1f;
@@ -1084,6 +1090,7 @@ namespace AppreciatorsTcg.UI
             if (expand)
             {
                 tutorialTitle.gameObject.SetActive(true);
+                if (tutorialCaption != null && !string.IsNullOrWhiteSpace(tutorialCaption.text)) tutorialCaption.gameObject.SetActive(true);
                 tutorialBody.gameObject.SetActive(true);
             }
             else
@@ -1115,6 +1122,7 @@ namespace AppreciatorsTcg.UI
             if (!expand)
             {
                 tutorialTitle.gameObject.SetActive(false);
+                if (tutorialCaption != null) tutorialCaption.gameObject.SetActive(false);
                 tutorialBody.gameObject.SetActive(false);
             }
         }
@@ -1127,6 +1135,7 @@ namespace AppreciatorsTcg.UI
             tutorialPanelRect.offsetMin = Vector2.zero;
             tutorialPanelRect.offsetMax = Vector2.zero;
             tutorialTitle?.gameObject.SetActive(expanded);
+            if (tutorialCaption != null) tutorialCaption.gameObject.SetActive(expanded && !string.IsNullOrWhiteSpace(tutorialCaption.text));
             tutorialBody?.gameObject.SetActive(expanded);
         }
 
@@ -1253,6 +1262,7 @@ namespace AppreciatorsTcg.UI
             SetButtonText(tutorialNextButton, "NEXT - PLAY STEP");
             tutorialPreviousButton.interactable = !tutorialStepPlaying && step > TutorialStep.Objective;
             tutorialSkipButton.gameObject.SetActive(tutorialCoreDemonstrated);
+            SetTutorialCaption(null);
 
             switch (step)
             {
@@ -1272,8 +1282,9 @@ namespace AppreciatorsTcg.UI
                     SetTutorialHighlight(new Rect(0.370f, 0.095f, 0.605f, 0.185f));
                     break;
                 case TutorialStep.Learn:
-                    tutorialTitle.text = "4 / 17  LEARN";
-                    tutorialBody.text = "Inspect both centered hand cards before committing. Cards use Attack and Defense, and holding or clicking any revealed card opens its complete Build and Instant text.";
+                    tutorialTitle.text = "4 / 17  LEARN PHASE";
+                    SetTutorialCaption("PLAN YOUR PLAY");
+                    tutorialBody.text = "Examine the field, cards & discard piles. Holding or clicking any revealed card opens its complete Build and Discard text before you commit.";
                     SetTutorialHighlight(new Rect(0.365f, 0.095f, 0.270f, 0.180f));
                     break;
                 case TutorialStep.BuildOrDiscard:
@@ -1327,8 +1338,9 @@ namespace AppreciatorsTcg.UI
                     SetTutorialHighlight(new Rect(0.180f, 0.335f, 0.640f, 0.285f));
                     break;
                 case TutorialStep.GatherGrowth:
-                    tutorialTitle.text = "15 / 17  GATHER GROWTH";
-                    tutorialBody.text = "Surviving built cards and ready board abilities generate Growth after Combat. Growth is queued beside each player's native Appreciation well until Cycle.";
+                    tutorialTitle.text = "15 / 17  GROW PHASE";
+                    SetTutorialCaption("STACK APPRECIATION");
+                    tutorialBody.text = "Build Appreciation to unlock greater rewards. Surviving built cards and ready board abilities generate Growth after Combat, then Cycle banks it into Appreciation.";
                     SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
                 case TutorialStep.Cycle:
@@ -1346,6 +1358,14 @@ namespace AppreciatorsTcg.UI
 
             tutorialHighlight.transform.SetAsLastSibling();
             tutorialPanel.transform.SetAsLastSibling();
+        }
+
+        private void SetTutorialCaption(string value)
+        {
+            if (tutorialCaption == null) return;
+            bool hasCaption = !string.IsNullOrWhiteSpace(value);
+            tutorialCaption.gameObject.SetActive(hasCaption);
+            tutorialCaption.text = hasCaption ? value : string.Empty;
         }
 
         private void SetTutorialHighlight(Rect normalizedRect)
