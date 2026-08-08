@@ -455,8 +455,11 @@ namespace AppreciatorsTcg.UI
             {
                 assetPreviewImage.sprite = null;
                 assetPreviewImage.color = assets.Length > 0 ? Color.white : new Color(UIFactory.PortalViolet.r, UIFactory.PortalViolet.g, UIFactory.PortalViolet.b, 0.24f);
-                if (walletStatus.ownershipVerified) ApplyVerifiedOwnerPreview();
-                else if (assets.Length > 0 && !string.IsNullOrWhiteSpace(assets[selectedBossAssetIndex].image)) StartCoroutine(LoadAssetPreviewRoutine(assets[selectedBossAssetIndex].image));
+                // A verified 1-of-1 should show its own canonical metadata art.
+                // The branded reverse remains the offline/fallback preview only.
+                if (assets.Length > 0 && !string.IsNullOrWhiteSpace(assets[selectedBossAssetIndex].image))
+                    StartCoroutine(LoadAssetPreviewRoutine(assets[selectedBossAssetIndex].image));
+                else if (walletStatus.ownershipVerified) ApplyVerifiedOwnerPreview();
             }
             if (ownershipApprovalMark != null)
             {

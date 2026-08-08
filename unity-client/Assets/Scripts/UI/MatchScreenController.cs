@@ -39,6 +39,10 @@ namespace AppreciatorsTcg.UI
 
         private const int MatchHandCardWidth = 127;
         private const int MatchHandCardHeight = 190;
+        // Phone hands retain the official 2:3 silhouette while preserving a
+        // clear gutter to the battlefield and outer playmat edge.
+        private const int MobileHandCardWidth = 102;
+        private const int MobileHandCardHeight = 153;
         private const int PlayerBoardCardWidth = 92;
         private const int PlayerBoardCardHeight = 138;
         private const int OpponentBoardCardWidth = PlayerBoardCardWidth;
@@ -73,6 +77,7 @@ namespace AppreciatorsTcg.UI
         private RectTransform playerShardContent;
         private RectTransform opponentDiscardContent;
         private RectTransform playerDiscardContent;
+        private GameObject discardStackOverlay;
         private RectTransform playmatRoot;
         private ScrollRect handScrollRect;
         private BattleCombatAnimationController combatAnimator;
@@ -215,6 +220,8 @@ namespace AppreciatorsTcg.UI
                 new Vector2(0.178f, 0.258f),
                 -48,
                 TextAnchor.MiddleCenter);
+            ConfigureDiscardStackControl(playerDiscardContent, true);
+            ConfigureDiscardStackControl(opponentDiscardContent, false);
             opponentHandContent = CreateAnchoredHorizontal(
                 screen.transform,
                 "OpponentHandCards",
@@ -374,6 +381,7 @@ namespace AppreciatorsTcg.UI
                     },
                     selectedHandIndex == i,
                     $"ATK {card.GetAttack()}  |  DEF {card.GetDefense()}");
+                ApplyHandCardSizing(cardPanel);
                 CreateCombatStatsBadge(cardPanel.transform, card);
                 Button handButton = cardPanel.GetComponent<Button>();
                 if (handButton != null && tutorialMatch)
@@ -2418,9 +2426,9 @@ namespace AppreciatorsTcg.UI
         private void ApplyMirroredPlayerZoneLayout(bool phoneLayout, bool portrait)
         {
             float controlHeight = phoneLayout ? 0.105f : 0.048f;
-            float handHeight = phoneLayout ? 0.135f : 0.105f;
-            float handY = phoneLayout ? 0.155f : 0.160f;
-            float opponentHandY = phoneLayout ? 0.710f : 0.735f;
+            float handHeight = phoneLayout ? 0.122f : 0.105f;
+            float handY = phoneLayout ? 0.118f : 0.160f;
+            float opponentHandY = phoneLayout ? 0.760f : 0.735f;
             SetRect(opponentHudContent, phoneLayout
                 ? new Rect(0.205f, 0.908f, 0.590f, 0.078f)
                 : new Rect(0.260f, 0.940f, 0.480f, 0.048f));
@@ -2431,11 +2439,14 @@ namespace AppreciatorsTcg.UI
             SetRect(opponentDiscardContent, phoneLayout ? new Rect(0.030f, 0.742f, 0.086f, 0.148f) : new Rect(0.030f, 0.735f, 0.105f, 0.165f));
             SetRect(playerDiscardContent, phoneLayout ? new Rect(0.030f, 0.110f, 0.086f, 0.148f) : new Rect(0.030f, 0.100f, 0.105f, 0.165f));
 
-            SetRect(opponentAppreciationMeter, phoneLayout ? new Rect(0.135f, 0.742f, 0.122f, 0.148f) : new Rect(0.165f, 0.735f, 0.100f, 0.165f));
-            SetRect(playerAppreciationMeter, phoneLayout ? new Rect(0.135f, 0.110f, 0.122f, 0.148f) : new Rect(0.165f, 0.100f, 0.100f, 0.165f));
+            // The liquid reservoir follows the printed Appreciation well exactly.
+            // Its prior left offset belonged to the old board crop and made the
+            // fill appear beside the button instead of inside it on phones.
+            SetRect(opponentAppreciationMeter, new Rect(0.160f, 0.720f, 0.110f, 0.185f));
+            SetRect(playerAppreciationMeter, new Rect(0.160f, 0.095f, 0.110f, 0.185f));
 
-            SetRect(opponentHandContent, new Rect(phoneLayout ? 0.355f : 0.390f, opponentHandY, phoneLayout ? 0.290f : 0.220f, handHeight));
-            SetRect(handScrollRect, new Rect(phoneLayout ? 0.355f : 0.390f, handY, phoneLayout ? 0.290f : 0.220f, handHeight));
+            SetRect(opponentHandContent, new Rect(phoneLayout ? 0.365f : 0.390f, opponentHandY, phoneLayout ? 0.270f : 0.220f, handHeight));
+            SetRect(handScrollRect, new Rect(phoneLayout ? 0.365f : 0.390f, handY, phoneLayout ? 0.270f : 0.220f, handHeight));
 
             SetRect(endTurnButton, new Rect(phoneLayout ? 0.800f : 0.820f, 0.012f, phoneLayout ? 0.185f : 0.150f, controlHeight));
             float nextControlHeight = phoneLayout ? 0.078f : 0.044f;
@@ -2620,15 +2631,15 @@ namespace AppreciatorsTcg.UI
         {
             GameObject opponentVessel = new GameObject("OpponentAppreciationReservoir", typeof(RectTransform));
             opponentVessel.transform.SetParent(parent, false);
-            UIFactory.SetAnchors(opponentVessel.GetComponent<RectTransform>(), new Vector2(0.198f, 0.711f), new Vector2(0.375f, 0.952f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(opponentVessel.GetComponent<RectTransform>(), new Vector2(0.160f, 0.720f), new Vector2(0.270f, 0.905f), Vector2.zero, Vector2.zero);
             opponentAppreciationMeter = opponentVessel.AddComponent<AppreciationLiquidMeter>();
-            opponentAppreciationMeter.Configure(GameConstants.AppreciationVictoryTarget, UIFactory.Red, new Rect(0.198f, 0.711f, 0.177f, 0.241f));
+            opponentAppreciationMeter.Configure(GameConstants.AppreciationVictoryTarget, UIFactory.Red, new Rect(0.160f, 0.720f, 0.110f, 0.185f));
 
             GameObject playerVessel = new GameObject("PlayerAppreciationReservoir", typeof(RectTransform));
             playerVessel.transform.SetParent(parent, false);
-            UIFactory.SetAnchors(playerVessel.GetComponent<RectTransform>(), new Vector2(0.198f, 0.038f), new Vector2(0.375f, 0.275f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(playerVessel.GetComponent<RectTransform>(), new Vector2(0.160f, 0.095f), new Vector2(0.270f, 0.280f), Vector2.zero, Vector2.zero);
             playerAppreciationMeter = playerVessel.AddComponent<AppreciationLiquidMeter>();
-            playerAppreciationMeter.Configure(GameConstants.AppreciationVictoryTarget, UIFactory.NeonCyan, new Rect(0.198f, 0.038f, 0.177f, 0.237f));
+            playerAppreciationMeter.Configure(GameConstants.AppreciationVictoryTarget, UIFactory.NeonCyan, new Rect(0.160f, 0.095f, 0.110f, 0.185f));
         }
 
         private void UpdateLeaderReadouts()
@@ -3167,13 +3178,14 @@ namespace AppreciatorsTcg.UI
                 GameObject visual = publicCard == null
                     ? UIFactory.CreateCardBackPanel(opponentHandContent, "APP", MatchHandCardWidth, MatchHandCardHeight)
                     : UIFactory.CreateMatchHandCardPanel(opponentHandContent, publicCard, null, footer: "REVEALED • PUBLIC");
+                ApplyHandCardSizing(visual);
                 RectTransform visualRect = visual.GetComponent<RectTransform>();
                 LayoutElement publicLayout = visual.GetComponent<LayoutElement>();
                 if (publicCard != null && publicLayout != null)
                 {
-                    publicLayout.minWidth = MatchHandCardWidth;
+                    publicLayout.minWidth = IsPhoneHandLayout ? MobileHandCardWidth : MatchHandCardWidth;
                     publicLayout.preferredWidth = publicLayout.minWidth;
-                    publicLayout.minHeight = MatchHandCardHeight;
+                    publicLayout.minHeight = IsPhoneHandLayout ? MobileHandCardHeight : MatchHandCardHeight;
                     publicLayout.preferredHeight = publicLayout.minHeight;
                     CardInspectionTrigger inspection = visual.AddComponent<CardInspectionTrigger>();
                     inspection.Card = publicCard;
@@ -3190,11 +3202,37 @@ namespace AppreciatorsTcg.UI
 
         private void UpdateDiscardMats()
         {
-            RebuildDiscardStack(playerDiscardContent, game.Player.DiscardPile, true);
-            RebuildDiscardStack(opponentDiscardContent, game.Opponent.DiscardPile, true);
+            RebuildCollapsedDiscardStack(playerDiscardContent, game.Player.DiscardPile);
+            RebuildCollapsedDiscardStack(opponentDiscardContent, game.Opponent.DiscardPile);
         }
 
-        private static void RebuildDiscardStack(RectTransform content, System.Collections.Generic.IReadOnlyList<CardDefinition> discardPile, bool clickToInspect)
+        private bool IsPhoneHandLayout => ResponsiveCanvasScaler.IsPhoneLayout;
+
+        private void ApplyHandCardSizing(GameObject cardPanel)
+        {
+            if (cardPanel == null) return;
+            LayoutElement layout = cardPanel.GetComponent<LayoutElement>();
+            if (layout == null) return;
+            int width = IsPhoneHandLayout ? MobileHandCardWidth : MatchHandCardWidth;
+            int height = IsPhoneHandLayout ? MobileHandCardHeight : MatchHandCardHeight;
+            layout.minWidth = width;
+            layout.preferredWidth = width;
+            layout.minHeight = height;
+            layout.preferredHeight = height;
+        }
+
+        private void ConfigureDiscardStackControl(RectTransform content, bool playerSide)
+        {
+            if (content == null) return;
+            HorizontalLayoutGroup layout = content.GetComponent<HorizontalLayoutGroup>();
+            if (layout != null) layout.enabled = false;
+            Button button = content.GetComponent<Button>() ?? content.gameObject.AddComponent<Button>();
+            button.targetGraphic = content.GetComponent<Image>();
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => ToggleDiscardStack(playerSide));
+        }
+
+        private static void RebuildCollapsedDiscardStack(RectTransform content, System.Collections.Generic.IReadOnlyList<CardDefinition> discardPile)
         {
             if (content == null)
             {
@@ -3208,12 +3246,70 @@ namespace AppreciatorsTcg.UI
                 CardDefinition card = discardPile[index];
                 GameObject discardedCard = UIFactory.CreateMiniCardPanel(content, card, $"#{index + 1}  A{card.GetAttack()} D{card.GetDefense()}", false, DiscardCardWidth, DiscardCardHeight, DiscardCardArtHeight);
                 discardedCard.name = $"Discarded_{card.id}_{index}";
-                CardInspectionTrigger trigger = discardedCard.AddComponent<CardInspectionTrigger>();
+                RectTransform cardRect = discardedCard.GetComponent<RectTransform>();
+                cardRect.anchorMin = new Vector2(0.5f, 0.5f);
+                cardRect.anchorMax = new Vector2(0.5f, 0.5f);
+                cardRect.pivot = new Vector2(0.5f, 0.5f);
+                cardRect.anchoredPosition = new Vector2((index - firstVisible) * 2f, (index - firstVisible) * 2f);
+                cardRect.localRotation = Quaternion.identity;
+                foreach (Graphic graphic in discardedCard.GetComponentsInChildren<Graphic>(true)) graphic.raycastTarget = false;
+            }
+        }
+
+        private void ToggleDiscardStack(bool playerSide)
+        {
+            if (discardStackOverlay != null)
+            {
+                Destroy(discardStackOverlay);
+                discardStackOverlay = null;
+                return;
+            }
+
+            IReadOnlyList<CardDefinition> pile = playerSide ? game.Player.DiscardPile : game.Opponent.DiscardPile;
+            if (pile == null || pile.Count == 0)
+            {
+                ShowMatStatus("That discard pile is empty.");
+                return;
+            }
+
+            discardStackOverlay = UIFactory.CreatePanel(matchTableRoot, "DiscardStackInspection", new Color(UIFactory.Ink.r, UIFactory.Ink.g, UIFactory.Ink.b, 0.96f));
+            RectTransform overlayRect = discardStackOverlay.GetComponent<RectTransform>();
+            UIFactory.SetAnchors(overlayRect, new Vector2(0.285f, 0.105f), new Vector2(0.715f, 0.895f), Vector2.zero, Vector2.zero);
+            UIFactory.MakeDimensionalPanel(discardStackOverlay, playerSide ? UIFactory.Green : UIFactory.Red);
+            discardStackOverlay.transform.SetAsLastSibling();
+
+            Text title = UIFactory.CreateText(discardStackOverlay.transform, playerSide ? "YOUR DISCARD PILE" : "OPPONENT DISCARD PILE", 18, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            UIFactory.SetAnchors(title.rectTransform, new Vector2(0.06f, 0.905f), new Vector2(0.94f, 0.975f), Vector2.zero, Vector2.zero);
+            Text help = UIFactory.CreateText(discardStackOverlay.transform, "TAP A CARD TO EXAMINE • CARDS ARE STACKED IN PLAY ORDER", 12, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            UIFactory.SetAnchors(help.rectTransform, new Vector2(0.06f, 0.855f), new Vector2(0.94f, 0.905f), Vector2.zero, Vector2.zero);
+
+            RectTransform content = UIFactory.CreateScrollContent(discardStackOverlay.transform, "DiscardStackScroll", false, out ScrollRect scroll);
+            RectTransform scrollRect = scroll.GetComponent<RectTransform>();
+            UIFactory.SetAnchors(scrollRect, new Vector2(0.08f, 0.105f), new Vector2(0.92f, 0.845f), Vector2.zero, Vector2.zero);
+            VerticalLayoutGroup listLayout = content.GetComponent<VerticalLayoutGroup>();
+            if (listLayout != null)
+            {
+                listLayout.spacing = -108;
+                listLayout.padding = new RectOffset(18, 18, 18, 120);
+                listLayout.childAlignment = TextAnchor.UpperCenter;
+            }
+
+            for (int index = pile.Count - 1; index >= 0; index--)
+            {
+                CardDefinition card = pile[index];
+                GameObject cardPanel = UIFactory.CreateMiniCardPanel(content, card, $"#{index + 1}  A{card.GetAttack()} D{card.GetDefense()}", false, 122, 183, 66);
+                CardInspectionTrigger trigger = cardPanel.AddComponent<CardInspectionTrigger>();
                 trigger.Card = card;
                 trigger.ClickToInspect = true;
-                discardedCard.GetComponent<RectTransform>().localRotation =
-                    Quaternion.Euler(0f, 0f, (index - firstVisible - 1) * 2.5f);
             }
+
+            Button close = UIFactory.CreateButton(discardStackOverlay.transform, "CLOSE DISCARD", () =>
+            {
+                if (discardStackOverlay != null) Destroy(discardStackOverlay);
+                discardStackOverlay = null;
+            }, UIFactory.PortalViolet);
+            UIFactory.SetAnchors(close.GetComponent<RectTransform>(), new Vector2(0.29f, 0.018f), new Vector2(0.71f, 0.088f), Vector2.zero, Vector2.zero);
+            scroll.verticalNormalizedPosition = 1f;
         }
 
         private void HandleHandCardClick(int handIndex)

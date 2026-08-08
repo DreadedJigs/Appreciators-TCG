@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using AppreciatorsTcg.Core;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -40,6 +41,7 @@ namespace AppreciatorsTcg.UI
         private void Start()
         {
             string bossName = LocalSaveSystem.LoadPendingOpponentName();
+            string bossImageUrl = LocalSaveSystem.LoadPendingBossAssetImage();
             LocalSaveSystem.ClearPendingMatchContext();
             random = new System.Random(System.Environment.TickCount);
             RectTransform playmat = UIFactory.CreateOfficialPlaymatRoot(Root);
@@ -47,7 +49,7 @@ namespace AppreciatorsTcg.UI
             UIFactory.SetAnchors(shell.GetComponent<RectTransform>(), new Vector2(0.02f, 0.025f), new Vector2(0.98f, 0.975f), Vector2.zero, Vector2.zero);
 
             CreateHeader(shell.transform);
-            CreateBossSeat(shell.transform, bossName);
+            CreateBossSeat(shell.transform, bossName, bossImageUrl);
             CreateAiParty(shell.transform);
             CreateCombatLog(shell.transform);
             CreateFooter(shell.transform);
@@ -66,7 +68,7 @@ namespace AppreciatorsTcg.UI
             SetHeight(subtitle.gameObject, 22);
         }
 
-        private void CreateBossSeat(Transform parent, string selectedBossName)
+        private void CreateBossSeat(Transform parent, string selectedBossName, string bossImageUrl)
         {
             GameObject panel = UIFactory.CreateVerticalStack(parent, "VerifiedBossSeat", UIFactory.Panel, 7, 12);
             UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.18f, 0.59f), new Vector2(0.82f, 0.90f), Vector2.zero, Vector2.zero);
@@ -89,8 +91,25 @@ namespace AppreciatorsTcg.UI
                 portraitImage.preserveAspect = true;
                 portraitImage.color = Color.white;
             }
+            if (!string.IsNullOrWhiteSpace(bossImageUrl))
+            {
+                StartCoroutine(LoadBossPortraitRoutine(portraitImage, bossImageUrl));
+            }
             bossStats = UIFactory.CreateText(panel.transform, string.Empty, 18, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
             SetHeight(bossStats.gameObject, 58);
+        }
+
+        private static IEnumerator LoadBossPortraitRoutine(Image portrait, string imageUrl)
+        {
+            using UnityWebRequest request = UnityWebRequestTexture.GetTexture(imageUrl);
+            request.timeout = 15;
+            yield return request.SendWebRequest();
+            if (request.result != UnityWebRequest.Result.Success || portrait == null) yield break;
+            Texture2D texture = DownloadHandlerTexture.GetContent(request);
+            if (texture == null) yield break;
+            portrait.sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f);
+            portrait.preserveAspect = true;
+            portrait.color = Color.white;
         }
 
         private void CreateAiParty(Transform parent)

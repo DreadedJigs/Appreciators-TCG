@@ -17,6 +17,7 @@ namespace AppreciatorsTcg.Core
         private const string PendingOpponentNameKey = "appreciators.pendingOpponentName";
         private const string PendingPlayerIdKey = "appreciators.pendingPlayerId";
         private const string PendingPlayerRoleKey = "appreciators.pendingPlayerRole";
+        private const string PendingBossAssetImageKey = "appreciators.pendingBossAssetImage";
         private const string MockWalletAddressKey = "appreciators.mockWalletAddress";
         private const string MockWalletVerifiedKey = "appreciators.mockWalletVerified";
         private const string SelectedBossTokenIdKey = "appreciators.selectedBossTokenId";
@@ -276,6 +277,17 @@ namespace AppreciatorsTcg.Core
             return PlayerPrefs.GetString(PendingPlayerRoleKey, string.Empty);
         }
 
+        public static void SavePendingBossAssetImage(string imageUrl)
+        {
+            PlayerPrefs.SetString(PendingBossAssetImageKey, imageUrl ?? string.Empty);
+            PlayerPrefs.Save();
+        }
+
+        public static string LoadPendingBossAssetImage()
+        {
+            return PlayerPrefs.GetString(PendingBossAssetImageKey, string.Empty);
+        }
+
         public static void ClearPendingMatchContext()
         {
             PlayerPrefs.DeleteKey(PendingMatchModeKey);
@@ -284,6 +296,7 @@ namespace AppreciatorsTcg.Core
             PlayerPrefs.DeleteKey(PendingOpponentNameKey);
             PlayerPrefs.DeleteKey(PendingPlayerIdKey);
             PlayerPrefs.DeleteKey(PendingPlayerRoleKey);
+            PlayerPrefs.DeleteKey(PendingBossAssetImageKey);
             PlayerPrefs.Save();
         }
 

@@ -38,7 +38,9 @@ namespace AppreciatorsTcg.UI
             liquid.fillAmount = 0f;
             liquid.preserveAspect = false;
             liquid.raycastTarget = false;
-            UIFactory.Stretch(liquidObject.GetComponent<RectTransform>());
+            // Match the interior of the printed reservoir; this is deliberately
+            // inset so the animated colour never leaks into its title/border.
+            UIFactory.SetAnchors(liquidObject.GetComponent<RectTransform>(), new Vector2(0.055f, 0.075f), new Vector2(0.945f, 0.745f), Vector2.zero, Vector2.zero);
 
             GameObject waveObject = new GameObject("LiquidSurface", typeof(RectTransform), typeof(Image));
             waveObject.transform.SetParent(transform, false);
@@ -50,7 +52,7 @@ namespace AppreciatorsTcg.UI
             // The score is printed directly into the native button footprint. It
             // has no backing panel, border, or detached HUD container.
             valueText = UIFactory.CreateText(transform, $"0/{maximum}", 27, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
-            UIFactory.SetAnchors(valueText.rectTransform, new Vector2(0.12f, 0.18f), new Vector2(0.88f, 0.64f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(valueText.rectTransform, new Vector2(0.08f, 0.12f), new Vector2(0.92f, 0.62f), Vector2.zero, Vector2.zero);
             valueText.resizeTextForBestFit = true;
             valueText.resizeTextMinSize = 17;
             valueText.resizeTextMaxSize = 27;

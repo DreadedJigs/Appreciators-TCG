@@ -331,6 +331,7 @@ namespace AppreciatorsTcg.UI
             {
                 string bossName = response.battle?.lastBattle?.bossAsset?.name;
                 LocalSaveSystem.SavePendingMatchContext("Boss AI Practice", string.Empty, response.battle?.lastBattle?.battleId ?? string.Empty, string.IsNullOrWhiteSpace(bossName) ? "Verified 1-of-1" : bossName, playerId, "Boss");
+                LocalSaveSystem.SavePendingBossAssetImage(response.battle?.lastBattle?.bossAsset?.image);
                 SceneManager.LoadScene("MatchScene");
                 yield break;
             }
