@@ -43,9 +43,12 @@ namespace AppreciatorsTcg.UI
         private const int PlayerBoardCardHeight = 138;
         private const int OpponentBoardCardWidth = PlayerBoardCardWidth;
         private const int OpponentBoardCardHeight = PlayerBoardCardHeight;
-        private const int DiscardCardWidth = 108;
-        private const int DiscardCardHeight = 143;
-        private const int DiscardCardArtHeight = 53;
+        // The discard well is deliberately smaller than a hand card. This keeps a
+        // three-card public stack inside the well on a landscape phone without
+        // colliding with the adjacent Appreciation meter.
+        private const int DiscardCardWidth = 72;
+        private const int DiscardCardHeight = 102;
+        private const int DiscardCardArtHeight = 38;
 
         private BattleGame game;
         private BackendApiClient apiClient;
@@ -201,14 +204,14 @@ namespace AppreciatorsTcg.UI
                 "OpponentDiscardCards",
                 new Vector2(0.818f, 0.724f),
                 new Vector2(0.929f, 0.938f),
-                -94,
+                -48,
                 TextAnchor.MiddleCenter);
             playerDiscardContent = CreateAnchoredHorizontal(
                 screen.transform,
                 "PlayerDiscardCards",
                 new Vector2(0.062f, 0.052f),
                 new Vector2(0.178f, 0.258f),
-                -94,
+                -48,
                 TextAnchor.MiddleCenter);
             opponentHandContent = CreateAnchoredHorizontal(
                 screen.transform,
@@ -1645,6 +1648,14 @@ namespace AppreciatorsTcg.UI
             layout.flexibleHeight = 0;
         }
 
+        private static void SetPreferredHeight(GameObject target, float height)
+        {
+            LayoutElement layout = target.GetComponent<LayoutElement>() ?? target.AddComponent<LayoutElement>();
+            layout.minHeight = height;
+            layout.preferredHeight = height;
+            layout.flexibleHeight = 0;
+        }
+
         private static IEnumerator AnimatePlayChoiceIn(RectTransform panel, CanvasGroup group)
         {
             group.alpha = 0f;
@@ -1758,24 +1769,44 @@ namespace AppreciatorsTcg.UI
         private IEnumerator PlayDiscardResolution(CardDefinition card, string resolution)
         {
             UiAudioService.PlayDiscard();
+            bool phoneLayout = ResponsiveCanvasScaler.IsPhoneLayout;
             GameObject panel = UIFactory.CreateHorizontalStack(matchTableRoot, "DiscardResolutionArea", ThemeService.IsDark
                 ? new Color(0.025f, 0.018f, 0.105f, 0.97f)
                 : new Color(0.97f, 0.95f, 0.86f, 0.98f), 12, 14);
             RectTransform rect = panel.GetComponent<RectTransform>();
-            UIFactory.SetAnchors(rect, new Vector2(0.29f, 0.34f), new Vector2(0.71f, 0.66f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(
+                rect,
+                phoneLayout ? new Vector2(0.14f, 0.275f) : new Vector2(0.29f, 0.34f),
+                phoneLayout ? new Vector2(0.86f, 0.725f) : new Vector2(0.71f, 0.66f),
+                Vector2.zero,
+                Vector2.zero);
             CanvasGroup group = panel.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
             UIFactory.AddNeonFrame(panel, UIFactory.PortalViolet, 0.95f);
 
-            GameObject preview = UIFactory.CreateMiniCardPanel(panel.transform, card, "FACE-UP DISCARD", true, 118, 174, 48);
+            GameObject preview = UIFactory.CreateMiniCardPanel(panel.transform, card, "FACE-UP DISCARD", true, phoneLayout ? 100 : 118, phoneLayout ? 148 : 174, phoneLayout ? 40 : 48);
+            LayoutElement previewLayout = preview.GetComponent<LayoutElement>();
+            previewLayout.flexibleWidth = 0;
+            previewLayout.flexibleHeight = 0;
             foreach (Graphic graphic in preview.GetComponentsInChildren<Graphic>(true)) graphic.raycastTarget = false;
             GameObject copy = UIFactory.CreateVerticalStack(panel.transform, "DiscardResolutionCopy", Color.clear, 6, 4);
-            UIFactory.CreateText(copy.transform, "DISCARD EFFECT", 22, TextAnchor.MiddleLeft, UIFactory.Accent, FontStyle.Bold);
-            UIFactory.CreateText(copy.transform, card.name.ToUpperInvariant(), 19, TextAnchor.MiddleLeft, UIFactory.Cream, FontStyle.Bold);
-            Text detail = UIFactory.CreateText(copy.transform, $"{card.GetDiscardEffect()}\n\n{resolution}", 14, TextAnchor.MiddleLeft, UIFactory.TextColor, FontStyle.Normal);
+            LayoutElement copyLayout = copy.AddComponent<LayoutElement>();
+            copyLayout.flexibleWidth = 1;
+            copyLayout.minWidth = phoneLayout ? 260 : 200;
+            Text heading = UIFactory.CreateText(copy.transform, "DISCARD EFFECT", phoneLayout ? 21 : 22, TextAnchor.MiddleLeft, UIFactory.Accent, FontStyle.Bold);
+            SetPreferredHeight(heading.gameObject, phoneLayout ? 29 : 28);
+            Text cardName = UIFactory.CreateText(copy.transform, card.name.ToUpperInvariant(), phoneLayout ? 18 : 19, TextAnchor.MiddleLeft, UIFactory.Cream, FontStyle.Bold);
+            cardName.resizeTextForBestFit = true;
+            cardName.resizeTextMinSize = 13;
+            cardName.resizeTextMaxSize = phoneLayout ? 18 : 19;
+            SetPreferredHeight(cardName.gameObject, phoneLayout ? 32 : 27);
+            Text detail = UIFactory.CreateText(copy.transform, $"{card.GetDiscardEffect()}\n\n{resolution}", phoneLayout ? 16 : 14, TextAnchor.UpperLeft, UIFactory.TextColor, FontStyle.Normal);
             detail.resizeTextForBestFit = true;
-            detail.resizeTextMinSize = 10;
-            detail.resizeTextMaxSize = 14;
+            detail.resizeTextMinSize = phoneLayout ? 12 : 10;
+            detail.resizeTextMaxSize = phoneLayout ? 16 : 14;
+            detail.verticalOverflow = VerticalWrapMode.Truncate;
+            LayoutElement detailLayout = detail.gameObject.AddComponent<LayoutElement>();
+            detailLayout.flexibleHeight = 1;
             panel.transform.SetAsLastSibling();
 
             float transitionDuration = ThemeService.ReducedMotion ? 0.10f : 0.22f;
@@ -2395,11 +2426,11 @@ namespace AppreciatorsTcg.UI
                 ? new Rect(0.315f, 0.018f, 0.475f, 0.078f)
                 : new Rect(0.370f, 0.012f, 0.370f, 0.048f));
 
-            SetRect(opponentDiscardContent, new Rect(0.030f, 0.735f, 0.105f, 0.165f));
-            SetRect(playerDiscardContent, new Rect(0.030f, 0.100f, 0.105f, 0.165f));
+            SetRect(opponentDiscardContent, phoneLayout ? new Rect(0.030f, 0.742f, 0.086f, 0.148f) : new Rect(0.030f, 0.735f, 0.105f, 0.165f));
+            SetRect(playerDiscardContent, phoneLayout ? new Rect(0.030f, 0.110f, 0.086f, 0.148f) : new Rect(0.030f, 0.100f, 0.105f, 0.165f));
 
-            SetRect(opponentAppreciationMeter, phoneLayout ? new Rect(0.150f, 0.735f, 0.140f, 0.165f) : new Rect(0.165f, 0.735f, 0.100f, 0.165f));
-            SetRect(playerAppreciationMeter, phoneLayout ? new Rect(0.150f, 0.100f, 0.140f, 0.165f) : new Rect(0.165f, 0.100f, 0.100f, 0.165f));
+            SetRect(opponentAppreciationMeter, phoneLayout ? new Rect(0.135f, 0.742f, 0.122f, 0.148f) : new Rect(0.165f, 0.735f, 0.100f, 0.165f));
+            SetRect(playerAppreciationMeter, phoneLayout ? new Rect(0.135f, 0.110f, 0.122f, 0.148f) : new Rect(0.165f, 0.100f, 0.100f, 0.165f));
 
             SetRect(opponentHandContent, new Rect(phoneLayout ? 0.355f : 0.390f, opponentHandY, phoneLayout ? 0.290f : 0.220f, handHeight));
             SetRect(handScrollRect, new Rect(phoneLayout ? 0.355f : 0.390f, handY, phoneLayout ? 0.290f : 0.220f, handHeight));
