@@ -14,17 +14,45 @@ namespace AppreciatorsTcg.UI
 
         public void Configure(RectTransform host) => parent = host;
 
+        public static string GetPhaseLabel(BattleTurnPhase phase)
+        {
+            switch (phase)
+            {
+                case BattleTurnPhase.Draw: return "DRAW PHASE";
+                case BattleTurnPhase.Learn: return "LEARN PHASE";
+                case BattleTurnPhase.BuildOrDiscard: return "BUILD PHASE";
+                case BattleTurnPhase.EndTurn: return "END TURN";
+                case BattleTurnPhase.Discard: return "DISCARD PHASE";
+                case BattleTurnPhase.Combat: return "COMBAT PHASE";
+                case BattleTurnPhase.GatherGrowth: return "GROW PHASE";
+                case BattleTurnPhase.Cycle: return "CYCLE PHASE";
+                case BattleTurnPhase.Complete: return "MATCH COMPLETE";
+                default: return $"{phase.ToString().ToUpperInvariant()} PHASE";
+            }
+        }
+
+        public static string GetPhaseCaption(BattleTurnPhase phase)
+        {
+            switch (phase)
+            {
+                case BattleTurnPhase.Draw: return "DRAW TWO CARDS";
+                case BattleTurnPhase.Learn: return "PLAN YOUR PLAY";
+                case BattleTurnPhase.BuildOrDiscard: return "CHOOSE YOUR ACTION";
+                case BattleTurnPhase.EndTurn: return "LOCK IN YOUR PLAY";
+                case BattleTurnPhase.Discard: return "CLEAR THE WAY";
+                case BattleTurnPhase.Combat: return "BATTLE FOR THE FIELD";
+                case BattleTurnPhase.GatherGrowth: return "STACK APPRECIATION";
+                case BattleTurnPhase.Cycle: return "BANK & REFRESH";
+                default: return string.Empty;
+            }
+        }
+
         public IEnumerator PlayPhase(BattleTurnPhase phase)
         {
             if (parent == null) yield break;
             Clear();
-            string label = phase == BattleTurnPhase.GatherGrowth ? "GROW PHASE" :
-                phase == BattleTurnPhase.Cycle ? "CYCLE" :
-                phase == BattleTurnPhase.BuildOrDiscard ? "BUILD OR DISCARD" :
-                phase == BattleTurnPhase.Discard ? "DISCARD PHASE" :
-                phase == BattleTurnPhase.EndTurn ? "END TURN" : $"{phase.ToString().ToUpperInvariant()} PHASE";
-            string caption = phase == BattleTurnPhase.Learn ? "PLAN YOUR PLAY" :
-                phase == BattleTurnPhase.GatherGrowth ? "STACK APPRECIATION" : string.Empty;
+            string label = GetPhaseLabel(phase);
+            string caption = GetPhaseCaption(phase);
             UiAudioService.PlayPhaseSweep(label);
             GameObject banner = UIFactory.CreatePanel(parent, "PhaseAnnouncement", ThemeService.IsDark
                 ? new Color(0.035f, 0.02f, 0.16f, 0.96f)

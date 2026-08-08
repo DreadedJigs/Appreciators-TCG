@@ -550,7 +550,7 @@ namespace AppreciatorsTcg.UI
             string normalized = message.Trim();
             if (battleLedgerEntries.Count > 0 && battleLedgerEntries[battleLedgerEntries.Count - 1].EndsWith(normalized, StringComparison.Ordinal)) return;
 
-            string phase = game == null ? "SETUP" : game.Phase == BattleTurnPhase.BuildOrDiscard ? "BUILD OR DISCARD" : game.Phase.ToString().ToUpperInvariant();
+            string phase = game == null ? "SETUP" : PhaseAnnouncementController.GetPhaseLabel(game.Phase);
             int turn = game == null ? 1 : game.Turn;
             battleLedgerEntries.Add($"TURN {turn}  •  {phase}\n{normalized}");
             if (battleLedgerEntries.Count > 80) battleLedgerEntries.RemoveAt(0);
@@ -1273,7 +1273,7 @@ namespace AppreciatorsTcg.UI
                     break;
                 case TutorialStep.TurnSequence:
                     tutorialTitle.text = "2 / 17  CURRENT TURN FLOW";
-                    tutorialBody.text = "Draw Two -> Learn -> Build or Instant -> End Turn -> Discard -> Combat -> Gather Growth -> Cycle. The dark phase rail announces each transition; this lesson waits for Next before playing every demonstration.";
+                    tutorialBody.text = "Draw -> Learn -> Build -> End Turn -> Discard -> Combat -> Grow -> Cycle. Every phase has a plain-language action caption; this lesson waits for Next before playing each demonstration.";
                     SetTutorialHighlight(new Rect(0.020f, 0.635f, 0.960f, 0.040f));
                     break;
                 case TutorialStep.Draw:
