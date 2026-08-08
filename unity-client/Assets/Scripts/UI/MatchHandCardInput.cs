@@ -16,6 +16,12 @@ namespace AppreciatorsTcg.UI
         private bool dragging;
         private RectTransform sourceRect;
         private Coroutine returnRoutine;
+        private int activePointerId = int.MinValue;
+        private float dragStartedAt;
+        private float lastDragEventAt;
+
+        private const float LostTouchGraceSeconds = 0.12f;
+        private const float MaximumDragSeconds = 5f;
 
         public MatchScreenController Controller { get; set; }
         public int HandIndex { get; set; }
@@ -47,6 +53,9 @@ namespace AppreciatorsTcg.UI
             }
 
             dragging = true;
+            activePointerId = eventData == null ? int.MinValue : eventData.pointerId;
+            dragStartedAt = Time.unscaledTime;
+            lastDragEventAt = dragStartedAt;
             CardInspectionOverlay.Hide();
             Controller.MarkDraggingHandCard(HandIndex);
             canvasRect = canvas.GetComponent<RectTransform>();
@@ -70,6 +79,7 @@ namespace AppreciatorsTcg.UI
                 return;
             }
 
+            lastDragEventAt = Time.unscaledTime;
             MoveGhost(eventData);
         }
 
@@ -83,6 +93,7 @@ namespace AppreciatorsTcg.UI
             MatchLaneDropZone dropZone = FindDropZone(eventData);
             MatchShardDropZone shardDropZone = FindShardDropZone(eventData);
             dragging = false;
+            activePointerId = int.MinValue;
 
             if (shardDropZone != null && shardDropZone.Controller == Controller)
             {
@@ -230,6 +241,27 @@ namespace AppreciatorsTcg.UI
             RecoverInterruptedDrag();
         }
 
+        private void Update()
+        {
+            if (!dragging)
+            {
+                return;
+            }
+
+            float now = Time.unscaledTime;
+            // Mobile browser and OS gestures can cancel a touch without invoking
+            // Unity's OnEndDrag. Never let a stranded drag preview leave the match
+            // in a selected state or make the player hunt for a recovery action.
+            bool pointerIsGone = Application.isMobilePlatform
+                ? !HasActiveTouch(activePointerId)
+                : !Input.GetMouseButton(0);
+            if ((pointerIsGone && now - lastDragEventAt >= LostTouchGraceSeconds) ||
+                now - dragStartedAt >= MaximumDragSeconds)
+            {
+                CancelStrandedDrag();
+            }
+        }
+
         private void OnApplicationFocus(bool hasFocus)
         {
             if (!hasFocus)
@@ -250,11 +282,45 @@ namespace AppreciatorsTcg.UI
         {
             bool wasDragging = dragging;
             dragging = false;
+            activePointerId = int.MinValue;
             DestroyGhost();
             if (wasDragging && Controller != null)
             {
                 Controller.CancelDraggingHandCard();
             }
+        }
+
+        private void CancelStrandedDrag()
+        {
+            dragging = false;
+            activePointerId = int.MinValue;
+            if (Controller != null)
+            {
+                Controller.CancelDraggingHandCard();
+            }
+            if (returnRoutine != null)
+            {
+                StopCoroutine(returnRoutine);
+            }
+            returnRoutine = StartCoroutine(AnimateGhostBackToHand());
+        }
+
+        private static bool HasActiveTouch(int pointerId)
+        {
+            if (pointerId < 0)
+            {
+                return Input.touchCount > 0;
+            }
+
+            for (int index = 0; index < Input.touchCount; index += 1)
+            {
+                Touch touch = Input.GetTouch(index);
+                if (touch.fingerId == pointerId && touch.phase != TouchPhase.Canceled && touch.phase != TouchPhase.Ended)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
