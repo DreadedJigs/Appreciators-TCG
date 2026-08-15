@@ -11,6 +11,7 @@ namespace AppreciatorsTcg.UI
     public class ResultsScreenController : ScreenControllerBase
     {
         private Text rewardText;
+        private Text winningsBannerText;
 
         private void Start()
         {
@@ -23,6 +24,7 @@ namespace AppreciatorsTcg.UI
             }
             else
             {
+                CreateMatchWinningsBanner(result);
                 UIFactory.CreateText(
                     panel.transform,
                     $"Growth: You {result.playerGrowth} - AI {result.opponentGrowth}",
@@ -59,6 +61,18 @@ namespace AppreciatorsTcg.UI
 
             UIFactory.CreateButton(panel.transform, "Play Again", () => SceneManager.LoadScene("MatchScene"), UIFactory.Green);
             UIFactory.CreateButton(panel.transform, "Main Menu", () => SceneManager.LoadScene("MainMenuScene"), UIFactory.PanelAlt);
+        }
+
+        private void CreateMatchWinningsBanner(MatchResult result)
+        {
+            if (result == null || result.winner != "Victory") return;
+
+            GameObject banner = UIFactory.CreateVerticalStack(Root, "MatchWinningsBanner", UIFactory.GlassPanel, 3, 5);
+            RectTransform rect = banner.GetComponent<RectTransform>();
+            UIFactory.SetAnchors(rect, new Vector2(0.16f, 0.84f), new Vector2(0.84f, 0.96f), Vector2.zero, Vector2.zero);
+            UIFactory.MakeDimensionalPanel(banner, UIFactory.Green);
+            UIFactory.CreateText(banner.transform, "MATCH WON", 18, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            winningsBannerText = UIFactory.CreateText(banner.transform, "+69 APPRECIATION SHARDS", 29, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
         }
 
         private IEnumerator ClaimMatchReward(MatchResult result)
@@ -104,6 +118,13 @@ namespace AppreciatorsTcg.UI
                     ? $"Match reward already settled | {response.totalShardBalance:N0} Appreciation Shards"
                     : $"{change:+#;-#;0} Appreciation Shards | {response.totalShardBalance:N0} total";
                 rewardText.color = change < 0 ? UIFactory.Red : UIFactory.Green;
+                if (winningsBannerText != null)
+                {
+                    winningsBannerText.text = response.idempotentReplay
+                        ? "REWARD ALREADY SECURED"
+                        : $"{change:+#;-#;0} APPRECIATION SHARDS";
+                    winningsBannerText.color = change < 0 ? UIFactory.Red : UIFactory.Accent;
+                }
             }
             else
             {

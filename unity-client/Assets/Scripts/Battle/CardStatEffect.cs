@@ -17,7 +17,7 @@ namespace AppreciatorsTcg.Battle
             string attack = AttackDelta == 0 ? string.Empty : $"{(AttackDelta > 0 ? "+" : string.Empty)}{AttackDelta} Attack";
             string defense = DefenseDelta == 0 ? string.Empty : $"{(DefenseDelta > 0 ? "+" : string.Empty)}{DefenseDelta} Defense";
             string separator = attack.Length > 0 && defense.Length > 0 ? ", " : string.Empty;
-            string duration = string.IsNullOrWhiteSpace(Duration) ? (IsTemporary ? " until Cycle" : " permanent") : $" {Duration}";
+            string duration = string.IsNullOrWhiteSpace(Duration) ? (IsTemporary ? " until Growth resolves" : " permanent") : $" {Duration}";
             return $"{attack}{separator}{defense} from {Source}{duration}";
         }
     }

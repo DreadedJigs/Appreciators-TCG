@@ -159,7 +159,7 @@ namespace AppreciatorsTcg.Battle
                 case "reduce_defense":
                     enemy?.ApplyStatEffect(card.name, 0, -2, true, game.Turn);
                     if (enemy != null && enemy.CurrentDefense <= 0) game.DefeatCard(game.MainLane, null, enemy);
-                    detail = enemy == null ? "No opposing unit was available." : $"{enemy.Definition.name} lost 2 Defense until Cycle.";
+                    detail = enemy == null ? "No opposing unit was available." : $"{enemy.Definition.name} lost 2 Defense until Growth resolves.";
                     break;
                 case "steal_growth":
                     bool highImpact = card.GetDiscardCategory().IndexOf("Costly", StringComparison.OrdinalIgnoreCase) >= 0 ||
@@ -167,7 +167,7 @@ namespace AppreciatorsTcg.Battle
                     int stolen = Math.Min(highImpact ? 5 : 2, opponent.UnbankedGrowth);
                     opponent.UnbankedGrowth -= stolen;
                     owner.UnbankedGrowth += stolen;
-                    detail = $"Stole {stolen} unbanked Growth before Cycle.";
+                    detail = $"Stole {stolen} unbanked Growth before Growth resolves.";
                     break;
                 case "reveal_hidden":
                     CardDefinition revealed = RevealRetainedCard(owner, opponent);
@@ -184,12 +184,12 @@ namespace AppreciatorsTcg.Battle
                     break;
                 case "cancel_attack": owner.CancelNextIncomingAttack = true; if (ally != null) { ally.IsProtected = true; ally.ProtectedUntilTurn = game.Turn; } detail = "The next incoming attack is cancelled; the strongest allied unit is protected this turn."; break;
                 case "redirect_attack": owner.RedirectNextIncomingAttack = true; detail = "The next attack against your board will be redirected to another eligible unit."; break;
-                case "disable_enemy": enemy?.DisableUntilRefresh(); detail = enemy == null ? "No opposing unit was available." : $"{enemy.Definition.name} is disabled until Cycle."; break;
-                case "break_combo": opponent.BreakComboThisTally = true; detail = "The opponent's combination Growth is removed from this Cycle."; break;
-                case "prevent_tally": opponent.PreventNextTally = true; detail = "The opponent's current unbanked Growth will not become Appreciation this Cycle."; break;
+                case "disable_enemy": enemy?.DisableUntilRefresh(); detail = enemy == null ? "No opposing unit was available." : $"{enemy.Definition.name} is disabled until Growth resolves."; break;
+                case "break_combo": opponent.BreakComboThisTally = true; detail = "The opponent's combination Growth is removed from this Growth phase."; break;
+                case "prevent_tally": opponent.PreventNextTally = true; detail = "The opponent's current unbanked Growth will not become Appreciation this Growth phase."; break;
                 case "reverse_modifiers":
                     foreach (BattleCardInstance unit in opposing) unit.ReverseLatestEffect(game.Turn);
-                    detail = "The latest tracked buff or nerf on each opposing unit was reversed until Cycle.";
+                    detail = "The latest tracked buff or nerf on each opposing unit was reversed until Growth resolves.";
                     break;
                 case "return_enemy":
                     ReturnToHand(game, enemy);
@@ -203,7 +203,7 @@ namespace AppreciatorsTcg.Battle
                 case "ultimate_extra_attacks": owner.ExtraAttacksThisCombat += 2; detail = "Up to two additional attacks may be assigned this Combat."; break;
                 case "ultimate_disable":
                     foreach (BattleCardInstance unit in opposing.Take(2)) unit.DisableUntilRefresh();
-                    detail = "Up to two opposing units are disabled until Cycle.";
+                    detail = "Up to two opposing units are disabled until Growth resolves.";
                     break;
                 case "ultimate_original":
                     foreach (BattleCardInstance unit in opposing) unit.ReverseLatestEffect(game.Turn);

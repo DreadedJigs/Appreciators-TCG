@@ -468,10 +468,13 @@ namespace AppreciatorsTcg.Battle
             BeginEndTurnPhase();
             ResolveForcedDiscardPhase();
             ResolveFieldBattle();
-            ResolveCycleAndAdvanceTurn();
+            ResolveGrowthTallyAndAdvanceTurn();
         }
 
-        public void ResolveCycleAndAdvanceTurn()
+        // Growth is the player-facing close of the turn. It gathers board value,
+        // banks Appreciation, refreshes permanents, and begins the next Draw.
+        // The old Cycle method remains as an integration alias only.
+        public void ResolveGrowthTallyAndAdvanceTurn()
         {
             if (IsComplete) return;
             if (!fieldBattleResolvedThisTurn) ResolveFieldBattle();
@@ -479,7 +482,6 @@ namespace AppreciatorsTcg.Battle
 
             GatherGrowth(OwnerSide.Player);
             GatherGrowth(OwnerSide.Opponent);
-            SetPhase(BattleTurnPhase.Cycle);
             TallyAppreciation(OwnerSide.Player);
             if (Player.Appreciation >= GameConstants.AppreciationVictoryTarget)
             {
@@ -503,9 +505,14 @@ namespace AppreciatorsTcg.Battle
             StartTurn();
         }
 
+        public void ResolveCycleAndAdvanceTurn()
+        {
+            ResolveGrowthTallyAndAdvanceTurn();
+        }
+
         // Kept for compatibility with saved tests and integrations created before
-        // Tally + Refresh became the single player-facing Cycle phase.
-        public void ResolveTallyAndAdvanceTurn() => ResolveCycleAndAdvanceTurn();
+        // Growth became the single player-facing tally and refresh phase.
+        public void ResolveTallyAndAdvanceTurn() => ResolveGrowthTallyAndAdvanceTurn();
 
         public void BeginEndTurnPhase()
         {
@@ -665,7 +672,7 @@ namespace AppreciatorsTcg.Battle
 
         public BattleTallyResult TallyAppreciation(OwnerSide side)
         {
-            if (Phase != BattleTurnPhase.Cycle) SetPhase(BattleTurnPhase.Cycle);
+            if (Phase != BattleTurnPhase.GatherGrowth) SetPhase(BattleTurnPhase.GatherGrowth);
             BattlePlayerState owner = GetPlayerState(side);
             int starting = owner.Appreciation;
             int subtotal = owner.PreventNextTally ? 0 : owner.UnbankedGrowth;
@@ -702,7 +709,7 @@ namespace AppreciatorsTcg.Battle
 
         public void ResolveRefresh()
         {
-            if (Phase != BattleTurnPhase.Cycle) SetPhase(BattleTurnPhase.Cycle);
+            if (Phase != BattleTurnPhase.GatherGrowth) SetPhase(BattleTurnPhase.GatherGrowth);
             foreach (BattleCardInstance card in MainLane.PlayerCards.Concat(MainLane.OpponentCards).ToList())
             {
                 card.Refresh();
@@ -710,7 +717,7 @@ namespace AppreciatorsTcg.Battle
             }
             CardEffectResolver.ApplyRefresh(this, Player, OwnerSide.Player);
             CardEffectResolver.ApplyRefresh(this, Opponent, OwnerSide.Opponent);
-            LastMessage = "Cycle resolved: Growth became Appreciation, exhausted cards readied, and expiring effects were removed. Damage remains until explicitly restored.";
+            LastMessage = "Growth resolved: Appreciation was banked, exhausted cards readied, and expiring effects were removed. Damage remains until explicitly restored.";
         }
 
         public List<LaneType> GetOpenLanes(OwnerSide side) => MainLane.HasSpace(side) ? new List<LaneType> { LaneType.Community } : new List<LaneType>();
@@ -767,7 +774,7 @@ namespace AppreciatorsTcg.Battle
                 foreach (BattleCardInstance card in focused) card.GrowthBonus += 1;
             }
             owner.LeaderAbilityUsed = true;
-            message = $"{owner.DisplayName} used {guide.AbilityName}. This Cycle gains a 25% modifier.";
+            message = $"{owner.DisplayName} used {guide.AbilityName}. This Growth phase gains a 25% modifier.";
             LastMessage = message;
             return true;
         }

@@ -25,7 +25,9 @@ namespace AppreciatorsTcg.UI
                 case BattleTurnPhase.Discard: return "DISCARD PHASE";
                 case BattleTurnPhase.Combat: return "COMBAT PHASE";
                 case BattleTurnPhase.GatherGrowth: return "GROW PHASE";
-                case BattleTurnPhase.Cycle: return "CYCLE PHASE";
+                // Legacy payloads may still send Cycle; display it as the
+                // consolidated Growth close instead of reviving a dead phase.
+                case BattleTurnPhase.Cycle: return "GROW PHASE";
                 case BattleTurnPhase.Complete: return "MATCH COMPLETE";
                 default: return $"{phase.ToString().ToUpperInvariant()} PHASE";
             }
@@ -42,7 +44,7 @@ namespace AppreciatorsTcg.UI
                 case BattleTurnPhase.Discard: return "CLEAR THE WAY";
                 case BattleTurnPhase.Combat: return "BATTLE FOR THE FIELD";
                 case BattleTurnPhase.GatherGrowth: return "STACK APPRECIATION";
-                case BattleTurnPhase.Cycle: return "BANK & REFRESH";
+                case BattleTurnPhase.Cycle: return "STACK APPRECIATION";
                 default: return string.Empty;
             }
         }

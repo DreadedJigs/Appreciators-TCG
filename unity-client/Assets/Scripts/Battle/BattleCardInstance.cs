@@ -109,7 +109,7 @@ namespace AppreciatorsTcg.Battle
                 DefenseDelta = defenseDelta,
                 IsTemporary = temporary,
                 AppliedTurn = turn,
-                Duration = temporary ? "until Cycle" : "permanent"
+                Duration = temporary ? "until Growth resolves" : "permanent"
             };
             activeEffects.Add(effect);
             CurrentPower = Math.Max(0, CurrentPower + attackDelta);

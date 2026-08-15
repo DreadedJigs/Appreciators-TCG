@@ -81,7 +81,6 @@ namespace AppreciatorsTcg.UI
 
             GameObject footer = UIFactory.CreateHorizontalStack(shell.transform, "WalletFooter", Color.clear, 8, 0);
             UIFactory.SetAnchors(footer.GetComponent<RectTransform>(), new Vector2(0.03f, 0.035f), new Vector2(0.97f, 0.145f), Vector2.zero, Vector2.zero);
-            UIFactory.CreateButton(footer.transform, "BOSS BATTLES", () => SceneManager.LoadScene("BossBattleScene"), UIFactory.Red);
             UIFactory.CreateButton(footer.transform, "SAVE API URL", SaveApiUrl, UIFactory.Blue);
             UIFactory.CreateButton(footer.transform, "MAIN MENU", () => SceneManager.LoadScene("MainMenuScene"), UIFactory.PanelAlt);
             messageText = UIFactory.CreateText(shell.transform, "Loading saved wallet status...", 17, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);

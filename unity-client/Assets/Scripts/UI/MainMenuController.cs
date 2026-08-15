@@ -53,6 +53,7 @@ namespace AppreciatorsTcg.UI
             UIFactory.CreateButton(playColumn.transform, "PLAY CASUAL", OpenCasualQueue, UIFactory.Green);
             UIFactory.CreateButton(playColumn.transform, "TURN TUTORIAL", StartTutorial, UIFactory.Blue);
             UIFactory.CreateButton(playColumn.transform, "INVITE 1V1", () => SceneManager.LoadScene("InviteMatchScene"), UIFactory.Accent);
+            UIFactory.CreateButton(playColumn.transform, "BOSS BATTLES", () => SceneManager.LoadScene("BossBattleScene"), UIFactory.Red);
 
             GameObject growColumn = CreateMenuColumn(mainPanel.transform, "GROW", "Open packs, collect, and prepare.", new Rect(0.3625f, 0.285f, 0.275f, 0.43f));
             growColumnRect = growColumn.GetComponent<RectTransform>();
@@ -63,7 +64,6 @@ namespace AppreciatorsTcg.UI
             GameObject futureColumn = CreateMenuColumn(mainPanel.transform, "CONNECT", "Alpha access and upcoming formats.", new Rect(0.67f, 0.285f, 0.275f, 0.43f));
             futureColumnRect = futureColumn.GetComponent<RectTransform>();
             UIFactory.CreateButton(futureColumn.transform, "WALLET / WEB3", () => SceneManager.LoadScene("Web3MockScene"), UIFactory.Blue);
-            UIFactory.CreateButton(futureColumn.transform, "BOSS BATTLES", () => SceneManager.LoadScene("BossBattleScene"), UIFactory.Red);
             CreateDisabled(futureColumn.transform, "RANKED — COMING SOON");
             CreateDisabled(futureColumn.transform, "COMMUNITY WARS — COMING SOON");
 

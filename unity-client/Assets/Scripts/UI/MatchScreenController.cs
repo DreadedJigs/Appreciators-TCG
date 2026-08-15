@@ -32,7 +32,6 @@ namespace AppreciatorsTcg.UI
             DirectAttack,
             AutoAttack,
             GatherGrowth,
-            Cycle,
             Winning,
             Complete
         }
@@ -1219,12 +1218,9 @@ namespace AppreciatorsTcg.UI
                     break;
                 case TutorialStep.GatherGrowth:
                     yield return PlayPacedPhase(BattleTurnPhase.GatherGrowth);
-                    break;
-                case TutorialStep.Cycle:
-                    yield return PlayPacedPhase(BattleTurnPhase.Cycle);
                     if (!tutorialTallyDemonstrated)
                     {
-                        game.ResolveCycleAndAdvanceTurn();
+                        game.ResolveGrowthTallyAndAdvanceTurn();
                         tutorialTallyDemonstrated = true;
                         drawPresentationActive = true;
                         presentedPlayerHandCount = 0;
@@ -1267,90 +1263,85 @@ namespace AppreciatorsTcg.UI
             switch (step)
             {
                 case TutorialStep.Objective:
-                    tutorialTitle.text = "1 / 17  OBJECTIVE";
+                    tutorialTitle.text = "1 / 16  OBJECTIVE";
                     tutorialBody.text = $"Welcome to the mirrored single-lane board. You control the lesson with Next, Back, and Restart. Win by reaching {GameConstants.AppreciationVictoryTarget} Appreciation or reducing the opponent to zero HP.";
                     SetTutorialHighlight(new Rect(0.020f, 0.025f, 0.960f, 0.950f));
                     break;
                 case TutorialStep.TurnSequence:
-                    tutorialTitle.text = "2 / 17  CURRENT TURN FLOW";
-                    tutorialBody.text = "Draw -> Learn -> Build -> End Turn -> Discard -> Combat -> Grow -> Cycle. Every phase has a plain-language action caption; this lesson waits for Next before playing each demonstration.";
+                    tutorialTitle.text = "2 / 16  CURRENT TURN FLOW";
+                    tutorialBody.text = "Draw -> Learn -> Build -> End Turn -> Discard -> Combat -> Grow. Growth tallies Appreciation, refreshes the field, and begins the next automatic Draw. Every phase has a plain-language action caption.";
                     SetTutorialHighlight(new Rect(0.020f, 0.635f, 0.960f, 0.040f));
                     break;
                 case TutorialStep.Draw:
-                    tutorialTitle.text = "3 / 17  DRAW TWO - AUTOMATIC";
+                    tutorialTitle.text = "3 / 16  DRAW TWO - AUTOMATIC";
                     tutorialBody.text = "Both mirrored hands begin empty. Watch two cards move from each face-down deck into the centered hand areas. Every new turn performs this draw automatically.";
                     SetTutorialHighlight(new Rect(0.370f, 0.095f, 0.605f, 0.185f));
                     break;
                 case TutorialStep.Learn:
-                    tutorialTitle.text = "4 / 17  LEARN PHASE";
+                    tutorialTitle.text = "4 / 16  LEARN PHASE";
                     SetTutorialCaption("PLAN YOUR PLAY");
                     tutorialBody.text = "Examine the field, cards & discard piles. Holding or clicking any revealed card opens its complete Build and Discard text before you commit.";
                     SetTutorialHighlight(new Rect(0.365f, 0.095f, 0.270f, 0.180f));
                     break;
                 case TutorialStep.BuildOrDiscard:
-                    tutorialTitle.text = "5 / 17  BUILD OR INSTANT";
+                    tutorialTitle.text = "5 / 16  BUILD OR INSTANT";
                     tutorialBody.text = "Drop or select one card, then choose its action. Build places it on your side of the shared battlefield. Instant resolves its discard ability immediately instead.";
                     SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.HarmfulDiscard:
-                    tutorialTitle.text = "6 / 17  INSTANT CONSEQUENCES";
+                    tutorialTitle.text = "6 / 16  INSTANT CONSEQUENCES";
                     tutorialBody.text = "Instant abilities display their timing, target, and cost before resolving. Only the chosen card takes effect; the second card remains in hand until the official Discard phase.";
                     SetTutorialHighlight(new Rect(0.365f, 0.095f, 0.270f, 0.180f));
                     break;
                 case TutorialStep.EndTurn:
-                    tutorialTitle.text = "7 / 17  END TURN";
+                    tutorialTitle.text = "7 / 16  END TURN";
                     tutorialBody.text = "The opponent commits with a readable pause. End Turn closes both players' card decisions and advances to the official Discard phase. In paused pacing, Next occupies this control rail.";
                     SetTutorialHighlight(new Rect(0.250f, 0.010f, 0.720f, 0.055f));
                     break;
                 case TutorialStep.Discard:
-                    tutorialTitle.text = "8 / 17  DISCARD PHASE";
+                    tutorialTitle.text = "8 / 16  DISCARD PHASE";
                     tutorialBody.text = "Before Combat, each unplayed second card is revealed and moved to its mirrored discard well. No second effect is applied unless the rules explicitly say so.";
                     SetTutorialHighlight(new Rect(0.025f, 0.095f, 0.115f, 0.810f));
                     break;
                 case TutorialStep.PublicDiscard:
-                    tutorialTitle.text = "9 / 17  PUBLIC DISCARD";
+                    tutorialTitle.text = "9 / 16  PUBLIC DISCARD";
                     tutorialBody.text = "Both discard wells stack cards face-up. Click either player's stack to enlarge and review every revealed card without covering the Appreciation well beside it.";
                     SetTutorialHighlight(new Rect(0.025f, 0.095f, 0.115f, 0.810f));
                     break;
                 case TutorialStep.BoardPresence:
-                    tutorialTitle.text = "10 / 17  BOARD PRESENCE";
+                    tutorialTitle.text = "10 / 16  BOARD PRESENCE";
                     tutorialBody.text = "The center is one shared battlefield: opponent cards occupy the upper side and yours the lower side. Built cards defend, attack, and generate Growth; Instant cards leave no defender.";
                     SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.Combat:
-                    tutorialTitle.text = "11 / 17  COMBAT";
+                    tutorialTitle.text = "11 / 16  COMBAT";
                     tutorialBody.text = "Combat presents opponent cards above yours in a faceoff. Inspect every card first, then select attackers, targets, and order. Attack and Defense resolve together; defeated cards enter public discard.";
                     SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.BuffsAndNerfs:
-                    tutorialTitle.text = "12 / 17  BUFFS AND NERFS";
+                    tutorialTitle.text = "12 / 16  BUFFS AND NERFS";
                     tutorialBody.text = "Printed Attack and Defense remain visible while current values reflect modifiers and damage. Enlarged cards show the active source and duration; Combat always uses current values.";
                     SetTutorialHighlight(new Rect(0.300f, 0.355f, 0.400f, 0.250f));
                     break;
                 case TutorialStep.DirectAttack:
-                    tutorialTitle.text = "13 / 17  DIRECT ATTACK";
+                    tutorialTitle.text = "13 / 16  DIRECT ATTACK";
                     tutorialBody.text = "If the opposing side has no eligible defender, an attacker crosses the shared lane and reduces the opponent's HP. Both mirrored HUDs update immediately.";
                     SetTutorialHighlight(new Rect(0.260f, 0.940f, 0.480f, 0.048f));
                     break;
                 case TutorialStep.AutoAttack:
-                    tutorialTitle.text = "14 / 17  ATTACK CONTROLS";
+                    tutorialTitle.text = "14 / 16  ATTACK CONTROLS";
                     tutorialBody.text = "Auto-Attack supplies a quick legal plan in casual play. Reset / Reselect clears it, and Review Attack Order confirms the sequence before resolution.";
                     SetTutorialHighlight(new Rect(0.180f, 0.335f, 0.640f, 0.285f));
                     break;
                 case TutorialStep.GatherGrowth:
-                    tutorialTitle.text = "15 / 17  GROW PHASE";
+                    tutorialTitle.text = "15 / 16  GROW PHASE";
                     SetTutorialCaption("STACK APPRECIATION");
-                    tutorialBody.text = "Build Appreciation to unlock greater rewards. Surviving built cards and ready board abilities generate Growth after Combat, then Cycle banks it into Appreciation.";
-                    SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
-                    break;
-                case TutorialStep.Cycle:
-                    tutorialTitle.text = "16 / 17  CYCLE";
-                    tutorialBody.text = "Cycle combines tally and refresh: Growth becomes banked Appreciation, cards ready, temporary modifiers expire, and the next automatic Draw begins. Watch the mirrored Appreciation wells fill toward 50.";
+                    tutorialBody.text = "Build Appreciation to unlock greater rewards. Surviving built cards and ready board abilities generate Growth after Combat; this phase banks it into Appreciation, readies cards, and begins the next Draw.";
                     SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
                 case TutorialStep.Winning:
-                    tutorialTitle.text = "17 / 17  WINNING";
-                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation during Cycle or reduce the enemy to zero HP. Finish this full lesson now to receive the one-time 50 Appreciation Shard tutorial reward.";
+                    tutorialTitle.text = "16 / 16  WINNING";
+                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation during Grow or reduce the enemy to zero HP. Finish this full lesson now to receive the one-time 50 Appreciation Shard tutorial reward.";
                     SetButtonText(tutorialNextButton, "FINISH TUTORIAL");
                     SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
@@ -3668,8 +3659,7 @@ namespace AppreciatorsTcg.UI
 
             UpdateScreen();
             yield return PlayPacedPhase(BattleTurnPhase.GatherGrowth);
-            yield return PlayPacedPhase(BattleTurnPhase.Cycle);
-            game.ResolveCycleAndAdvanceTurn();
+            game.ResolveGrowthTallyAndAdvanceTurn();
             drawPresentationActive = true;
             presentedPlayerHandCount = 0;
             presentedOpponentHandCount = 0;
@@ -3706,7 +3696,7 @@ namespace AppreciatorsTcg.UI
             if (tutorialMatch && tutorialAwaitingTally)
             {
                 tutorialAwaitingTally = false;
-                SetTutorialStep(TutorialStep.Cycle);
+                SetTutorialStep(TutorialStep.GatherGrowth);
             }
         }
 

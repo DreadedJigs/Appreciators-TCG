@@ -37,7 +37,7 @@ namespace AppreciatorsTcg.Battle
                         Name = "Gallery Director",
                         FocusLane = LaneType.Art,
                         AbilityName = "Spotlight",
-                        RulesText = "Once per match: develop your strongest Art permanent +1 Growth and add 25% this Cycle."
+                        RulesText = "Once per match: develop your strongest Art permanent +1 Growth and add 25% this Growth phase."
                     };
                 case LaneType.Blockchain:
                     return new BattleLeaderDefinition
@@ -46,7 +46,7 @@ namespace AppreciatorsTcg.Battle
                         Name = "Protocol Captain",
                         FocusLane = LaneType.Blockchain,
                         AbilityName = "Gas Surge",
-                        RulesText = "Once per match: queue +2 Growth and add 25% this Cycle."
+                        RulesText = "Once per match: queue +2 Growth and add 25% this Growth phase."
                     };
                 default:
                     return new BattleLeaderDefinition
@@ -55,7 +55,7 @@ namespace AppreciatorsTcg.Battle
                         Name = "Chainrider",
                         FocusLane = LaneType.Community,
                         AbilityName = "Rally The Room",
-                        RulesText = "Once per match: Community permanents develop +1 Growth and add 25% this Cycle."
+                        RulesText = "Once per match: Community permanents develop +1 Growth and add 25% this Growth phase."
                     };
             }
         }
