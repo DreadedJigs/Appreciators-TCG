@@ -340,6 +340,8 @@ test("account login restores inventory and ranked losses remove five Appreciatio
     assert.equal(victory.response.status, 200);
     assert.equal(victory.body.shardsChanged, 69);
     assert.equal(victory.body.totalShardBalance, 69);
+    assert.equal(victory.body.inventory.progress.stats.matchesPlayed, 1);
+    assert.equal(victory.body.inventory.progress.stats.wins, 1);
 
     const loss = await request(server, "/api/economy/match-result", {
       method: "POST",
@@ -349,6 +351,8 @@ test("account login restores inventory and ranked losses remove five Appreciatio
     assert.equal(loss.body.shardsChanged, -5);
     assert.equal(loss.body.rankedLossPenalty, 5);
     assert.equal(loss.body.totalShardBalance, 64);
+    assert.equal(loss.body.inventory.progress.stats.matchesPlayed, 2);
+    assert.equal(loss.body.inventory.progress.stats.losses, 1);
 
     const replay = await request(server, "/api/economy/match-result", {
       method: "POST",
@@ -362,6 +366,9 @@ test("account login restores inventory and ranked losses remove five Appreciatio
       body: JSON.stringify({ username: "Cross Network Player", playerId })
     });
     assert.equal(restored.body.inventory.appreciationShards, 64);
+    assert.equal(restored.body.inventory.progress.stats.matchesPlayed, 2);
+    assert.equal(restored.body.inventory.progress.stats.wins, 1);
+    assert.equal(restored.body.inventory.progress.stats.losses, 1);
   } finally {
     server.close();
     resetPackInventoryForTests();
@@ -382,6 +389,7 @@ test("tutorial completion grants exactly fifty Appreciation Shards once", async 
     assert.equal(firstClaim.body.shardsAwarded, 50);
     assert.equal(firstClaim.body.totalShardBalance, 50);
     assert.equal(firstClaim.body.idempotentReplay, false);
+    assert.equal(firstClaim.body.inventory.progress.tutorialCompleted, true);
 
     const replay = await request(server, "/api/economy/tutorial-complete", {
       method: "POST",
@@ -391,6 +399,7 @@ test("tutorial completion grants exactly fifty Appreciation Shards once", async 
     assert.equal(replay.body.idempotentReplay, true);
     assert.equal(replay.body.totalShardBalance, 50);
     assert.equal(replay.body.inventory.appreciationShards, 50);
+    assert.equal(replay.body.inventory.progress.tutorialCompleted, true);
   } finally {
     server.close();
     resetPackInventoryForTests();

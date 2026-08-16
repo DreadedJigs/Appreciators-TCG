@@ -40,23 +40,18 @@ namespace AppreciatorsTcg.UI
                     UIFactory.TextColor);
 
                 bool rankedLoss = result.winner == "Defeat" && string.Equals(result.mode, "Ranked", System.StringComparison.OrdinalIgnoreCase);
-                if (result.winner == "Victory" || rankedLoss)
-                {
-                    rewardText = UIFactory.CreateText(
-                        panel.transform,
-                        result.winner == "Victory"
-                            ? "Victory reward: securing 69 Appreciation Shards..."
-                            : "Ranked result: applying the 5 Appreciation Shard loss...",
-                        22,
-                        TextAnchor.MiddleCenter,
-                        UIFactory.Accent,
-                        FontStyle.Bold);
-                    StartCoroutine(ClaimMatchReward(result));
-                }
-                else
-                {
-                    rewardText = UIFactory.CreateText(panel.transform, "No Appreciation Shard change for this result.", 19, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
-                }
+                rewardText = UIFactory.CreateText(
+                    panel.transform,
+                    result.winner == "Victory"
+                        ? "Victory reward: securing 69 Appreciation Shards..."
+                        : rankedLoss
+                            ? "Ranked result: applying the 5 Appreciation Shard loss..."
+                            : "Recording this match to your account stats...",
+                    22,
+                    TextAnchor.MiddleCenter,
+                    result.winner == "Victory" || rankedLoss ? UIFactory.Accent : UIFactory.MutedTextColor,
+                    FontStyle.Bold);
+                StartCoroutine(ClaimMatchReward(result));
             }
 
             UIFactory.CreateButton(panel.transform, "Play Again", () => SceneManager.LoadScene("MatchScene"), UIFactory.Green);
@@ -111,13 +106,16 @@ namespace AppreciatorsTcg.UI
                 if (response.inventory != null)
                 {
                     new PackInventoryService(new PackSaveService()).ReplaceWithAuthoritativeSnapshot(response.inventory);
+                    LocalSaveSystem.ApplyAccountProgress(response.inventory.progress);
                 }
 
                 int change = response.shardsChanged != 0 ? response.shardsChanged : response.shardsAwarded;
                 rewardText.text = response.idempotentReplay
                     ? $"Match reward already settled | {response.totalShardBalance:N0} Appreciation Shards"
-                    : $"{change:+#;-#;0} Appreciation Shards | {response.totalShardBalance:N0} total";
-                rewardText.color = change < 0 ? UIFactory.Red : UIFactory.Green;
+                    : change == 0
+                        ? "Match recorded to your account stats."
+                        : $"{change:+#;-#;0} Appreciation Shards | {response.totalShardBalance:N0} total";
+                rewardText.color = change < 0 ? UIFactory.Red : change == 0 ? UIFactory.MutedTextColor : UIFactory.Green;
                 if (winningsBannerText != null)
                 {
                     winningsBannerText.text = response.idempotentReplay

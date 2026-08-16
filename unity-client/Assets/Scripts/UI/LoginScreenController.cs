@@ -237,8 +237,14 @@ namespace AppreciatorsTcg.UI
             if (inventory != null)
             {
                 new PackInventoryService(new PackSaveService()).ReplaceWithAuthoritativeSnapshot(inventory);
+                LocalSaveSystem.ApplyAccountProgress(inventory.progress);
                 int unopenedPacks = inventory.packs == null ? 0 : System.Linq.Enumerable.Sum(inventory.packs, entry => entry == null ? 0 : Math.Max(0, entry.count));
                 loginStatus.text = $"RESTORED  {unopenedPacks} PACKS  •  {inventory.appreciationShards:N0} APPRECIATION SHARDS";
+                PlayerMatchStats stats = inventory.progress == null ? null : inventory.progress.stats;
+                if (stats != null)
+                {
+                    loginStatus.text = $"RESTORED  {unopenedPacks} PACKS  |  {inventory.appreciationShards:N0} SHARDS  |  {stats.wins}W-{stats.losses}L";
+                }
                 loginStatus.color = UIFactory.Green;
             }
             else

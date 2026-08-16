@@ -32,6 +32,24 @@ namespace AppreciatorsTcg.Data
     }
 
     [Serializable]
+    public class PlayerProgress
+    {
+        public bool tutorialCompleted;
+        public string tutorialCompletedAt;
+        public PlayerMatchStats stats;
+    }
+
+    [Serializable]
+    public class PlayerMatchStats
+    {
+        public int matchesPlayed;
+        public int wins;
+        public int losses;
+        public int bossBattlesPlayed;
+        public int bossWins;
+    }
+
+    [Serializable]
     public class PackOpenRequest
     {
         public string requestId;
@@ -463,6 +481,7 @@ namespace AppreciatorsTcg.Data
         public int starterPacksGranted;
         public int matchWinsRewarded;
         public int ownedCardCount;
+        public PlayerProgress progress;
         public PlayerCurrencyBalance currency;
         public PackServerPackEntry[] packs = Array.Empty<PackServerPackEntry>();
         public PlayerCardInventoryEntry[] cards = Array.Empty<PlayerCardInventoryEntry>();

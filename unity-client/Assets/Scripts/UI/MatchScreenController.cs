@@ -1390,6 +1390,7 @@ namespace AppreciatorsTcg.UI
         {
             tutorialStep = TutorialStep.Complete;
             LocalSaveSystem.SaveTutorialProgress((int)TutorialStep.Complete, true);
+            LocalSaveSystem.MarkTutorialCompleted();
             tutorialMatch = false;
             tutorialAwaitingTally = false;
             if (tutorialHighlight != null)

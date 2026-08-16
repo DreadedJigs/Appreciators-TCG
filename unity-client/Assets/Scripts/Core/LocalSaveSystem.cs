@@ -30,6 +30,7 @@ namespace AppreciatorsTcg.Core
         private const string ThemeDefaultVersionKey = "appreciators.theme.default.version";
         private const string TutorialStepKey = "appreciators.tutorial.step.v2";
         private const string TutorialCoreKey = "appreciators.tutorial.core.v2";
+        private const string TutorialCompletedKey = "appreciators.tutorial.completed.v1";
         private const string ReducedMotionKey = "appreciators.accessibility.reducedMotion.v1";
 
         public static void SaveTheme(AppreciatorsTheme theme)
@@ -71,6 +72,8 @@ namespace AppreciatorsTcg.Core
         {
             return PlayerPrefs.GetString(PlayerNameKey, "Guest");
         }
+
+        public static bool HasCreatedAccount() => PlayerPrefs.HasKey(AccountNameKey) && !string.IsNullOrWhiteSpace(PlayerPrefs.GetString(AccountNameKey));
 
         public static string LoadOrCreatePlayerId()
         {
@@ -335,10 +338,31 @@ namespace AppreciatorsTcg.Core
 
         public static bool LoadTutorialCoreDemonstrated() => PlayerPrefs.GetInt(TutorialCoreKey, 0) == 1;
 
+        public static bool HasCompletedTutorial()
+        {
+            // Version 2 stored the final tutorial step but no explicit completion flag.
+            return PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 1 || LoadTutorialStep() >= 16;
+        }
+
+        public static void MarkTutorialCompleted()
+        {
+            PlayerPrefs.SetInt(TutorialCompletedKey, 1);
+            PlayerPrefs.Save();
+        }
+
+        public static void ApplyAccountProgress(AppreciatorsTcg.Data.PlayerProgress progress)
+        {
+            if (progress != null && progress.tutorialCompleted)
+            {
+                MarkTutorialCompleted();
+            }
+        }
+
         public static void ResetTutorialProgress()
         {
             PlayerPrefs.DeleteKey(TutorialStepKey);
             PlayerPrefs.DeleteKey(TutorialCoreKey);
+            PlayerPrefs.DeleteKey(TutorialCompletedKey);
             PlayerPrefs.Save();
         }
 

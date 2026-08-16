@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using AppreciatorsTcg.Core;
 using AppreciatorsTcg.Data;
@@ -26,6 +27,9 @@ namespace AppreciatorsTcg.UI
         private Vector2Int lastResponsiveSize;
         private Text menuMarquee;
         private Button themeButton;
+        private Button tutorialButton;
+        private readonly List<Button> tutorialLockedButtons = new List<Button>();
+        private readonly Dictionary<Button, string> tutorialLockedLabels = new Dictionary<Button, string>();
 
         private void Start()
         {
@@ -50,20 +54,21 @@ namespace AppreciatorsTcg.UI
 
             GameObject playColumn = CreateMenuColumn(mainPanel.transform, "PLAY", "Commit one card, command one lane.", new Rect(0.055f, 0.285f, 0.275f, 0.43f));
             playColumnRect = playColumn.GetComponent<RectTransform>();
-            UIFactory.CreateButton(playColumn.transform, "PLAY CASUAL", OpenCasualQueue, UIFactory.Green);
-            UIFactory.CreateButton(playColumn.transform, "TURN TUTORIAL", StartTutorial, UIFactory.Blue);
-            UIFactory.CreateButton(playColumn.transform, "INVITE 1V1", () => SceneManager.LoadScene("InviteMatchScene"), UIFactory.Accent);
-            UIFactory.CreateButton(playColumn.transform, "BOSS BATTLES", () => SceneManager.LoadScene("BossBattleScene"), UIFactory.Red);
+            tutorialButton = UIFactory.CreateButton(playColumn.transform, "TURN TUTORIAL", StartTutorial, UIFactory.Blue);
+            RegisterTutorialLocked(UIFactory.CreateButton(playColumn.transform, "PLAY CASUAL", OpenCasualQueue, UIFactory.Green), "PLAY CASUAL");
+            RegisterTutorialLocked(UIFactory.CreateButton(playColumn.transform, "INVITE 1V1", () => SceneManager.LoadScene("InviteMatchScene"), UIFactory.Accent), "INVITE 1V1");
+            RegisterTutorialLocked(UIFactory.CreateButton(playColumn.transform, "BOSS BATTLES", () => SceneManager.LoadScene("BossBattleScene"), UIFactory.Red), "BOSS BATTLES");
 
             GameObject growColumn = CreateMenuColumn(mainPanel.transform, "GROW", "Open packs, collect, and prepare.", new Rect(0.3625f, 0.285f, 0.275f, 0.43f));
             growColumnRect = growColumn.GetComponent<RectTransform>();
             ritualButton = UIFactory.CreateButton(growColumn.transform, "APPRECIATION RITUAL\nSYNCING UNOPENED PACKS...", () => SceneManager.LoadScene("PackOpeningScene"), UIFactory.PortalViolet);
-            UIFactory.CreateButton(growColumn.transform, "COLLECTION", () => SceneManager.LoadScene("CollectionScene"), UIFactory.PanelAlt);
-            UIFactory.CreateButton(growColumn.transform, "DECK BUILDER", () => SceneManager.LoadScene("DeckBuilderScene"), UIFactory.PanelAlt);
+            RegisterTutorialLocked(ritualButton, "APPRECIATION RITUAL");
+            RegisterTutorialLocked(UIFactory.CreateButton(growColumn.transform, "COLLECTION", () => SceneManager.LoadScene("CollectionScene"), UIFactory.PanelAlt), "COLLECTION");
+            RegisterTutorialLocked(UIFactory.CreateButton(growColumn.transform, "DECK BUILDER", () => SceneManager.LoadScene("DeckBuilderScene"), UIFactory.PanelAlt), "DECK BUILDER");
 
             GameObject futureColumn = CreateMenuColumn(mainPanel.transform, "CONNECT", "Alpha access and upcoming formats.", new Rect(0.67f, 0.285f, 0.275f, 0.43f));
             futureColumnRect = futureColumn.GetComponent<RectTransform>();
-            UIFactory.CreateButton(futureColumn.transform, "WALLET / WEB3", () => SceneManager.LoadScene("Web3MockScene"), UIFactory.Blue);
+            RegisterTutorialLocked(UIFactory.CreateButton(futureColumn.transform, "WALLET / WEB3", () => SceneManager.LoadScene("Web3MockScene"), UIFactory.Blue), "WALLET / WEB3");
             CreateDisabled(futureColumn.transform, "RANKED — COMING SOON");
             CreateDisabled(futureColumn.transform, "COMMUNITY WARS — COMING SOON");
 
@@ -86,6 +91,7 @@ namespace AppreciatorsTcg.UI
             UIFactory.CreateButton(queueActions.transform, "EDIT DECKS", () => SceneManager.LoadScene("DeckBuilderScene"), UIFactory.Blue);
             UIFactory.CreateButton(queueActions.transform, "CANCEL", CloseCasualQueue, UIFactory.PanelAlt);
             casualQueuePanel.SetActive(false);
+            RefreshTutorialGate();
             ApplyResponsiveMenuLayout(true);
             StartCoroutine(RefreshAccountEconomy());
         }
@@ -168,6 +174,7 @@ namespace AppreciatorsTcg.UI
             if (response?.inventory != null)
             {
                 new PackInventoryService(new PackSaveService()).ReplaceWithAuthoritativeSnapshot(response.inventory);
+                LocalSaveSystem.ApplyAccountProgress(response.inventory.progress);
                 unopenedPacks = response.inventory.packs?.Sum(entry => entry == null ? 0 : Math.Max(0, entry.count)) ?? 0;
                 shards = response.inventory.appreciationShards;
                 economyText.color = UIFactory.Green;
@@ -183,6 +190,7 @@ namespace AppreciatorsTcg.UI
 
             economyText.text = $"{LocalSaveSystem.LoadPlayerName().ToUpperInvariant()}  •  {unopenedPacks} UNOPENED PACKS  •  {shards:N0} APPRECIATION SHARDS";
             SetButtonLabel(ritualButton, $"APPRECIATION RITUAL\n{unopenedPacks} UNOPENED PACK{(unopenedPacks == 1 ? string.Empty : "S")}");
+            RefreshTutorialGate();
         }
 
         private static void SetButtonLabel(Button button, string label)
@@ -194,6 +202,33 @@ namespace AppreciatorsTcg.UI
                 text.resizeTextForBestFit = true;
                 text.resizeTextMinSize = 14;
                 text.resizeTextMaxSize = 20;
+            }
+        }
+
+        private void RegisterTutorialLocked(Button button, string unlockedLabel)
+        {
+            if (button == null) return;
+            tutorialLockedButtons.Add(button);
+            tutorialLockedLabels[button] = unlockedLabel;
+        }
+
+        private void RefreshTutorialGate()
+        {
+            bool completed = LocalSaveSystem.HasCompletedTutorial();
+            foreach (Button button in tutorialLockedButtons)
+            {
+                if (button == null) continue;
+                button.interactable = completed;
+                if (completed && button == ritualButton) continue;
+                if (tutorialLockedLabels.TryGetValue(button, out string label))
+                {
+                    SetButtonLabel(button, completed ? label : $"{label}\nLOCKED • COMPLETE TUTORIAL");
+                }
+            }
+
+            if (tutorialButton != null)
+            {
+                SetButtonLabel(tutorialButton, completed ? "TURN TUTORIAL\nREPLAY ANYTIME" : "TURN TUTORIAL\nSTART HERE");
             }
         }
 
@@ -220,6 +255,7 @@ namespace AppreciatorsTcg.UI
 
         private void OpenCasualQueue()
         {
+            if (!LocalSaveSystem.HasCompletedTutorial()) return;
             PlayerDeckProfile active = PlayerDeckService.GetActiveDeck();
             casualDeckChoice.Refresh();
             casualQueueStatus.text = $"{active.name} selected. Choose another deck or queue now.";
@@ -236,6 +272,7 @@ namespace AppreciatorsTcg.UI
 
         private void QueueCasual()
         {
+            if (!LocalSaveSystem.HasCompletedTutorial()) return;
             PlayerDeckProfile active = PlayerDeckService.GetActiveDeck();
             if (!PlayerDeckService.ValidateDeck(active.cardIds))
             {

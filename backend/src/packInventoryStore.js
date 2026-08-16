@@ -300,6 +300,14 @@ export function awardMatchResultShards(payload = {}) {
     const startingBalance = player.appreciationShards;
     player.appreciationShards = Math.max(0, startingBalance + requestedChange);
     const shardsChanged = player.appreciationShards - startingBalance;
+    const stats = ensurePlayerProgress(player).stats;
+    stats.matchesPlayed += 1;
+    if (result === "Victory") stats.wins += 1;
+    else if (result === "Defeat") stats.losses += 1;
+    if (mode.toLowerCase().includes("boss")) {
+      stats.bossBattlesPlayed += 1;
+      if (result === "Victory") stats.bossWins += 1;
+    }
     player.updatedAt = new Date().toISOString();
     response = {
       success: true,
@@ -335,7 +343,15 @@ export function awardTutorialCompletionShards(payload = {}) {
   const player = getOrCreatePlayer(payload.playerId);
   const rewardId = "native_board_tutorial_v1";
   player.tutorialRewards = player.tutorialRewards || {};
+  const progress = ensurePlayerProgress(player);
+  const newlyCompleted = !progress.tutorialCompleted;
+  if (newlyCompleted) {
+    progress.tutorialCompleted = true;
+    progress.tutorialCompletedAt = new Date().toISOString();
+    player.updatedAt = progress.tutorialCompletedAt;
+  }
   if (player.tutorialRewards[rewardId]) {
+    if (newlyCompleted) persist({ required: true });
     return {
       ...player.tutorialRewards[rewardId],
       totalShardBalance: player.appreciationShards,
@@ -477,6 +493,7 @@ function getOrCreatePlayer(rawPlayerId) {
   player.bossContributionRequests = player.bossContributionRequests || {};
   player.packs = player.packs || {};
   player.cards = player.cards || {};
+  ensurePlayerProgress(player);
   player.appreciationShards = Number.isFinite(player.appreciationShards) ? player.appreciationShards : 0;
   if (player.starterGrantVersion !== STARTER_GRANT_VERSION) {
     player.packs.starter_appreciation_pack = Math.max(
@@ -576,6 +593,7 @@ function publicInventory(player) {
     starterPacksGranted: STARTER_PACK_GRANT_COUNT,
     matchWinsRewarded: Object.values(player.matchWinRewards || {}).filter(entry => entry?.result === "Victory" || Number(entry?.shardsAwarded) > 0).length,
     ownedCardCount: Object.keys(player.cards).length,
+    progress: publicPlayerProgress(player),
     currency: {
       playerId: player.playerId,
       appreciationShards: player.appreciationShards,
@@ -610,10 +628,47 @@ function createPlayer(playerId) {
     purchaseRequests: {},
     matchWinRewards: {},
     tutorialRewards: {},
+    progress: {
+      tutorialCompleted: false,
+      tutorialCompletedAt: null,
+      stats: {
+        matchesPlayed: 0,
+        wins: 0,
+        losses: 0,
+        bossBattlesPlayed: 0,
+        bossWins: 0
+      }
+    },
     bossContributionRequests: {},
     starterGrantVersion: STARTER_GRANT_VERSION,
     createdAt: now,
     updatedAt: now
+  };
+}
+
+function ensurePlayerProgress(player) {
+  player.progress = player.progress || {};
+  // Earlier alpha builds did not store progress. A claimed tutorial reward is
+  // authoritative proof that this account completed onboarding.
+  if (player.tutorialRewards?.native_board_tutorial_v1) {
+    player.progress.tutorialCompleted = true;
+    player.progress.tutorialCompletedAt = player.progress.tutorialCompletedAt || player.updatedAt;
+  }
+  player.progress.tutorialCompleted = Boolean(player.progress.tutorialCompleted);
+  player.progress.tutorialCompletedAt = player.progress.tutorialCompletedAt || null;
+  player.progress.stats = player.progress.stats || {};
+  for (const key of ["matchesPlayed", "wins", "losses", "bossBattlesPlayed", "bossWins"]) {
+    player.progress.stats[key] = Math.max(0, Number.parseInt(player.progress.stats[key], 10) || 0);
+  }
+  return player.progress;
+}
+
+function publicPlayerProgress(player) {
+  const progress = ensurePlayerProgress(player);
+  return {
+    tutorialCompleted: progress.tutorialCompleted,
+    tutorialCompletedAt: progress.tutorialCompletedAt,
+    stats: { ...progress.stats }
   };
 }
 
