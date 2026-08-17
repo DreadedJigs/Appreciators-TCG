@@ -375,7 +375,7 @@ test("account login restores inventory and ranked losses remove five Appreciatio
   }
 });
 
-test("tutorial completion grants exactly five thousand Appreciation Shards once", async () => {
+test("tutorial completion grants exactly five hundred Appreciation Shards once", async () => {
   resetPackInventoryForTests();
   const server = await listen(createApp());
   const playerId = "tutorial_reward_player";
@@ -386,8 +386,8 @@ test("tutorial completion grants exactly five thousand Appreciation Shards once"
       body: JSON.stringify({ playerId })
     });
     assert.equal(firstClaim.response.status, 200);
-    assert.equal(firstClaim.body.shardsAwarded, 5000);
-    assert.equal(firstClaim.body.totalShardBalance, 5000);
+    assert.equal(firstClaim.body.shardsAwarded, 500);
+    assert.equal(firstClaim.body.totalShardBalance, 500);
     assert.equal(firstClaim.body.idempotentReplay, false);
     assert.equal(firstClaim.body.inventory.progress.tutorialCompleted, true);
 
@@ -397,8 +397,8 @@ test("tutorial completion grants exactly five thousand Appreciation Shards once"
     });
     assert.equal(replay.response.status, 200);
     assert.equal(replay.body.idempotentReplay, true);
-    assert.equal(replay.body.totalShardBalance, 5000);
-    assert.equal(replay.body.inventory.appreciationShards, 5000);
+    assert.equal(replay.body.totalShardBalance, 500);
+    assert.equal(replay.body.inventory.appreciationShards, 500);
     assert.equal(replay.body.inventory.progress.tutorialCompleted, true);
   } finally {
     server.close();

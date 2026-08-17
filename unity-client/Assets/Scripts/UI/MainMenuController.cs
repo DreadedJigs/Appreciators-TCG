@@ -70,7 +70,6 @@ namespace AppreciatorsTcg.UI
             futureColumnRect = futureColumn.GetComponent<RectTransform>();
             RegisterTutorialLocked(UIFactory.CreateButton(futureColumn.transform, "WALLET / WEB3", () => SceneManager.LoadScene("Web3MockScene"), UIFactory.Blue), "WALLET / WEB3");
             CreateDisabled(futureColumn.transform, "RANKED — COMING SOON");
-            CreateDisabled(futureColumn.transform, "COMMUNITY WARS — COMING SOON");
 
             casualQueuePanel = CreateCenteredPanel("Casual Queue", 38);
             UIFactory.CreateText(casualQueuePanel.transform, "CHOOSE YOUR BATTLE DECK", 23, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);

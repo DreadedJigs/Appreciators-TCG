@@ -1351,7 +1351,7 @@ namespace AppreciatorsTcg.UI
                     break;
                 case TutorialStep.Winning:
                     tutorialTitle.text = "YOU ARE READY";
-                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation during Appreciate or reduce the enemy to zero HP. Complete the demo for 5,000 Appreciation Shards, then continue this game for another 1,000 or return to the main menu.";
+                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation during Appreciate or reduce the enemy to zero HP. Complete the demo for 500 Appreciation Shards, then continue this game for another 1,000 or return to the main menu.";
                     SetButtonText(tutorialNextButton, "COMPLETE DEMO");
                     SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
@@ -1417,7 +1417,7 @@ namespace AppreciatorsTcg.UI
             {
                 Destroy(tutorialPanel);
             }
-            ShowMatStatus("Tutorial demo complete. Claiming 5,000 Appreciation Shards...");
+            ShowMatStatus("Tutorial demo complete. Claiming 500 Appreciation Shards...");
             StartCoroutine(ClaimTutorialCompletionReward());
             ShowTutorialCompletionChoice();
         }
@@ -1433,7 +1433,7 @@ namespace AppreciatorsTcg.UI
             UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.27f, 0.27f), new Vector2(0.73f, 0.73f), Vector2.zero, Vector2.zero);
             UIFactory.AddNeonFrame(panel, UIFactory.Accent, 0.98f);
             UIFactory.CreateText(panel.transform, "TUTORIAL DEMO COMPLETE", 28, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
-            UIFactory.CreateText(panel.transform, "+5,000 APPRECIATION SHARDS", 22, TextAnchor.MiddleCenter, UIFactory.Green, FontStyle.Bold);
+            UIFactory.CreateText(panel.transform, "+500 APPRECIATION SHARDS", 22, TextAnchor.MiddleCenter, UIFactory.Green, FontStyle.Bold);
             UIFactory.CreateText(panel.transform, "Continue this same match normally and earn an additional 1,000 Appreciation Shards when the game ends, or return to the main menu now.", 17, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
             Button continueButton = UIFactory.CreateButton(panel.transform, "CONTINUE GAME - +1,000 ON FINISH", ContinueTutorialGame, UIFactory.Green);
             Button exitButton = UIFactory.CreateButton(panel.transform, "EXIT TO MAIN MENU", () => SceneManager.LoadScene("MainMenuScene"), UIFactory.PortalViolet);
@@ -1447,8 +1447,8 @@ namespace AppreciatorsTcg.UI
             matchRewardId = $"tutorial_finish_{Guid.NewGuid():N}";
             if (tutorialCompletionDialog != null) Destroy(tutorialCompletionDialog);
             tutorialCompletionDialog = null;
-            ShowMatStatus("Tutorial demo complete. The match continues normally - finish it to earn +1,000 Appreciation Shards.");
-            UpdateScreen();
+            ShowMatStatus("Tutorial demo complete. Continuing from Draw - finish the match to earn +1,000 Appreciation Shards.");
+            StartCoroutine(PlayDrawSequence(true));
         }
 
         private void SkipTutorial()
@@ -1485,7 +1485,7 @@ namespace AppreciatorsTcg.UI
             }
             else
             {
-                ShowMatStatus($"Tutorial demo complete. The 5,000-Shard reward could not be synced yet: {rewardError}");
+                ShowMatStatus($"Tutorial demo complete. The 500-Shard reward could not be synced yet: {rewardError}");
             }
         }
 
@@ -3826,13 +3826,16 @@ namespace AppreciatorsTcg.UI
             text.raycastTarget = false;
 
             float elapsed = 0f;
-            const float duration = 0.72f;
-            while (elapsed < duration)
+            const float holdDuration = 2.5f;
+            const float fadeDuration = 0.20f;
+            while (elapsed < holdDuration + fadeDuration)
             {
                 elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                rect.localScale = Vector3.one * Mathf.Lerp(0.88f, 1.03f, Mathf.Sin(t * Mathf.PI));
-                group.alpha = t < 0.72f ? 1f : 1f - (t - 0.72f) / 0.28f;
+                float entrance = Mathf.Clamp01(elapsed / 0.16f);
+                rect.localScale = Vector3.one * Mathf.Lerp(0.92f, 1f, entrance);
+                group.alpha = elapsed <= holdDuration
+                    ? 1f
+                    : 1f - Mathf.Clamp01((elapsed - holdDuration) / fadeDuration);
                 yield return null;
             }
 
