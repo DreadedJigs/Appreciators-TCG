@@ -190,7 +190,7 @@ namespace AppreciatorsTcg.UI
             matchIntro = inviteMatch || tutorialMatch
                 ? $"{matchIntro} Deck: {selectedDeck.name}."
                 : $"Casual battle. Deck: {selectedDeck.name}.";
-            matchIntro = $"{matchIntro}\nDraw two, commit one, end the turn, discard the remaining card, then battle. First to {GameConstants.AppreciationVictoryTarget} Appreciation wins.";
+            matchIntro = $"{matchIntro}\nDraw 2, choose 1, Battle, Appreciate. First to {GameConstants.AppreciationVictoryTarget} Appreciation wins.";
             game.Start();
             drawPresentationActive = true;
             presentedPlayerHandCount = 0;
@@ -504,7 +504,7 @@ namespace AppreciatorsTcg.UI
             UIFactory.CreateText(frame.transform, "BATTLE LEDGER", 30, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
             UIFactory.CreateText(
                 frame.transform,
-                "Turn-by-turn phases, revealed effects, combat results, and Appreciation changes",
+                "Round history, chosen effects, Battle results, and Appreciation changes",
                 16,
                 TextAnchor.MiddleCenter,
                 UIFactory.MutedTextColor,
@@ -551,7 +551,7 @@ namespace AppreciatorsTcg.UI
 
             string phase = game == null ? "SETUP" : PhaseAnnouncementController.GetPhaseLabel(game.Phase);
             int turn = game == null ? 1 : game.Turn;
-            battleLedgerEntries.Add($"TURN {turn}  •  {phase}\n{normalized}");
+            battleLedgerEntries.Add($"ROUND {turn}  •  {phase}\n{normalized}");
             if (battleLedgerEntries.Count > 80) battleLedgerEntries.RemoveAt(0);
             if (battleLedgerPanel != null && battleLedgerPanel.activeSelf) RefreshBattleLedger();
         }
@@ -1263,85 +1263,85 @@ namespace AppreciatorsTcg.UI
             switch (step)
             {
                 case TutorialStep.Objective:
-                    tutorialTitle.text = "1 / 16  OBJECTIVE";
+                    tutorialTitle.text = "START HERE  •  TWO WAYS TO WIN";
                     tutorialBody.text = $"Welcome to the mirrored single-lane board. You control the lesson with Next, Back, and Restart. Win by reaching {GameConstants.AppreciationVictoryTarget} Appreciation or reducing the opponent to zero HP.";
                     SetTutorialHighlight(new Rect(0.020f, 0.025f, 0.960f, 0.950f));
                     break;
                 case TutorialStep.TurnSequence:
-                    tutorialTitle.text = "2 / 16  CURRENT TURN FLOW";
-                    tutorialBody.text = "Draw -> Learn -> Build -> End Turn -> Discard -> Combat -> Grow. Growth tallies Appreciation, refreshes the field, and begins the next automatic Draw. Every phase has a plain-language action caption.";
+                    tutorialTitle.text = "LESSON 1  •  THE ROUND";
+                    tutorialBody.text = "DRAW 2 → COMMIT 1 → BATTLE → APPRECIATE. Inspection is always available. Your unused card clears without an effect.";
                     SetTutorialHighlight(new Rect(0.020f, 0.635f, 0.960f, 0.040f));
                     break;
                 case TutorialStep.Draw:
-                    tutorialTitle.text = "3 / 16  DRAW TWO - AUTOMATIC";
+                    tutorialTitle.text = "LESSON 1  •  DRAW TWO";
                     tutorialBody.text = "Both mirrored hands begin empty. Watch two cards move from each face-down deck into the centered hand areas. Every new turn performs this draw automatically.";
                     SetTutorialHighlight(new Rect(0.370f, 0.095f, 0.605f, 0.185f));
                     break;
                 case TutorialStep.Learn:
-                    tutorialTitle.text = "4 / 16  LEARN PHASE";
-                    SetTutorialCaption("PLAN YOUR PLAY");
+                    tutorialTitle.text = "LESSON 1  •  PLAN YOUR PLAY";
+                    SetTutorialCaption("INSPECT ANYTIME");
                     tutorialBody.text = "Examine the field, cards & discard piles. Holding or clicking any revealed card opens its complete Build and Discard text before you commit.";
                     SetTutorialHighlight(new Rect(0.365f, 0.095f, 0.270f, 0.180f));
                     break;
                 case TutorialStep.BuildOrDiscard:
-                    tutorialTitle.text = "5 / 16  BUILD OR INSTANT";
-                    tutorialBody.text = "Drop or select one card, then choose its action. Build places it on your side of the shared battlefield. Instant resolves its discard ability immediately instead.";
+                    tutorialTitle.text = "LESSON 1  •  COMMIT";
+                    tutorialBody.text = "Choose one drawn card and one mode. BUILD creates a permanent. DISCARD triggers an immediate effect. The other card clears with no effect.";
                     SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.HarmfulDiscard:
-                    tutorialTitle.text = "6 / 16  INSTANT CONSEQUENCES";
-                    tutorialBody.text = "Instant abilities display their timing, target, and cost before resolving. Only the chosen card takes effect; the second card remains in hand until the official Discard phase.";
+                    tutorialTitle.text = "LESSON 1  •  ONE ACTION";
+                    tutorialBody.text = "Discard abilities display timing, targets, and costs before resolving. Only your actively chosen card can produce an effect this round.";
                     SetTutorialHighlight(new Rect(0.365f, 0.095f, 0.270f, 0.180f));
                     break;
                 case TutorialStep.EndTurn:
-                    tutorialTitle.text = "7 / 16  END TURN";
-                    tutorialBody.text = "The opponent commits with a readable pause. End Turn closes both players' card decisions and advances to the official Discard phase. In paused pacing, Next occupies this control rail.";
+                    tutorialTitle.text = "LESSON 1  •  LOCK IN";
+                    tutorialBody.text = "LOCK IN confirms your Commit. The opponent commits, unused cards clear quietly, and Battle begins. In paused pacing, Next occupies this control rail.";
                     SetTutorialHighlight(new Rect(0.250f, 0.010f, 0.720f, 0.055f));
                     break;
                 case TutorialStep.Discard:
-                    tutorialTitle.text = "8 / 16  DISCARD PHASE";
-                    tutorialBody.text = "Before Combat, each unplayed second card is revealed and moved to its mirrored discard well. No second effect is applied unless the rules explicitly say so.";
+                    tutorialTitle.text = "LESSON 1  •  UNUSED CARD";
+                    tutorialBody.text = "The second card goes to the mirrored discard pile automatically and never triggers its Discard ability. You do not need to manage this step.";
                     SetTutorialHighlight(new Rect(0.025f, 0.095f, 0.115f, 0.810f));
                     break;
                 case TutorialStep.PublicDiscard:
-                    tutorialTitle.text = "9 / 16  PUBLIC DISCARD";
+                    tutorialTitle.text = "LESSON 1  •  REVIEW THE DISCARD";
                     tutorialBody.text = "Both discard wells stack cards face-up. Click either player's stack to enlarge and review every revealed card without covering the Appreciation well beside it.";
                     SetTutorialHighlight(new Rect(0.025f, 0.095f, 0.115f, 0.810f));
                     break;
                 case TutorialStep.BoardPresence:
-                    tutorialTitle.text = "10 / 16  BOARD PRESENCE";
-                    tutorialBody.text = "The center is one shared battlefield: opponent cards occupy the upper side and yours the lower side. Built cards defend, attack, and generate Growth; Instant cards leave no defender.";
+                    tutorialTitle.text = "LESSON 3  •  BUILD THE BATTLEFIELD";
+                    tutorialBody.text = "One Battlefield holds two opposing five-card rows. Built cards defend, attack, and contribute Appreciation. If your row is full, Build lets you replace one of your own cards.";
                     SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.Combat:
-                    tutorialTitle.text = "11 / 16  COMBAT";
-                    tutorialBody.text = "Combat presents opponent cards above yours in a faceoff. Inspect every card first, then select attackers, targets, and order. Attack and Defense resolve together; defeated cards enter public discard.";
+                    tutorialTitle.text = "LESSON 2  •  BATTLE";
+                    tutorialBody.text = "Ready cards may attack once. Select an attacker; legal targets glow. If no defender remains, attack the opponent directly. Attacking exhausts that card.";
                     SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.BuffsAndNerfs:
-                    tutorialTitle.text = "12 / 16  BUFFS AND NERFS";
+                    tutorialTitle.text = "LESSON 2  •  CURRENT STATS";
                     tutorialBody.text = "Printed Attack and Defense remain visible while current values reflect modifiers and damage. Enlarged cards show the active source and duration; Combat always uses current values.";
                     SetTutorialHighlight(new Rect(0.300f, 0.355f, 0.400f, 0.250f));
                     break;
                 case TutorialStep.DirectAttack:
-                    tutorialTitle.text = "13 / 16  DIRECT ATTACK";
+                    tutorialTitle.text = "LESSON 2  •  DIRECT ATTACK";
                     tutorialBody.text = "If the opposing side has no eligible defender, an attacker crosses the shared lane and reduces the opponent's HP. Both mirrored HUDs update immediately.";
                     SetTutorialHighlight(new Rect(0.260f, 0.940f, 0.480f, 0.048f));
                     break;
                 case TutorialStep.AutoAttack:
-                    tutorialTitle.text = "14 / 16  ATTACK CONTROLS";
-                    tutorialBody.text = "Auto-Attack supplies a quick legal plan in casual play. Reset / Reselect clears it, and Review Attack Order confirms the sequence before resolution.";
+                    tutorialTitle.text = "LESSON 2  •  FIGHT OR SCORE";
+                    tutorialBody.text = "An attack exhausts its card, so it will not score during Appreciate. Auto Plan previews legal attacks and the projected Appreciation before you confirm.";
                     SetTutorialHighlight(new Rect(0.180f, 0.335f, 0.640f, 0.285f));
                     break;
                 case TutorialStep.GatherGrowth:
-                    tutorialTitle.text = "15 / 16  GROW PHASE";
-                    SetTutorialCaption("STACK APPRECIATION");
-                    tutorialBody.text = "Build Appreciation to unlock greater rewards. Surviving built cards and ready board abilities generate Growth after Combat; this phase banks it into Appreciation, readies cards, and begins the next Draw.";
+                    tutorialTitle.text = "LESSON 3  •  APPRECIATE";
+                    SetTutorialCaption("READY CARDS SCORE");
+                    tutorialBody.text = "Ready cards add their Growth as Appreciation. Links add +2 per neighboring match. Unity adds +3 for Art, Community, and Blockchain together. Then cards refresh.";
                     SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
                 case TutorialStep.Winning:
-                    tutorialTitle.text = "16 / 16  WINNING";
-                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation during Grow or reduce the enemy to zero HP. Finish this full lesson now to receive the one-time 50 Appreciation Shard tutorial reward.";
+                    tutorialTitle.text = "YOU ARE READY";
+                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation during Appreciate or reduce the enemy to zero HP. Finish to receive the one-time 50 Appreciation Shard tutorial reward.";
                     SetButtonText(tutorialNextButton, "FINISH TUTORIAL");
                     SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
@@ -1473,7 +1473,7 @@ namespace AppreciatorsTcg.UI
             UIFactory.SetAnchors(choiceRect, new Vector2(0.29f, 0.16f), new Vector2(0.71f, 0.84f), Vector2.zero, Vector2.zero);
             UIFactory.AddNeonFrame(choicePanel, UIFactory.Accent, 0.92f);
 
-            Text title = UIFactory.CreateText(choicePanel.transform, "HOW DO YOU WANT TO PLAY IT?", 24, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            Text title = UIFactory.CreateText(choicePanel.transform, "CHOOSE ONE ACTION", 24, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
             LayoutElement titleLayout = title.gameObject.AddComponent<LayoutElement>();
             titleLayout.minHeight = 34;
             titleLayout.preferredHeight = 38;
@@ -1511,13 +1511,13 @@ namespace AppreciatorsTcg.UI
 
             Button build = UIFactory.CreateButton(
                 options.transform,
-                $"BUILD\nA {card.GetAttack()} / D {card.GetDefense()} • G{card.GetBaseGrowth()} • {card.GetBuildEffect()}",
+                $"BUILD • PERMANENT\nA {card.GetAttack()} / D {card.GetDefense()} • APP +{card.GetBaseGrowth()}\n{card.GetBuildEffect()}",
                 () => ConfirmPlayChoice(true),
                 UIFactory.Green);
             SetChoiceButtonHeight(build, 76);
             Button discard = UIFactory.CreateButton(
                 options.transform,
-                $"DISCARD — {card.GetDiscardCategory().ToUpperInvariant()}\n{card.GetDiscardEffect()}",
+                $"DISCARD • INSTANT\n{card.GetDiscardEffect()}",
                 () => ConfirmPlayChoice(false),
                 UIFactory.PortalViolet);
             SetChoiceButtonHeight(discard, 82);
@@ -1564,12 +1564,52 @@ namespace AppreciatorsTcg.UI
             selectedHandIndex = handIndex;
             if (buildOnBoard)
             {
+                if (!game.MainLane.HasSpace(OwnerSide.Player))
+                {
+                    ShowRebuildChoice(handIndex, chosen);
+                    return;
+                }
                 PlaySelectedCard(LaneType.Community);
             }
             else
             {
                 DiscardHandCard(handIndex);
             }
+        }
+
+        private void ShowRebuildChoice(int handIndex, CardDefinition chosen)
+        {
+            playChoiceDialog = UIFactory.CreatePanel(Root, "RebuildChoiceDialog", Color.clear);
+            UIFactory.Stretch(playChoiceDialog.GetComponent<RectTransform>());
+            playChoiceDialog.transform.SetAsLastSibling();
+            GameObject panel = UIFactory.CreateVerticalStack(playChoiceDialog.transform, "RebuildChoicePanel", UIFactory.Panel, 10, 16);
+            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.28f, 0.22f), new Vector2(0.72f, 0.78f), Vector2.zero, Vector2.zero);
+            UIFactory.AddNeonFrame(panel, UIFactory.Green, 0.96f);
+            UIFactory.CreateText(panel.transform, $"REBUILD WITH {chosen.name.ToUpperInvariant()}", 21, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            UIFactory.CreateText(panel.transform, "Choose a Battlefield card to replace. Replaced cards go to discard without an effect.", 15, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Normal);
+            GameObject choices = UIFactory.CreateVerticalStack(panel.transform, "RebuildTargets", Color.clear, 6, 0);
+            foreach (BattleCardInstance instance in game.MainLane.PlayerCards.ToList())
+            {
+                BattleCardInstance captured = instance;
+                Button replace = UIFactory.CreateButton(choices.transform,
+                    $"REPLACE {captured.Definition.name.ToUpperInvariant()}  •  A{captured.CurrentAttack} D{captured.CurrentDefense}",
+                    () => ConfirmRebuild(handIndex, captured.InstanceId), UIFactory.Green);
+                SetChoiceButtonHeight(replace, 42);
+            }
+            Button cancel = UIFactory.CreateButton(panel.transform, "CANCEL", CancelPlayChoice, UIFactory.PortalViolet);
+            SetChoiceButtonHeight(cancel, 42);
+        }
+
+        private void ConfirmRebuild(int handIndex, int replaceInstanceId)
+        {
+            CardInspectionOverlay.Hide();
+            bool played = game.TryBuildCard(OwnerSide.Player, handIndex, replaceInstanceId, out string message);
+            ClosePlayChoiceDialogImmediate();
+            selectedHandIndex = -1;
+            if (played) battleAudio?.PlayCardPlaced();
+            else battleAudio?.PlayInvalid();
+            UpdateScreen();
+            ShowMatStatus(message);
         }
 
         private void ShowDiscardConfirmation(int handIndex, CardDefinition card)
@@ -2680,7 +2720,7 @@ namespace AppreciatorsTcg.UI
             if (opponentShardContent != null)
             {
                 UIFactory.ClearChildren(opponentShardContent);
-                CreateActionMatReadout(opponentShardContent, "OPPONENT ACTION", game.Opponent.HasCommittedCardThisTurn ? "CARD USED" : "HIDDEN", UIFactory.Red);
+                CreateActionMatReadout(opponentShardContent, "OPPONENT ACTION", game.Opponent.HasCommittedCardThisTurn ? "LOCKED IN" : "HIDDEN", UIFactory.Red);
             }
 
             if (playerShardContent != null)
@@ -2688,8 +2728,8 @@ namespace AppreciatorsTcg.UI
                 UIFactory.ClearChildren(playerShardContent);
                 string detail = selectedHandIndex >= 0 && selectedHandIndex < game.Player.Hand.Count
                     ? $"{game.Player.Hand[selectedHandIndex].GetDiscardCategory().ToUpperInvariant()}"
-                    : game.Player.HasCommittedCardThisTurn ? "CARD USED" : "DROP CARD";
-                CreateActionMatReadout(playerShardContent, "ACTION", detail, UIFactory.Green);
+                    : game.Player.HasCommittedCardThisTurn ? "LOCKED IN" : "CHOOSE 1";
+                CreateActionMatReadout(playerShardContent, game.Initiative == OwnerSide.Player ? "INITIATIVE • YOU" : "ACTION", detail, UIFactory.Green);
             }
         }
 
@@ -3125,8 +3165,9 @@ namespace AppreciatorsTcg.UI
                 return row;
             }
 
+            List<BattleCardInstance> boardCards = lane.GetCards(side);
             int cardIndex = 0;
-            foreach (BattleCardInstance instance in lane.GetCards(side))
+            foreach (BattleCardInstance instance in boardCards)
             {
                 GameObject miniCard = UIFactory.CreateMiniCardPanel(
                     row.transform,
@@ -3152,6 +3193,21 @@ namespace AppreciatorsTcg.UI
                 if (seenBoardCardIds.Add(instance.InstanceId))
                 {
                     motion.ConfigureBoardDrop(opponentSide);
+                }
+                if (cardIndex < boardCards.Count - 1)
+                {
+                    BattleCardInstance neighbor = boardCards[cardIndex + 1];
+                    GameObject link = UIFactory.CreatePanel(row.transform, $"Link_{instance.InstanceId}_{neighbor.InstanceId}", Color.clear);
+                    LayoutElement linkLayout = link.AddComponent<LayoutElement>();
+                    linkLayout.minWidth = 22;
+                    linkLayout.preferredWidth = 22;
+                    linkLayout.minHeight = cardHeight;
+                    linkLayout.preferredHeight = cardHeight;
+                    Text linkText = UIFactory.CreateText(link.transform,
+                        BattleRules.AreLinked(instance, neighbor) ? "═\n+2\n═" : "",
+                        12, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+                    UIFactory.Stretch(linkText.rectTransform);
+                    linkText.raycastTarget = false;
                 }
                 cardIndex += 1;
             }
@@ -3607,22 +3663,13 @@ namespace AppreciatorsTcg.UI
             game.RunAiTurn();
             battleAudio?.PlayCardPlaced();
             UpdateScreen();
-            ShowMatStatus($"{opponentLabel} committed a card. End Turn leads into the Discard phase.");
+            ShowMatStatus($"{opponentLabel} committed a card. Both unused cards will clear without effects, then Battle begins.");
             yield return new WaitForSecondsRealtime(1.0f);
             game.BeginEndTurnPhase();
-            yield return PlayPacedPhase(BattleTurnPhase.EndTurn);
-            yield return PlayPacedPhase(BattleTurnPhase.Discard);
             game.ResolveForcedDiscardPhase();
             UpdateScreen();
-            if (game.LastPlayerForcedDiscard != null)
-            {
-                yield return PlayDiscardResolution(game.LastPlayerForcedDiscard, game.LastPlayerForcedDiscardMessage);
-            }
-            if (game.LastOpponentForcedDiscard != null)
-            {
-                yield return PlayDiscardResolution(game.LastOpponentForcedDiscard, game.LastOpponentForcedDiscardMessage);
-            }
-            yield return PlayPacedPhase(BattleTurnPhase.Combat);
+            ShowMatStatus("Commit resolved: unused cards cleared. Choose attacks, or preserve ready cards to score Appreciation.");
+            yield return PlayPacedPhase(BattleTurnPhase.Battle);
             OpenCombatPlanner();
         }
 

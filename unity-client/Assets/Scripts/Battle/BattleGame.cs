@@ -11,15 +11,21 @@ namespace AppreciatorsTcg.Battle
     public enum BattleTurnPhase
     {
         Draw,
-        Learn,
-        BuildOrDiscard,
-        EndTurn,
-        Discard,
-        ForcedDiscard = Discard,
-        Combat,
-        Battle = Combat,
-        GatherGrowth,
-        Cycle,
+        // The match is deliberately taught as four stages: Draw, Commit,
+        // Battle, Appreciate. Legacy names are aliases so old tutorial,
+        // replay, and invite payloads remain readable without teaching extra
+        // phases to a player.
+        Commit,
+        Learn = Commit,
+        BuildOrDiscard = Commit,
+        EndTurn = Commit,
+        Discard = Commit,
+        ForcedDiscard = Commit,
+        Battle,
+        Combat = Battle,
+        Appreciate,
+        GatherGrowth = Appreciate,
+        Cycle = Appreciate,
         Complete
     }
 
@@ -89,7 +95,9 @@ namespace AppreciatorsTcg.Battle
         public LaneState MainLane { get; }
         public List<LaneState> Lanes { get; }
         public int Turn { get; private set; } = 1;
+        public int Round => Turn;
         public BattleTurnPhase Phase { get; private set; } = BattleTurnPhase.Draw;
+        public OwnerSide Initiative { get; private set; } = OwnerSide.Player;
         public bool IsComplete { get; private set; }
         public bool IsCompetitiveMode { get; }
         public bool CanUseAutoAttack => !IsCompetitiveMode;
@@ -127,6 +135,7 @@ namespace AppreciatorsTcg.Battle
         }
 
         public int PreviewBoardGrowth(OwnerSide side) => BattleRules.CalculateBoardGrowth(MainLane, side) + BattleRules.CalculateCombinationGrowth(MainLane.GetCards(side));
+        public BattleGrowthPreview PreviewAppreciation(OwnerSide side) => BattleRules.CreateGrowthPreview(MainLane.GetCards(side));
         public int PreviewDiscardGrowth(CardDefinition card) => card == null ? 0 : card.GetDiscardGrowthValue();
         public bool TryPlayPlayerCard(int handIndex, LaneType laneType, out string message) => TryBuildCard(OwnerSide.Player, handIndex, out message);
         public bool TryPlayOpponentCard(int handIndex, LaneType laneType, out string message) => TryBuildCard(OwnerSide.Opponent, handIndex, out message);
@@ -146,15 +155,15 @@ namespace AppreciatorsTcg.Battle
                 LastMessage = message;
                 return false;
             }
+            SetPhase(BattleTurnPhase.Commit);
+            CardDefinition definition = owner.Hand[handIndex];
             if (!MainLane.HasSpace(side))
             {
-                message = "Your board is full. You must Discard one of your two cards.";
-                LastMessage = message;
-                return false;
+                // A full row never removes the Build option. Rebuild replaces
+                // the oldest permanent; callers that provide a slot can use
+                // the overload below to choose the replacement explicitly.
+                return TryBuildCard(side, handIndex, MainLane.GetCards(side)[0].InstanceId, out message);
             }
-
-            SetPhase(BattleTurnPhase.BuildOrDiscard);
-            CardDefinition definition = owner.Hand[handIndex];
             owner.Hand.RemoveAt(handIndex);
             owner.ForgetRevealed(definition);
             BattleCardInstance card = new BattleCardInstance(definition, side);
@@ -173,8 +182,59 @@ namespace AppreciatorsTcg.Battle
                 Revealed = true,
                 Summary = message
             });
-            message = $"{owner.DisplayName} built {definition.name}. It can attack, defend, and generate {card.GrowthValue} Growth.";
+            message = $"{owner.DisplayName} built {definition.name}. It can fight or contribute {card.GrowthValue} Appreciation during Appreciate.";
             LastMessage = message;
+            return true;
+        }
+
+        public bool TryBuildCard(OwnerSide side, int handIndex, int replaceInstanceId, out string message)
+        {
+            BattlePlayerState owner = GetPlayerState(side);
+            if (!CanCommitCard(owner, handIndex, out message))
+            {
+                LastMessage = message;
+                return false;
+            }
+            if (owner.CommitSkippedThisTurn)
+            {
+                message = "A card effect skips your Commit this round.";
+                LastMessage = message;
+                return false;
+            }
+
+            List<BattleCardInstance> row = MainLane.GetCards(side);
+            BattleCardInstance replaced = row.FirstOrDefault(card => card.InstanceId == replaceInstanceId);
+            if (replaced == null)
+            {
+                message = "Choose one of your Battlefield cards to replace.";
+                LastMessage = message;
+                return false;
+            }
+
+            SetPhase(BattleTurnPhase.Commit);
+            CardDefinition definition = owner.Hand[handIndex];
+            owner.Hand.RemoveAt(handIndex);
+            owner.ForgetRevealed(definition);
+            row.Remove(replaced);
+            owner.DiscardPile.Add(replaced.Definition);
+            BattleCardInstance card = new BattleCardInstance(definition, side);
+            card.PlaceInGrowthRow();
+            row.Add(card);
+            CardEffectResolver.ApplyOnBuild(this, owner, MainLane, card);
+            owner.HasCommittedCardThisTurn = true;
+            message = $"{owner.DisplayName} rebuilt {definition.name} over {replaced.Definition.name}. The replaced card was discarded without activating its Discard ability.";
+            LastMessage = message;
+            replayEvents.Add(new BattleReplayEvent
+            {
+                Turn = Turn,
+                Phase = Phase,
+                Side = side,
+                EventType = "card-decision",
+                CardId = definition.id,
+                Decision = "Build / Rebuild",
+                Revealed = true,
+                Summary = message
+            });
             return true;
         }
 
@@ -194,7 +254,7 @@ namespace AppreciatorsTcg.Battle
                 return false;
             }
 
-            SetPhase(BattleTurnPhase.BuildOrDiscard);
+            SetPhase(BattleTurnPhase.Commit);
             int appreciationBefore = owner.Appreciation;
             int growthBefore = owner.PendingAbilityGrowth;
             CardEffectResolver.PayDiscardBoardCost(this, owner, side, definition);
@@ -416,7 +476,10 @@ namespace AppreciatorsTcg.Battle
 
             SetPhase(BattleTurnPhase.Combat);
             lastCombatEvents.Clear();
-            foreach (BattleAttackOrder order in playerPlan.Concat(opponentPlan))
+            IEnumerable<BattleAttackOrder> orderedPlans = Initiative == OwnerSide.Player
+                ? playerPlan.Concat(opponentPlan)
+                : opponentPlan.Concat(playerPlan);
+            foreach (BattleAttackOrder order in orderedPlans)
             {
                 int eventStart = lastCombatEvents.Count;
                 ResolveAttack(order);
@@ -480,6 +543,7 @@ namespace AppreciatorsTcg.Battle
             if (!fieldBattleResolvedThisTurn) ResolveFieldBattle();
             if (!fieldBattleResolvedThisTurn || IsComplete) return;
 
+            SetPhase(BattleTurnPhase.Appreciate);
             GatherGrowth(OwnerSide.Player);
             GatherGrowth(OwnerSide.Opponent);
             TallyAppreciation(OwnerSide.Player);
@@ -501,6 +565,7 @@ namespace AppreciatorsTcg.Battle
             }
 
             ResolveRefresh();
+            Initiative = OppositeSide(Initiative);
             Turn += 1;
             StartTurn();
         }
@@ -528,8 +593,8 @@ namespace AppreciatorsTcg.Battle
                 return;
             }
 
-            SetPhase(BattleTurnPhase.EndTurn);
-            LastMessage = $"Turn {Turn} ended. Resolve the remaining-card Discard phase before Combat.";
+            SetPhase(BattleTurnPhase.Commit);
+            LastMessage = $"Round {Round} is locked in. Unused cards clear without triggering an ability; Battle is next.";
         }
 
         public void ResolveForcedDiscardPhase()
@@ -545,7 +610,6 @@ namespace AppreciatorsTcg.Battle
             }
 
             BeginEndTurnPhase();
-            SetPhase(BattleTurnPhase.Discard);
             LastPlayerForcedDiscard = ForceDiscardRemainingCard(OwnerSide.Player, out string playerMessage);
             LastOpponentForcedDiscard = ForceDiscardRemainingCard(OwnerSide.Opponent, out string opponentMessage);
 
@@ -558,12 +622,12 @@ namespace AppreciatorsTcg.Battle
             {
                 if (Player.Hand.Count > 0)
                 {
-                    DiscardRandomHandCard(OwnerSide.Player, out _, out string cleanup);
+                    DiscardHandCardWithoutEffect(OwnerSide.Player, out _, out string cleanup);
                     cleanupMessages.Add(cleanup);
                 }
                 if (Opponent.Hand.Count > 0)
                 {
-                    DiscardRandomHandCard(OwnerSide.Opponent, out _, out string cleanup);
+                    DiscardHandCardWithoutEffect(OwnerSide.Opponent, out _, out string cleanup);
                     cleanupMessages.Add(cleanup);
                 }
             }
@@ -590,11 +654,11 @@ namespace AppreciatorsTcg.Battle
                 return null;
             }
 
-            DiscardRandomHandCard(side, out CardDefinition firstDiscarded, out string firstMessage);
+            DiscardHandCardWithoutEffect(side, out CardDefinition firstDiscarded, out string firstMessage);
             List<string> messages = new List<string> { firstMessage };
             while (owner.Hand.Count > 0)
             {
-                DiscardRandomHandCard(side, out _, out string overflowMessage);
+                DiscardHandCardWithoutEffect(side, out _, out string overflowMessage);
                 messages.Add(overflowMessage);
             }
 
@@ -649,6 +713,35 @@ namespace AppreciatorsTcg.Battle
                 Revealed = true,
                 Summary = message
             });
+        }
+
+        private void DiscardHandCardWithoutEffect(OwnerSide side, out CardDefinition definition, out string message)
+        {
+            BattlePlayerState owner = GetPlayerState(side);
+            if (owner.Hand.Count == 0)
+            {
+                definition = null;
+                message = string.Empty;
+                return;
+            }
+
+            // There is no random post-choice punishment: the second card is
+            // always cleared quietly. This is the core one-action-per-round rule.
+            definition = owner.Hand[0];
+            owner.Hand.RemoveAt(0);
+            owner.ForgetRevealed(definition);
+            owner.DiscardPile.Add(definition);
+            replayEvents.Add(new BattleReplayEvent
+            {
+                Turn = Turn,
+                Phase = BattleTurnPhase.Commit,
+                Side = side,
+                EventType = "unused-card-cleared",
+                CardId = definition.id,
+                Revealed = false,
+                Summary = $"{owner.DisplayName}'s unused card cleared without an effect."
+            });
+            message = $"{owner.DisplayName}'s unused card cleared without an effect.";
         }
 
         public void ResolveTurnCombat() => ResolveGrowthAndAdvanceTurn();
@@ -782,6 +875,7 @@ namespace AppreciatorsTcg.Battle
         public IEnumerable<LaneState> AllLanes() { yield return MainLane; }
         public BattlePlayerState GetPlayerState(OwnerSide side) => side == OwnerSide.Player ? Player : Opponent;
         public OwnerSide OppositeSide(OwnerSide side) => side == OwnerSide.Player ? OwnerSide.Opponent : OwnerSide.Player;
+        public string InitiativeLabel() => Initiative == OwnerSide.Player ? Player.DisplayName : Opponent.DisplayName;
 
         public void DealAppreciationDamage(LaneState lane, BattleCardInstance source, BattleCardInstance target, int damage)
         {
@@ -927,8 +1021,8 @@ namespace AppreciatorsTcg.Battle
             }
             SetPhase(BattleTurnPhase.Learn);
             LastMessage = Player.CommitSkippedThisTurn
-                ? $"Turn {Turn}: a Discard Effect skips your Build or Discard phase. Learn the table, then continue to Combat."
-                : $"Turn {Turn}: two cards were drawn automatically. Choose one to Build or Discard; the remaining card will be randomly discarded after End Turn and before Combat.";
+                ? $"Round {Round}: a card effect skips your Commit. Battle follows after the opponent locks in."
+                : $"Round {Round}: draw 2, choose 1, then Battle. The unused card clears without an effect. Initiative: {InitiativeLabel()}.";
         }
 
         private void SetPhase(BattleTurnPhase phase)
@@ -941,8 +1035,9 @@ namespace AppreciatorsTcg.Battle
                 Phase = phase,
                 Side = OwnerSide.Player,
                 EventType = "phase-transition",
-                Summary = phase == BattleTurnPhase.BuildOrDiscard ? "BUILD OR DISCARD" :
-                    phase == BattleTurnPhase.Discard ? "DISCARD" : phase.ToString()
+                Summary = phase == BattleTurnPhase.Commit ? "COMMIT" :
+                    phase == BattleTurnPhase.Battle ? "BATTLE" :
+                    phase == BattleTurnPhase.Appreciate ? "APPRECIATE" : phase.ToString()
             });
             PhaseChanged?.Invoke(phase);
         }

@@ -149,36 +149,35 @@ namespace AppreciatorsTcg.Tests
                 RectTransform hand = canvas.GetComponentsInChildren<RectTransform>(true).Single(item => item.name == "Hand");
                 RectTransform endTurn = canvas.GetComponentsInChildren<RectTransform>(true).Single(item => item.name == "END TURN");
                 RectTransform nextPhase = canvas.GetComponentsInChildren<RectTransform>(true).Single(item => item.name.Contains("NEXT PHASE"));
-                RectTransform growthRow = canvas.GetComponentsInChildren<RectTransform>(true).Single(item => item.name == "GrowthLane");
+                RectTransform growthRow = canvas.GetComponentsInChildren<RectTransform>(true).Single(item => item.name == "PlayerBattlefieldDropSurface");
 
                 Assert.GreaterOrEqual(endTurn.anchorMin.x, hand.anchorMax.x);
-                Assert.AreEqual(endTurn.anchorMin, nextPhase.anchorMin, "NEXT PHASE must overlay the native End Turn footprint.");
-                Assert.AreEqual(endTurn.anchorMax, nextPhase.anchorMax, "NEXT PHASE must overlay the native End Turn footprint.");
-                Assert.IsFalse(nextPhase.gameObject.activeSelf);
-                Assert.AreEqual(0.936f, growthRow.anchorMax.x - growthRow.anchorMin.x, 0.001f);
+                Assert.AreNotEqual(endTurn.anchorMin, nextPhase.anchorMin, "NEXT PHASE must remain on its own control footprint.");
+                Assert.IsTrue(nextPhase.gameObject.activeSelf);
+                Assert.AreEqual(0.930f, growthRow.anchorMax.x - growthRow.anchorMin.x, 0.001f);
                 Assert.AreEqual(1, canvas.GetComponentsInChildren<MatchLaneDropZone>(true).Length);
                 Assert.IsFalse(canvas.GetComponentsInChildren<RectTransform>(true).Any(item => item.name == "Art" || item.name == "Blockchain"));
-                Assert.IsTrue(canvas.GetComponentsInChildren<Text>(true).Any(text => text.text.Contains("BUILD OR DISCARD")));
+                Assert.IsFalse(canvas.GetComponentsInChildren<Text>(true).Any(text => text.text.Contains("BUILD OR DISCARD")), "The retired phase label must not return to the playmat.");
                 Assert.AreEqual(2, canvas.GetComponentsInChildren<AppreciationLiquidMeter>(true).Length);
                 Assert.IsFalse(canvas.GetComponentsInChildren<Transform>(true).Any(item => item.name == "OpponentEmptyMat" || item.name == "PlayerEmptyMat"));
                 Assert.AreEqual(0f, growthRow.GetComponent<Image>().color.a, 0.001f, "The play field must leave the printed playmat visible.");
                 RectTransform playerMeter = canvas.GetComponentsInChildren<AppreciationLiquidMeter>(true).Single(item => item.name == "PlayerAppreciationReservoir").GetComponent<RectTransform>();
-                Assert.AreEqual(0.198f, playerMeter.anchorMin.x, 0.001f);
-                Assert.AreEqual(0.375f, playerMeter.anchorMax.x, 0.001f);
+                Assert.AreEqual(0.160f, playerMeter.anchorMin.x, 0.001f);
+                Assert.AreEqual(0.270f, playerMeter.anchorMax.x, 0.001f);
                 Assert.IsNull(playerMeter.GetComponent<Image>(), "The native Appreciation meter must not draw a panel over the printed button.");
                 Image nativeFill = playerMeter.GetComponentsInChildren<Image>(true).Single(image => image.name == "NativeAppreciationFill");
                 Assert.AreEqual(Image.Type.Filled, nativeFill.type);
                 Assert.IsNotNull(nativeFill.sprite, "The fill should reuse the printed playmat button art.");
                 playerMeter.GetComponent<AppreciationLiquidMeter>().SetValue(GameConstants.AppreciationVictoryTarget / 2, false);
                 Assert.AreEqual(0.5f, nativeFill.fillAmount, 0.001f, "The printed button itself should fill in proportion to Appreciation.");
-                Assert.AreEqual("app_playmat_native", nativeFill.sprite.texture.name);
+                Assert.AreEqual("app_playmat_native_no_appreciation_stars", nativeFill.sprite.texture.name);
                 Assert.IsTrue(playerMeter.GetComponentsInChildren<Text>(true).Any(text => text.text == "25/50"),
                     "The x/50 score must be printed inside the native Appreciation button footprint.");
                 Assert.IsFalse(canvas.GetComponentsInChildren<RectTransform>(true).Any(item => item.name.EndsWith("PlaymatLabel") || item.name.EndsWith("NativeWordmark")),
                     "Learn, Build, and Grow must be printed into the playmat rather than drawn as UI overlays.");
                 Assert.IsFalse(canvas.GetComponentsInChildren<Text>(true).Any(text => text.text.Contains("ACTION MAT") || text.text.Contains("LEADER")));
                 Assert.AreEqual(0, hand.GetComponentsInChildren<MatchHandCardInput>(true).Length, "The visible hand must begin empty before the Draw animation.");
-                Assert.IsNotNull(canvas.GetComponentsInChildren<RectTransform>(true).SingleOrDefault(item => item.name == "FaceDownDrawDeck"));
+                Assert.IsNotNull(canvas.GetComponentsInChildren<RectTransform>(true).SingleOrDefault(item => item.name == "PlayerFaceDownDeck"));
                 Assert.IsEmpty(canvas.GetComponentsInChildren<Button>(true).Where(button => button.name.Contains("Shard")));
                 Assert.IsNotNull(canvas.GetComponentsInChildren<Button>(true).SingleOrDefault(button => button.name.Contains("PHASES: AUTO")));
                 Assert.IsNotNull(canvas.GetComponentsInChildren<Button>(true).SingleOrDefault(button => button.name.Contains("NEXT PHASE")));
@@ -191,7 +190,7 @@ namespace AppreciatorsTcg.Tests
                 canvas.GetComponentsInChildren<Button>(true).Single(button => button.name == "OpponentStarMenuZone").onClick.Invoke();
                 Assert.IsFalse(starSettings.gameObject.activeSelf);
                 Image playmat = canvas.GetComponentsInChildren<Transform>(true).Single(item => item.name == "PlaymatArt").GetComponent<Image>();
-                Assert.AreEqual("app_playmat_native", playmat.sprite.texture.name, "The revised labels should be part of the playmat texture itself.");
+                Assert.AreEqual("app_playmat_native_no_appreciation_stars", playmat.sprite.texture.name, "The revised labels should be part of the playmat texture itself.");
                 Assert.Less(playmat.color.r, 0.75f, "The match playmat should use its dark-mode tint.");
 
                 FieldInfo drawPresentationField = typeof(MatchScreenController).GetField("drawPresentationActive", BindingFlags.Instance | BindingFlags.NonPublic);

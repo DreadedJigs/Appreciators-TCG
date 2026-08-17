@@ -64,8 +64,8 @@ namespace AppreciatorsTcg.Tests
                 game.MainLane.PlayerCards.Add(new BattleCardInstance(card, OwnerSide.Player));
             }
 
-            Assert.IsFalse(game.TryBuildCard(OwnerSide.Player, 0, out _));
-            Assert.IsTrue(game.TryDiscardCard(OwnerSide.Player, 0, out string actionMessage), actionMessage);
+            Assert.IsTrue(game.TryBuildCard(OwnerSide.Player, 0, out string rebuildMessage), rebuildMessage);
+            Assert.AreEqual(GameConstants.MaxCardsPerLanePerPlayer, game.MainLane.PlayerCards.Count);
         }
 
         private static BattleGame CreateGame(CardDefinition card)

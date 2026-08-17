@@ -597,7 +597,7 @@ namespace AppreciatorsTcg.UI
             nameLayout.preferredWidth = 90f;
             CreateCompactStat(hud.transform, "HP", health, HeartRed);
             CreateCompactStat(hud.transform, appreciation >= GameConstants.SpotlightGrowthThreshold ? "APPRECIATION ★" : "APPRECIATION", appreciation, opponent ? Blue : Accent);
-            CreateCompactStat(hud.transform, "TURN", turn, PortalViolet);
+            CreateCompactStat(hud.transform, "ROUND", turn, PortalViolet);
             return hud;
         }
 

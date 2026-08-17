@@ -230,6 +230,7 @@ namespace AppreciatorsTcg.Tests
 
             try
             {
+                LocalSaveSystem.MarkTutorialCompleted();
                 MainMenuController controller = host.AddComponent<MainMenuController>();
                 InvokeLifecycle(controller, "Awake", typeof(ScreenControllerBase));
                 InvokeLifecycle(controller, "Start", typeof(MainMenuController));
@@ -237,7 +238,7 @@ namespace AppreciatorsTcg.Tests
                 Button playCasual = canvas.GetComponentsInChildren<Button>(true)
                     .Single(button => button.GetComponentInChildren<Text>(true)?.text == "PLAY CASUAL");
                 Assert.IsTrue(canvas.GetComponentsInChildren<Button>(true)
-                    .Any(button => button.GetComponentInChildren<Text>(true)?.text == "TURN TUTORIAL"));
+                    .Any(button => button.GetComponentInChildren<Text>(true)?.text.StartsWith("TURN TUTORIAL") == true));
                 playCasual.onClick.Invoke();
 
                 DeckChoicePanel choice = canvas.GetComponentInChildren<DeckChoicePanel>(true);
@@ -252,6 +253,7 @@ namespace AppreciatorsTcg.Tests
                     Object.DestroyImmediate(canvas.gameObject);
                 }
                 Object.DestroyImmediate(host);
+                LocalSaveSystem.ResetTutorialProgress();
             }
         }
 

@@ -12,7 +12,7 @@ namespace AppreciatorsTcg.Tests
     public sealed class RevampRulesEditModeTests
     {
         [Test]
-        public void TurnRecordsEndTurnDiscardBeforeCombatGrowthAndCycle()
+        public void RoundRecordsOnlyDrawCommitBattleAndAppreciate()
         {
             BattleGame game = CreateGame();
             game.Start();
@@ -22,10 +22,8 @@ namespace AppreciatorsTcg.Tests
 
             BattleTurnPhase[] required =
             {
-                BattleTurnPhase.Draw, BattleTurnPhase.Learn, BattleTurnPhase.BuildOrDiscard,
-                BattleTurnPhase.EndTurn, BattleTurnPhase.Discard, BattleTurnPhase.Combat,
-                BattleTurnPhase.GatherGrowth, BattleTurnPhase.Cycle,
-                BattleTurnPhase.Draw, BattleTurnPhase.Learn
+                BattleTurnPhase.Draw, BattleTurnPhase.Commit, BattleTurnPhase.Battle,
+                BattleTurnPhase.Appreciate, BattleTurnPhase.Draw, BattleTurnPhase.Commit
             };
             int cursor = 0;
             foreach (BattleTurnPhase phase in game.PhaseHistory)
@@ -34,7 +32,7 @@ namespace AppreciatorsTcg.Tests
         }
 
         [Test]
-        public void ForcedDiscardRandomlyResolvesTheRemainingCardForBothPlayers()
+        public void UnusedCardClearsWithoutResolvingItsDiscardAbility()
         {
             BattleGame game = CreateGame();
             game.Start();
@@ -45,15 +43,48 @@ namespace AppreciatorsTcg.Tests
             game.BeginEndTurnPhase();
             game.ResolveForcedDiscardPhase();
 
-            Assert.AreEqual(BattleTurnPhase.Discard, game.Phase);
+            Assert.AreEqual(BattleTurnPhase.Commit, game.Phase);
             Assert.IsEmpty(game.Player.Hand);
             Assert.IsEmpty(game.Opponent.Hand);
             Assert.Contains(playerRemaining, game.Player.DiscardPile);
             Assert.Contains(opponentRemaining, game.Opponent.DiscardPile);
-            Assert.IsTrue(game.ReplayEvents.Any(entry => entry.EventType == "forced-discard" && entry.Side == OwnerSide.Player));
-            Assert.IsTrue(game.ReplayEvents.Any(entry => entry.EventType == "forced-discard" && entry.Side == OwnerSide.Opponent));
+            Assert.IsTrue(game.ReplayEvents.Any(entry => entry.EventType == "unused-card-cleared" && entry.Side == OwnerSide.Player));
+            Assert.IsTrue(game.ReplayEvents.Any(entry => entry.EventType == "unused-card-cleared" && entry.Side == OwnerSide.Opponent));
             Assert.IsTrue(game.ResolveCombatPlans(new BattleAttackOrder[0], new BattleAttackOrder[0], out _));
-            Assert.AreEqual(BattleTurnPhase.Combat, game.Phase);
+            Assert.AreEqual(BattleTurnPhase.Battle, game.Phase);
+        }
+
+        [Test]
+        public void FullBattlefieldCanRebuildByReplacingOneFriendlyCard()
+        {
+            BattleGame game = CreateGame();
+            game.Start();
+            for (int i = 0; i < GameConstants.MaxCardsPerLanePerPlayer; i++)
+            {
+                AddUnit(game, OwnerSide.Player, "regular_body");
+            }
+            CardDefinition replacement = game.Player.Hand[0];
+            BattleCardInstance replaced = game.MainLane.PlayerCards[2];
+
+            Assert.IsTrue(game.TryBuildCard(OwnerSide.Player, 0, replaced.InstanceId, out string message), message);
+            Assert.AreEqual(GameConstants.MaxCardsPerLanePerPlayer, game.MainLane.PlayerCards.Count);
+            Assert.IsFalse(game.MainLane.PlayerCards.Contains(replaced));
+            Assert.Contains(replaced.Definition, game.Player.DiscardPile);
+            Assert.IsTrue(game.MainLane.PlayerCards.Any(card => card.Definition == replacement));
+        }
+
+        [Test]
+        public void LinksAndUnityAreOneClearlyBoundedScoringSystem()
+        {
+            BattleGame game = CreateGame();
+            AddUnit(game, OwnerSide.Player, "regular_body");
+            AddUnit(game, OwnerSide.Player, "unicorn_head");
+            AddUnit(game, OwnerSide.Player, "blue_skin");
+            BattleGrowthPreview preview = game.PreviewAppreciation(OwnerSide.Player);
+
+            Assert.AreEqual(BattleRules.CalculateLinkGrowth(game.MainLane.PlayerCards), preview.LinkGrowth);
+            Assert.AreEqual(BattleRules.CalculateUnityGrowth(game.MainLane.PlayerCards), preview.UnityGrowth);
+            Assert.AreEqual(preview.BaseGrowth + preview.LinkGrowth + preview.UnityGrowth, preview.TotalGrowth);
         }
 
         [Test]
@@ -183,7 +214,7 @@ namespace AppreciatorsTcg.Tests
             Assert.AreEqual(3, unit.TemporaryAttackBonus);
             Assert.AreEqual(1, unit.PermanentDefenseBonus);
             StringAssert.Contains("Sabotage", unit.EffectSummary());
-            StringAssert.Contains("until Cycle", unit.EffectSummary());
+            StringAssert.Contains("until Growth", unit.EffectSummary());
             unit.Refresh();
             Assert.AreEqual(unit.BaseAttack + 1, unit.CurrentAttack);
             Assert.AreEqual(unit.BaseDefense + 1, unit.CurrentDefense);

@@ -51,7 +51,7 @@ namespace AppreciatorsTcg.UI
                 Vector2.zero);
             GameObject stack = UIFactory.CreateVerticalStack(root.transform, "PlannerStack", Color.clear, phone ? 4 : 8, phone ? 7 : 14);
             UIFactory.Stretch(stack.GetComponent<RectTransform>());
-            UIFactory.CreateText(stack.transform, "COMBAT — CHOOSE ATTACKERS, TARGETS, AND ORDER", phone ? 19 : 22, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            UIFactory.CreateText(stack.transform, "BATTLE — CHOOSE ATTACKERS, TARGETS, AND ORDER", phone ? 19 : 22, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
             string instruction = selectedAttacker == null
                 ? "1. Select an available attacker. Press and hold any card to inspect it first."
                 : $"2. Choose a highlighted legal target for {selectedAttacker.Definition.name}. Press and hold to inspect.";
@@ -65,6 +65,17 @@ namespace AppreciatorsTcg.UI
                     return $"{index + 1}. {source?.Definition.name ?? "unit"} → {(order.TargetsPlayer ? "PLAYER" : target?.Definition.name ?? "target")}";
                 }));
             UIFactory.CreateText(stack.transform, path, phone ? 13 : 14, TextAnchor.MiddleCenter, UIFactory.NeonCyan, FontStyle.Bold);
+
+            BattleGrowthPreview fullPreview = game.PreviewAppreciation(OwnerSide.Player);
+            int exhaustedGrowth = orders
+                .Select(order => game.MainLane.PlayerCards.FirstOrDefault(card => card.InstanceId == order.SourceInstanceId))
+                .Where(card => card != null)
+                .Select(card => card.GrowthValue)
+                .Sum();
+            int projected = Mathf.Max(0, fullPreview.TotalGrowth - exhaustedGrowth);
+            UIFactory.CreateText(stack.transform,
+                $"APPRECIATE PREVIEW • BASE +{fullPreview.BaseGrowth}  LINKS +{fullPreview.LinkGrowth}  UNITY +{fullPreview.UnityGrowth}  ATTACKING -{exhaustedGrowth}  = +{projected}",
+                phone ? 12 : 13, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
 
             List<BattleCardInstance> defenders = game.MainLane.OpponentCards.Where(card => card.IsEligibleDefender).ToList();
             GameObject targetRow = UIFactory.CreateHorizontalStack(stack.transform, "OpponentTargets", Color.clear, 8, 0);
@@ -115,7 +126,7 @@ namespace AppreciatorsTcg.UI
             }
 
             GameObject actions = UIFactory.CreateHorizontalStack(stack.transform, "CombatActions", Color.clear, 8, 0);
-            Button auto = UIFactory.CreateButton(actions.transform, game.CanUseAutoAttack ? "AUTO-ATTACK" : "AUTO-ATTACK UNAVAILABLE", AutoAttack, UIFactory.Blue);
+            Button auto = UIFactory.CreateButton(actions.transform, game.CanUseAutoAttack ? "AUTO PLAN" : "AUTO PLAN UNAVAILABLE", AutoAttack, UIFactory.Blue);
             auto.interactable = game.CanUseAutoAttack;
             UIFactory.CreateButton(actions.transform, "RESET / RESELECT", Reset, UIFactory.PanelAlt);
             string confirmLabel = awaitingFinalConfirmation ? $"FINAL CONFIRM — {orders.Count} ATTACK{(orders.Count == 1 ? string.Empty : "S")}" : "REVIEW ATTACK ORDER";

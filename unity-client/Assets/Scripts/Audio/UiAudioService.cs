@@ -22,6 +22,10 @@ namespace AppreciatorsTcg.Audio
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void Initialize()
         {
+            // Edit-mode UI tests exercise click handlers without a running
+            // scene. Audio is runtime-only, so avoid creating a persistent
+            // object while the editor is simply validating layout.
+            if (!Application.isPlaying) return;
             if (uiSource != null) return;
 
             GameObject host = new GameObject("AppreciatorsAudioRuntime");

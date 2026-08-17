@@ -16,37 +16,21 @@ namespace AppreciatorsTcg.UI
 
         public static string GetPhaseLabel(BattleTurnPhase phase)
         {
-            switch (phase)
-            {
-                case BattleTurnPhase.Draw: return "DRAW PHASE";
-                case BattleTurnPhase.Learn: return "LEARN PHASE";
-                case BattleTurnPhase.BuildOrDiscard: return "BUILD PHASE";
-                case BattleTurnPhase.EndTurn: return "END TURN";
-                case BattleTurnPhase.Discard: return "DISCARD PHASE";
-                case BattleTurnPhase.Combat: return "COMBAT PHASE";
-                case BattleTurnPhase.GatherGrowth: return "GROW PHASE";
-                // Legacy payloads may still send Cycle; display it as the
-                // consolidated Growth close instead of reviving a dead phase.
-                case BattleTurnPhase.Cycle: return "GROW PHASE";
-                case BattleTurnPhase.Complete: return "MATCH COMPLETE";
-                default: return $"{phase.ToString().ToUpperInvariant()} PHASE";
-            }
+            if (phase == BattleTurnPhase.Draw) return "DRAW";
+            if (phase == BattleTurnPhase.Commit) return "COMMIT";
+            if (phase == BattleTurnPhase.Battle) return "BATTLE";
+            if (phase == BattleTurnPhase.Appreciate) return "APPRECIATE";
+            if (phase == BattleTurnPhase.Complete) return "MATCH COMPLETE";
+            return phase.ToString().ToUpperInvariant();
         }
 
         public static string GetPhaseCaption(BattleTurnPhase phase)
         {
-            switch (phase)
-            {
-                case BattleTurnPhase.Draw: return "DRAW TWO CARDS";
-                case BattleTurnPhase.Learn: return "PLAN YOUR PLAY";
-                case BattleTurnPhase.BuildOrDiscard: return "CHOOSE YOUR ACTION";
-                case BattleTurnPhase.EndTurn: return "LOCK IN YOUR PLAY";
-                case BattleTurnPhase.Discard: return "CLEAR THE WAY";
-                case BattleTurnPhase.Combat: return "BATTLE FOR THE FIELD";
-                case BattleTurnPhase.GatherGrowth: return "STACK APPRECIATION";
-                case BattleTurnPhase.Cycle: return "STACK APPRECIATION";
-                default: return string.Empty;
-            }
+            if (phase == BattleTurnPhase.Draw) return "DRAW TWO CARDS";
+            if (phase == BattleTurnPhase.Commit) return "CHOOSE 1 • BUILD OR DISCARD";
+            if (phase == BattleTurnPhase.Battle) return "FIGHT OR SCORE";
+            if (phase == BattleTurnPhase.Appreciate) return "READY CARDS SCORE";
+            return string.Empty;
         }
 
         public IEnumerator PlayPhase(BattleTurnPhase phase)
