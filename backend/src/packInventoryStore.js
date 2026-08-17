@@ -17,7 +17,8 @@ const persistencePath = resolve(process.env.PACK_INVENTORY_STORE_PATH || "data/r
 export const STARTER_PACK_GRANT_COUNT = 3;
 export const MATCH_WIN_SHARD_REWARD = 69;
 export const RANKED_LOSS_SHARD_PENALTY = 5;
-export const TUTORIAL_COMPLETION_SHARD_REWARD = 50;
+export const TUTORIAL_COMPLETION_SHARD_REWARD = 5000;
+export const TUTORIAL_GAME_FINISH_SHARD_REWARD = 1000;
 export const BOSS_BATTLE_UNLOCK_COST = 2000;
 const STARTER_GRANT_VERSION = 1;
 const runtimeFallbackSigningSecret = crypto.randomBytes(32).toString("hex");
@@ -292,7 +293,9 @@ export function awardMatchResultShards(payload = {}) {
   const before = clonePlayer(player);
   let response;
   try {
-    const requestedChange = result === "Victory"
+    const requestedChange = mode.toLowerCase() === "tutorial continuation"
+      ? TUTORIAL_GAME_FINISH_SHARD_REWARD
+      : result === "Victory"
       ? MATCH_WIN_SHARD_REWARD
       : result === "Defeat" && mode.toLowerCase() === "ranked"
         ? -RANKED_LOSS_SHARD_PENALTY
@@ -341,7 +344,7 @@ export function awardMatchWinShards(payload = {}) {
 
 export function awardTutorialCompletionShards(payload = {}) {
   const player = getOrCreatePlayer(payload.playerId);
-  const rewardId = "native_board_tutorial_v1";
+  const rewardId = "native_board_tutorial_v2";
   player.tutorialRewards = player.tutorialRewards || {};
   const progress = ensurePlayerProgress(player);
   const newlyCompleted = !progress.tutorialCompleted;

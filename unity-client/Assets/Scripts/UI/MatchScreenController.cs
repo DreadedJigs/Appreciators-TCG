@@ -85,6 +85,7 @@ namespace AppreciatorsTcg.UI
         private string matchIntro;
         private bool inviteMatch;
         private bool tutorialMatch;
+        private bool tutorialDemoCompleted;
         private string inviteCode;
         private string invitePlayerId;
         private string invitePlayerRole;
@@ -110,6 +111,7 @@ namespace AppreciatorsTcg.UI
         private TutorialStep tutorialStep;
         private GameObject tutorialPanel;
         private GameObject tutorialHighlight;
+        private GameObject tutorialCompletionDialog;
         private Text tutorialTitle;
         private Text tutorialCaption;
         private Text tutorialBody;
@@ -997,7 +999,9 @@ namespace AppreciatorsTcg.UI
         private void ShowPreviousTutorialExplanation()
         {
             if (tutorialStep <= TutorialStep.Objective) return;
-            NavigateTutorial((TutorialStep)Mathf.Max(0, (int)tutorialStep - 1));
+            TutorialStep previous = (TutorialStep)Mathf.Max(0, (int)tutorialStep - 1);
+            if (previous == TutorialStep.HarmfulDiscard) previous = TutorialStep.BuildOrDiscard;
+            NavigateTutorial(previous);
         }
 
         private void NavigateTutorial(TutorialStep step)
@@ -1058,7 +1062,11 @@ namespace AppreciatorsTcg.UI
             }
             else
             {
-                SetTutorialStep((TutorialStep)((int)playing + 1));
+                TutorialStep next = (TutorialStep)((int)playing + 1);
+                // Legacy timing/targets/costs copy is no longer part of the
+                // simplified tutorial or the new immediate Discard action.
+                if (next == TutorialStep.HarmfulDiscard) next = TutorialStep.EndTurn;
+                SetTutorialStep(next);
             }
 
             yield return AnimateTutorialPanel(true);
@@ -1270,6 +1278,7 @@ namespace AppreciatorsTcg.UI
                 case TutorialStep.TurnSequence:
                     tutorialTitle.text = "LESSON 1  •  THE ROUND";
                     tutorialBody.text = "DRAW 2 → COMMIT 1 → BATTLE → APPRECIATE. Inspection is always available. Your unused card clears without an effect.";
+                    tutorialBody.text = "DRAW 2\nCards are dealt\n\nLEARN YOUR HAND\nRead your cards and strategize your Build or Discard action\n\nBUILD YOUR FIELD\nExecute your decision\n\nGROW YOUR APPRECIATION\nTally your reward";
                     SetTutorialHighlight(new Rect(0.020f, 0.635f, 0.960f, 0.040f));
                     break;
                 case TutorialStep.Draw:
@@ -1286,11 +1295,12 @@ namespace AppreciatorsTcg.UI
                 case TutorialStep.BuildOrDiscard:
                     tutorialTitle.text = "LESSON 1  •  COMMIT";
                     tutorialBody.text = "Choose one drawn card and one mode. BUILD creates a permanent. DISCARD triggers an immediate effect. The other card clears with no effect.";
+                    tutorialTitle.text = "LESSON 1 - BUILD";
                     SetTutorialHighlight(new Rect(0.020f, 0.335f, 0.960f, 0.285f));
                     break;
                 case TutorialStep.HarmfulDiscard:
                     tutorialTitle.text = "LESSON 1  •  ONE ACTION";
-                    tutorialBody.text = "Discard abilities display timing, targets, and costs before resolving. Only your actively chosen card can produce an effect this round.";
+                    tutorialBody.text = "Build your chosen card onto the Battlefield or Discard it for its immediate effect. Only the card you choose acts this round.";
                     SetTutorialHighlight(new Rect(0.365f, 0.095f, 0.270f, 0.180f));
                     break;
                 case TutorialStep.EndTurn:
@@ -1341,8 +1351,8 @@ namespace AppreciatorsTcg.UI
                     break;
                 case TutorialStep.Winning:
                     tutorialTitle.text = "YOU ARE READY";
-                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation during Appreciate or reduce the enemy to zero HP. Finish to receive the one-time 50 Appreciation Shard tutorial reward.";
-                    SetButtonText(tutorialNextButton, "FINISH TUTORIAL");
+                    tutorialBody.text = $"Reach {GameConstants.AppreciationVictoryTarget} Appreciation during Appreciate or reduce the enemy to zero HP. Complete the demo for 5,000 Appreciation Shards, then continue this game for another 1,000 or return to the main menu.";
+                    SetButtonText(tutorialNextButton, "COMPLETE DEMO");
                     SetTutorialHighlight(new Rect(0.160f, 0.095f, 0.110f, 0.810f));
                     break;
             }
@@ -1388,6 +1398,12 @@ namespace AppreciatorsTcg.UI
 
         private void FinishTutorial()
         {
+            if (tutorialDemoCompleted)
+            {
+                return;
+            }
+
+            tutorialDemoCompleted = true;
             tutorialStep = TutorialStep.Complete;
             LocalSaveSystem.SaveTutorialProgress((int)TutorialStep.Complete, true);
             LocalSaveSystem.MarkTutorialCompleted();
@@ -1401,8 +1417,38 @@ namespace AppreciatorsTcg.UI
             {
                 Destroy(tutorialPanel);
             }
-            ShowMatStatus("Tutorial complete. Claiming 50 Appreciation Shards...");
+            ShowMatStatus("Tutorial demo complete. Claiming 5,000 Appreciation Shards...");
             StartCoroutine(ClaimTutorialCompletionReward());
+            ShowTutorialCompletionChoice();
+        }
+
+        private void ShowTutorialCompletionChoice()
+        {
+            if (tutorialCompletionDialog != null) Destroy(tutorialCompletionDialog);
+            tutorialCompletionDialog = UIFactory.CreatePanel(Root, "TutorialCompletionChoice", Color.clear);
+            UIFactory.Stretch(tutorialCompletionDialog.GetComponent<RectTransform>());
+            tutorialCompletionDialog.transform.SetAsLastSibling();
+
+            GameObject panel = UIFactory.CreateVerticalStack(tutorialCompletionDialog.transform, "TutorialCompletionPanel", UIFactory.Panel, 12, 20);
+            UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.27f, 0.27f), new Vector2(0.73f, 0.73f), Vector2.zero, Vector2.zero);
+            UIFactory.AddNeonFrame(panel, UIFactory.Accent, 0.98f);
+            UIFactory.CreateText(panel.transform, "TUTORIAL DEMO COMPLETE", 28, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            UIFactory.CreateText(panel.transform, "+5,000 APPRECIATION SHARDS", 22, TextAnchor.MiddleCenter, UIFactory.Green, FontStyle.Bold);
+            UIFactory.CreateText(panel.transform, "Continue this same match normally and earn an additional 1,000 Appreciation Shards when the game ends, or return to the main menu now.", 17, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            Button continueButton = UIFactory.CreateButton(panel.transform, "CONTINUE GAME - +1,000 ON FINISH", ContinueTutorialGame, UIFactory.Green);
+            Button exitButton = UIFactory.CreateButton(panel.transform, "EXIT TO MAIN MENU", () => SceneManager.LoadScene("MainMenuScene"), UIFactory.PortalViolet);
+            SetChoiceButtonHeight(continueButton, 58);
+            SetChoiceButtonHeight(exitButton, 52);
+        }
+
+        private void ContinueTutorialGame()
+        {
+            matchMode = "Tutorial Continuation";
+            matchRewardId = $"tutorial_finish_{Guid.NewGuid():N}";
+            if (tutorialCompletionDialog != null) Destroy(tutorialCompletionDialog);
+            tutorialCompletionDialog = null;
+            ShowMatStatus("Tutorial demo complete. The match continues normally - finish it to earn +1,000 Appreciation Shards.");
+            UpdateScreen();
         }
 
         private void SkipTutorial()
@@ -1434,12 +1480,12 @@ namespace AppreciatorsTcg.UI
             if (reward != null && reward.success)
             {
                 ShowMatStatus(reward.idempotentReplay
-                    ? $"Tutorial complete. The one-time reward was already claimed. Balance: {reward.totalShardBalance:N0} Appreciation Shards."
+                    ? $"Tutorial demo complete. The one-time reward was already claimed. Balance: {reward.totalShardBalance:N0} Appreciation Shards."
                     : $"Tutorial complete! +{reward.shardsAwarded:N0} Appreciation Shards. Balance: {reward.totalShardBalance:N0}.");
             }
             else
             {
-                ShowMatStatus($"Tutorial complete. The 50-Shard reward could not be synced yet: {rewardError}");
+                ShowMatStatus($"Tutorial demo complete. The 5,000-Shard reward could not be synced yet: {rewardError}");
             }
         }
 

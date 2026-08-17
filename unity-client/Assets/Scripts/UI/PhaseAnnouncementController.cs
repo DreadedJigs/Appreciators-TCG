@@ -17,7 +17,7 @@ namespace AppreciatorsTcg.UI
         public static string GetPhaseLabel(BattleTurnPhase phase)
         {
             if (phase == BattleTurnPhase.Draw) return "DRAW";
-            if (phase == BattleTurnPhase.Commit) return "COMMIT";
+            if (phase == BattleTurnPhase.Commit) return "BUILD";
             if (phase == BattleTurnPhase.Battle) return "BATTLE";
             if (phase == BattleTurnPhase.Appreciate) return "APPRECIATE";
             if (phase == BattleTurnPhase.Complete) return "MATCH COMPLETE";

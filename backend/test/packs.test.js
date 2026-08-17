@@ -375,7 +375,7 @@ test("account login restores inventory and ranked losses remove five Appreciatio
   }
 });
 
-test("tutorial completion grants exactly fifty Appreciation Shards once", async () => {
+test("tutorial completion grants exactly five thousand Appreciation Shards once", async () => {
   resetPackInventoryForTests();
   const server = await listen(createApp());
   const playerId = "tutorial_reward_player";
@@ -386,8 +386,8 @@ test("tutorial completion grants exactly fifty Appreciation Shards once", async 
       body: JSON.stringify({ playerId })
     });
     assert.equal(firstClaim.response.status, 200);
-    assert.equal(firstClaim.body.shardsAwarded, 50);
-    assert.equal(firstClaim.body.totalShardBalance, 50);
+    assert.equal(firstClaim.body.shardsAwarded, 5000);
+    assert.equal(firstClaim.body.totalShardBalance, 5000);
     assert.equal(firstClaim.body.idempotentReplay, false);
     assert.equal(firstClaim.body.inventory.progress.tutorialCompleted, true);
 
@@ -397,9 +397,36 @@ test("tutorial completion grants exactly fifty Appreciation Shards once", async 
     });
     assert.equal(replay.response.status, 200);
     assert.equal(replay.body.idempotentReplay, true);
-    assert.equal(replay.body.totalShardBalance, 50);
-    assert.equal(replay.body.inventory.appreciationShards, 50);
+    assert.equal(replay.body.totalShardBalance, 5000);
+    assert.equal(replay.body.inventory.appreciationShards, 5000);
     assert.equal(replay.body.inventory.progress.tutorialCompleted, true);
+  } finally {
+    server.close();
+    resetPackInventoryForTests();
+  }
+});
+
+test("a continued tutorial game grants one thousand Appreciation Shards when it ends", async () => {
+  resetPackInventoryForTests();
+  const server = await listen(createApp());
+  const playerId = "tutorial_continuation_player";
+
+  try {
+    const firstFinish = await request(server, "/api/economy/match-result", {
+      method: "POST",
+      body: JSON.stringify({ playerId, matchId: "tutorial-finish-1", result: "Defeat", mode: "Tutorial Continuation" })
+    });
+    assert.equal(firstFinish.response.status, 200);
+    assert.equal(firstFinish.body.shardsAwarded, 1000);
+    assert.equal(firstFinish.body.totalShardBalance, 1000);
+
+    const replay = await request(server, "/api/economy/match-result", {
+      method: "POST",
+      body: JSON.stringify({ playerId, matchId: "tutorial-finish-1", result: "Defeat", mode: "Tutorial Continuation" })
+    });
+    assert.equal(replay.response.status, 200);
+    assert.equal(replay.body.idempotentReplay, true);
+    assert.equal(replay.body.totalShardBalance, 1000);
   } finally {
     server.close();
     resetPackInventoryForTests();

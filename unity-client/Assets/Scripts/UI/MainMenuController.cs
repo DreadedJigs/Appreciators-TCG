@@ -214,7 +214,9 @@ namespace AppreciatorsTcg.UI
 
         private void RefreshTutorialGate()
         {
-            bool completed = LocalSaveSystem.HasCompletedTutorial();
+            // The tutorial is optional; no play, collection, or wallet action
+            // is locked behind it.
+            bool completed = true;
             foreach (Button button in tutorialLockedButtons)
             {
                 if (button == null) continue;
@@ -255,7 +257,6 @@ namespace AppreciatorsTcg.UI
 
         private void OpenCasualQueue()
         {
-            if (!LocalSaveSystem.HasCompletedTutorial()) return;
             PlayerDeckProfile active = PlayerDeckService.GetActiveDeck();
             casualDeckChoice.Refresh();
             casualQueueStatus.text = $"{active.name} selected. Choose another deck or queue now.";
@@ -272,7 +273,6 @@ namespace AppreciatorsTcg.UI
 
         private void QueueCasual()
         {
-            if (!LocalSaveSystem.HasCompletedTutorial()) return;
             PlayerDeckProfile active = PlayerDeckService.GetActiveDeck();
             if (!PlayerDeckService.ValidateDeck(active.cardIds))
             {

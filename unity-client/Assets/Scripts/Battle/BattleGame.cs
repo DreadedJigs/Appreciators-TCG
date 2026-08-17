@@ -1015,7 +1015,7 @@ namespace AppreciatorsTcg.Battle
                 Phase = phase,
                 Side = OwnerSide.Player,
                 EventType = "phase-transition",
-                Summary = phase == BattleTurnPhase.Commit ? "COMMIT" :
+                Summary = phase == BattleTurnPhase.Commit ? "BUILD" :
                     phase == BattleTurnPhase.Battle ? "BATTLE" :
                     phase == BattleTurnPhase.Appreciate ? "APPRECIATE" : phase.ToString()
             });

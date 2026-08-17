@@ -24,6 +24,7 @@ namespace AppreciatorsTcg.UI
             }
             else
             {
+                bool tutorialContinuation = string.Equals(result.mode, "Tutorial Continuation", System.StringComparison.OrdinalIgnoreCase);
                 CreateMatchWinningsBanner(result);
                 UIFactory.CreateText(
                     panel.transform,
@@ -42,7 +43,9 @@ namespace AppreciatorsTcg.UI
                 bool rankedLoss = result.winner == "Defeat" && string.Equals(result.mode, "Ranked", System.StringComparison.OrdinalIgnoreCase);
                 rewardText = UIFactory.CreateText(
                     panel.transform,
-                    result.winner == "Victory"
+                    tutorialContinuation
+                        ? "Tutorial game finish: securing 1,000 Appreciation Shards..."
+                        : result.winner == "Victory"
                         ? "Victory reward: securing 69 Appreciation Shards..."
                         : rankedLoss
                             ? "Ranked result: applying the 5 Appreciation Shard loss..."
@@ -60,14 +63,15 @@ namespace AppreciatorsTcg.UI
 
         private void CreateMatchWinningsBanner(MatchResult result)
         {
-            if (result == null || result.winner != "Victory") return;
+            if (result == null || (result.winner != "Victory" && !string.Equals(result.mode, "Tutorial Continuation", System.StringComparison.OrdinalIgnoreCase))) return;
 
             GameObject banner = UIFactory.CreateVerticalStack(Root, "MatchWinningsBanner", UIFactory.GlassPanel, 3, 5);
             RectTransform rect = banner.GetComponent<RectTransform>();
             UIFactory.SetAnchors(rect, new Vector2(0.16f, 0.84f), new Vector2(0.84f, 0.96f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(banner, UIFactory.Green);
-            UIFactory.CreateText(banner.transform, "MATCH WON", 18, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
-            winningsBannerText = UIFactory.CreateText(banner.transform, "+69 APPRECIATION SHARDS", 29, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
+            bool tutorialContinuation = string.Equals(result.mode, "Tutorial Continuation", System.StringComparison.OrdinalIgnoreCase);
+            UIFactory.CreateText(banner.transform, tutorialContinuation ? "TUTORIAL GAME FINISHED" : "MATCH WON", 18, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
+            winningsBannerText = UIFactory.CreateText(banner.transform, tutorialContinuation ? "+1,000 APPRECIATION SHARDS" : "+69 APPRECIATION SHARDS", 29, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
         }
 
         private IEnumerator ClaimMatchReward(MatchResult result)
