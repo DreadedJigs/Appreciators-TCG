@@ -148,30 +148,15 @@ namespace AppreciatorsTcg.Cards
 
         public bool IsHarmfulDiscard()
         {
-            string category = GetDiscardCategory();
-            return discardAppreciationChange < 0 ||
-                discardGrowthChange < 0 ||
-                !string.IsNullOrWhiteSpace(discardBoardCost) ||
-                category.IndexOf("Costly", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                category.IndexOf("Dangerous", StringComparison.OrdinalIgnoreCase) >= 0;
+            // The old game could punish a player for choosing Discard before
+            // ending their turn. In the one-action Commit model, Discard is a
+            // first-class action and never needs a warning or a penalty.
+            return false;
         }
 
         public string GetDiscardConfirmation()
         {
-            if (!IsHarmfulDiscard())
-            {
-                return string.Empty;
-            }
-
-            string consequence = !string.IsNullOrWhiteSpace(discardBoardCost)
-                ? discardBoardCost
-                : GetDiscardEffect();
-            if (discardAppreciationChange < 0)
-            {
-                consequence = $"lose {Math.Abs(discardAppreciationChange)} Appreciation";
-            }
-
-            return $"Discarding this card will cause you to {consequence.Trim().TrimEnd('.')}. Continue?";
+            return string.Empty;
         }
 
         public string GetArchetype()

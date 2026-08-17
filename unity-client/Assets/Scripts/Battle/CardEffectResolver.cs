@@ -63,34 +63,13 @@ namespace AppreciatorsTcg.Battle
 
         public static bool CanResolveDiscard(BattleGame game, BattlePlayerState owner, OwnerSide side, CardDefinition card, out string message)
         {
-            string type = card.discardBoardCostType ?? "none";
-            int amount = Math.Max(1, card.discardBoardCostAmount);
-            List<BattleCardInstance> allies = game.MainLane.GetCards(side);
-            bool payable;
-            switch (type)
-            {
-                case "exhaust_ally": payable = allies.Any(unit => !unit.IsExhausted); break;
-                case "exhaust_two_allies": payable = allies.Count(unit => !unit.IsExhausted) >= 2; break;
-                case "damage_ally": payable = allies.Count > 0; break;
-                case "return_ally":
-                case "sacrifice_ally": payable = allies.Count > 0; break;
-                case "sacrifice_two_allies": payable = allies.Count >= 2; break;
-                case "lose_appreciation": payable = owner.Appreciation >= amount; break;
-                case "discard_hidden":
-                    int selectedIndex = owner.Hand.IndexOf(card);
-                    payable = owner.Hand.Select((item, index) => new { item, index })
-                        .Any(entry => entry.index != selectedIndex && !owner.IsRevealed(entry.item));
-                    break;
-                default: payable = true; break;
-            }
-            if (!payable && !game.MainLane.HasSpace(side) && allies.Count > 0)
-            {
-                // A full board must never deadlock the mandatory decision. An
-                // already-exhausted target can satisfy an exhaustion consequence.
-                payable = true;
-            }
-            message = payable ? string.Empty : $"Cannot resolve this Discard Effect: {card.discardBoardCost}";
-            return payable;
+            // Commit is deliberately frictionless: a player must always be able
+            // to choose either of their two cards as the round's one action.
+            // Legacy card data can still carry an old board-cost field, but it
+            // is presentation metadata now rather than a condition that blocks
+            // an otherwise legal Discard choice.
+            message = string.Empty;
+            return true;
         }
 
         public static void PayDiscardBoardCost(BattleGame game, BattlePlayerState owner, OwnerSide side, CardDefinition card)
@@ -216,16 +195,17 @@ namespace AppreciatorsTcg.Battle
                     break;
             }
 
+            // Negative discard deltas belonged to the retired early-discard
+            // penalty. Discard is now a valid Commit action, so it never takes
+            // Appreciation or queued Growth away from its owner.
             int appreciationBefore = owner.Appreciation;
-            owner.Appreciation = Math.Max(0, owner.Appreciation + card.discardAppreciationChange);
-            if (card.discardGrowthChange > 0)
+            int appreciationChange = Math.Max(0, card.discardAppreciationChange);
+            int growthChange = Math.Max(0, card.discardGrowthChange);
+            owner.Appreciation = Math.Max(0, owner.Appreciation + appreciationChange);
+            if (growthChange > 0)
             {
-                growth = card.discardGrowthChange;
+                growth = growthChange;
                 owner.QueueGrowth(growth);
-            }
-            else if (card.discardGrowthChange < 0)
-            {
-                owner.PendingGrowthPenalty += Math.Abs(card.discardGrowthChange);
             }
 
             List<string> changes = new List<string>();
@@ -233,9 +213,9 @@ namespace AppreciatorsTcg.Battle
             {
                 changes.Add($"Appreciation {appreciationBefore} -> {owner.Appreciation}");
             }
-            if (card.discardGrowthChange != 0)
+            if (growthChange != 0)
             {
-                changes.Add($"Growth {(card.discardGrowthChange > 0 ? "+" : string.Empty)}{card.discardGrowthChange}");
+                changes.Add($"Growth +{growthChange}");
             }
             if (changes.Count > 0)
             {

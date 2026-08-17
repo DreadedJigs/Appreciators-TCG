@@ -1555,12 +1555,6 @@ namespace AppreciatorsTcg.UI
                 return;
             }
 
-            if (!buildOnBoard && chosen.IsHarmfulDiscard())
-            {
-                ShowDiscardConfirmation(handIndex, chosen);
-                return;
-            }
-
             selectedHandIndex = handIndex;
             if (buildOnBoard)
             {

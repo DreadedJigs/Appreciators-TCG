@@ -134,15 +134,29 @@ namespace AppreciatorsTcg.Tests
         }
 
         [Test]
-        public void CostlyDiscardRequiresAndPaysItsBoardConsequence()
+        public void CommitDiscardIsAlwaysAvailableAndDoesNotPayLegacyBoardCosts()
         {
             BattleGame game = CreateGame();
             CardDefinition discard = CardCatalog.GetCard("great_white_head");
-            Assert.IsFalse(CardEffectResolver.CanResolveDiscard(game, game.Player, OwnerSide.Player, discard, out string blocked));
-            StringAssert.Contains("Exhaust one allied unit", blocked);
+            Assert.IsTrue(CardEffectResolver.CanResolveDiscard(game, game.Player, OwnerSide.Player, discard, out _));
 
             BattleCardInstance ally = AddUnit(game, OwnerSide.Player, "regular_body");
-            Assert.IsTrue(CardEffectResolver.CanResolveDiscard(game, game.Player, OwnerSide.Player, discard, out _));
+            game.Start();
+            game.Player.Hand.Clear();
+            game.Player.Hand.Add(discard);
+            game.Player.Hand.Add(CardCatalog.GetCard("white_skin"));
+
+            Assert.IsTrue(game.TryDiscardCard(OwnerSide.Player, 0, out string message), message);
+            Assert.IsFalse(ally.IsExhausted);
+            Assert.Contains(discard, game.Player.DiscardPile);
+        }
+
+        [Test]
+        public void LegacyBoardCostCanStillBeDescribedWithoutBlockingDiscard()
+        {
+            BattleGame game = CreateGame();
+            CardDefinition discard = CardCatalog.GetCard("great_white_head");
+            BattleCardInstance ally = AddUnit(game, OwnerSide.Player, "regular_body");
             CardEffectResolver.PayDiscardBoardCost(game, game.Player, OwnerSide.Player, discard);
             Assert.IsTrue(ally.IsExhausted);
         }
@@ -262,7 +276,7 @@ namespace AppreciatorsTcg.Tests
         }
 
         [Test]
-        public void HarmfulDiscardClampsAppreciationAndStaysFaceUp()
+        public void DiscardDoesNotApplyTheRetiredEarlyDiscardPenalty()
         {
             BattleGame game = CreateGame();
             game.Start();
@@ -273,10 +287,10 @@ namespace AppreciatorsTcg.Tests
             game.Player.Hand.Add(retained);
             game.Player.Appreciation = 5;
 
-            Assert.IsTrue(risky.IsHarmfulDiscard());
-            StringAssert.Contains("lose 15 Appreciation", risky.GetDiscardConfirmation());
+            Assert.IsFalse(risky.IsHarmfulDiscard());
+            Assert.IsEmpty(risky.GetDiscardConfirmation());
             Assert.IsTrue(game.TryDiscardCard(OwnerSide.Player, 0, out string message), message);
-            Assert.AreEqual(0, game.Player.Appreciation);
+            Assert.AreEqual(5, game.Player.Appreciation);
             Assert.AreSame(risky, game.Player.DiscardPile.Single());
             Assert.AreSame(retained, game.Player.Hand.Single());
         }

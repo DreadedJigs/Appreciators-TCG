@@ -248,16 +248,9 @@ namespace AppreciatorsTcg.Battle
             }
 
             CardDefinition definition = owner.Hand[handIndex];
-            if (!CardEffectResolver.CanResolveDiscard(this, owner, side, definition, out message))
-            {
-                LastMessage = message;
-                return false;
-            }
-
             SetPhase(BattleTurnPhase.Commit);
             int appreciationBefore = owner.Appreciation;
             int growthBefore = owner.PendingAbilityGrowth;
-            CardEffectResolver.PayDiscardBoardCost(this, owner, side, definition);
             owner.Hand.Remove(definition);
             owner.ForgetRevealed(definition);
             owner.DiscardPile.Add(definition);
@@ -680,24 +673,11 @@ namespace AppreciatorsTcg.Battle
             definition = owner.Hand[handIndex];
             int appreciationBefore = owner.Appreciation;
             int growthBefore = owner.PendingAbilityGrowth;
-            bool canResolve = CardEffectResolver.CanResolveDiscard(this, owner, side, definition, out string blockedReason);
-            if (canResolve)
-            {
-                CardEffectResolver.PayDiscardBoardCost(this, owner, side, definition);
-            }
-
             owner.Hand.RemoveAt(handIndex);
             owner.ForgetRevealed(definition);
             owner.DiscardPile.Add(definition);
             string detail;
-            if (canResolve)
-            {
-                CardEffectResolver.ResolveDiscard(this, owner, side, definition, out detail);
-            }
-            else
-            {
-                detail = $"Its effect could not resolve: {blockedReason}";
-            }
+            CardEffectResolver.ResolveDiscard(this, owner, side, definition, out detail);
 
             message = $"{owner.DisplayName}'s remaining card was randomly revealed in the Discard phase: {definition.name}. {detail}";
             replayEvents.Add(new BattleReplayEvent
