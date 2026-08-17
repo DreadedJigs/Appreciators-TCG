@@ -484,6 +484,7 @@ namespace AppreciatorsTcg.UI
             phaseModeButton.gameObject.SetActive(!tutorialMatch);
             UIFactory.CreateButton(matchSettingsMenu.transform, "BATTLE LEDGER", OpenBattleLedger, UIFactory.Accent);
             UIFactory.CreateButton(matchSettingsMenu.transform, "QUIT TO MAIN MENU", OpenQuitFromOptions, UIFactory.Red);
+            UIFactory.CreateButton(matchSettingsMenu.transform, "HOME SCREEN / QR", () => SceneManager.LoadScene("LoginScene"), UIFactory.Blue);
             UIFactory.CreateButton(matchSettingsMenu.transform, "CLOSE", ToggleMatchSettingsMenu, UIFactory.PanelAlt);
             matchSettingsMenu.SetActive(false);
 

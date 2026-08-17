@@ -21,6 +21,7 @@ namespace AppreciatorsTcg.UI
         private Text economyText;
         private RectTransform menuHeader;
         private RectTransform themeButtonRect;
+        private RectTransform homeButtonRect;
         private RectTransform playColumnRect;
         private RectTransform growColumnRect;
         private RectTransform futureColumnRect;
@@ -51,6 +52,10 @@ namespace AppreciatorsTcg.UI
             themeButton = UIFactory.CreateButton(mainPanel.transform, themeLabel, ToggleTheme, UIFactory.Blue);
             themeButtonRect = themeButton.GetComponent<RectTransform>();
             UIFactory.SetAnchors(themeButton.GetComponent<RectTransform>(), new Vector2(0.78f, 0.925f), new Vector2(0.985f, 0.985f), Vector2.zero, Vector2.zero);
+
+            Button homeButton = UIFactory.CreateButton(mainPanel.transform, "HOME / QR", OpenHomeScreen, UIFactory.Accent);
+            homeButtonRect = homeButton.GetComponent<RectTransform>();
+            UIFactory.SetAnchors(homeButtonRect, new Vector2(0.015f, 0.925f), new Vector2(0.220f, 0.985f), Vector2.zero, Vector2.zero);
 
             GameObject playColumn = CreateMenuColumn(mainPanel.transform, "PLAY", "Commit one card, command one lane.", new Rect(0.055f, 0.285f, 0.275f, 0.43f));
             playColumnRect = playColumn.GetComponent<RectTransform>();
@@ -109,6 +114,7 @@ namespace AppreciatorsTcg.UI
             bool phone = ResponsiveCanvasScaler.IsPhoneLayout;
             SetRect(menuHeader, phone ? new Rect(0.12f, 0.785f, 0.68f, 0.19f) : new Rect(0.24f, 0.785f, 0.52f, 0.17f));
             SetRect(themeButtonRect, phone ? new Rect(0.82f, 0.865f, 0.17f, 0.105f) : new Rect(0.78f, 0.925f, 0.205f, 0.06f));
+            SetRect(homeButtonRect, phone ? new Rect(0.015f, 0.865f, 0.17f, 0.105f) : new Rect(0.015f, 0.925f, 0.205f, 0.06f));
             SetRect(playColumnRect, phone ? new Rect(0.025f, 0.055f, 0.305f, 0.705f) : new Rect(0.055f, 0.285f, 0.275f, 0.43f));
             SetRect(growColumnRect, phone ? new Rect(0.3475f, 0.055f, 0.305f, 0.705f) : new Rect(0.3625f, 0.285f, 0.275f, 0.43f));
             SetRect(futureColumnRect, phone ? new Rect(0.67f, 0.055f, 0.305f, 0.705f) : new Rect(0.67f, 0.285f, 0.275f, 0.43f));
@@ -122,6 +128,7 @@ namespace AppreciatorsTcg.UI
                 menuMarquee.verticalOverflow = VerticalWrapMode.Truncate;
             }
             ConfigureCompactButtonText(themeButton, phone, 16);
+            ConfigureCompactButtonText(homeButtonRect == null ? null : homeButtonRect.GetComponent<Button>(), phone, 16);
 
             if (!phone) return;
             foreach (RectTransform column in new[] { playColumnRect, growColumnRect, futureColumnRect })
@@ -252,6 +259,12 @@ namespace AppreciatorsTcg.UI
         {
             ThemeService.Toggle();
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+
+        private static void OpenHomeScreen()
+        {
+            // LoginScene is the branded home screen and owns the mobile-access QR.
+            SceneManager.LoadScene("LoginScene");
         }
 
         private void OpenCasualQueue()

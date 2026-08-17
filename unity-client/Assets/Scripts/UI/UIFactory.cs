@@ -17,11 +17,14 @@ namespace AppreciatorsTcg.UI
         private static readonly Dictionary<string, Sprite> playmatSpriteCache = new Dictionary<string, Sprite>();
         // Official alpha palette. Keep these centralized so final art drops do not
         // require scene-by-scene color edits.
-        public static Color Background => ThemeService.Surface(Hex("0F0A46"), Hex("ECE9FA"));
-        public static Color Panel => ThemeService.Surface(WithAlpha(Hex("0F0A46"), 0.92f), WithAlpha(Hex("FAFAD2"), 0.96f));
+        // Light mode uses the same clean Chalk / Galactic Blue foundation as the
+        // official Appreciators web experience. The saturated action colors below
+        // remain unchanged so buttons stay instantly recognizable across themes.
+        public static Color Background => ThemeService.Surface(Hex("0F0A46"), Hex("FFFFFF"));
+        public static Color Panel => ThemeService.Surface(WithAlpha(Hex("0F0A46"), 0.92f), WithAlpha(Hex("FFFFFF"), 0.98f));
         public static Color PanelAlt => ThemeService.Surface(WithAlpha(Hex("7841AA"), 0.90f), WithAlpha(Hex("D7C3EB"), 0.96f));
-        public static Color GlassPanel => ThemeService.Surface(WithAlpha(Hex("0F0A46"), 0.72f), WithAlpha(Hex("FFFFFF"), 0.82f));
-        public static Color MenuInset => ThemeService.Surface(WithAlpha(Hex("7841AA"), 0.30f), WithAlpha(Hex("7841AA"), 0.14f));
+        public static Color GlassPanel => ThemeService.Surface(WithAlpha(Hex("0F0A46"), 0.72f), WithAlpha(Hex("FFFFFF"), 0.94f));
+        public static Color MenuInset => ThemeService.Surface(WithAlpha(Hex("7841AA"), 0.30f), WithAlpha(Hex("C8FAFA"), 0.58f));
         public static Color BoardPanel => ThemeService.Surface(WithAlpha(Hex("FAFAD2"), 0.94f), WithAlpha(Hex("FFFFFF"), 0.96f));
         public static readonly Color AlleyFloor = new Color(0.025f, 0.145f, 0.235f, 0.88f);
         public static readonly Color AlleyWall = new Color(0.180f, 0.050f, 0.180f, 0.78f);
@@ -205,6 +208,12 @@ namespace AppreciatorsTcg.UI
             if (!UIAssetPack.ApplyResource(art, BrandStarfieldResourcePath, false))
             {
                 art.color = Background;
+            }
+            else if (!ThemeService.IsDark)
+            {
+                // Keep the brand starfield as a quiet texture in light mode rather
+                // than allowing it to fight the Chalk interface and card art.
+                art.color = new Color(0.66f, 0.76f, 1f, 0.16f);
             }
             Stretch(artObject.GetComponent<RectTransform>());
             return rootRect;
@@ -446,7 +455,7 @@ namespace AppreciatorsTcg.UI
             UiGradientEffect gradient = target.GetComponent<UiGradientEffect>() ?? target.AddComponent<UiGradientEffect>();
             gradient.Configure(Color.white, ThemeService.IsDark
                 ? new Color(0.52f, 0.60f, 0.78f, 1f)
-                : new Color(0.72f, 0.76f, 0.88f, 1f));
+                : new Color(0.84f, 0.76f, 0.92f, 1f));
 
             if (!addBevelBands)
             {
@@ -575,7 +584,7 @@ namespace AppreciatorsTcg.UI
 
         public static GameObject CreateCompactMatchHud(Transform parent, string playerName, int health, int appreciation, int turn, bool opponent)
         {
-            Color surface = ThemeService.IsDark ? new Color(0.025f, 0.020f, 0.095f, 0.94f) : new Color(0.96f, 0.94f, 0.84f, 0.94f);
+            Color surface = ThemeService.IsDark ? new Color(0.025f, 0.020f, 0.095f, 0.94f) : new Color(1f, 1f, 1f, 0.96f);
             GameObject hud = CreateHorizontalStack(parent, opponent ? "OpponentHud" : "PlayerHud", surface, 2, 2);
             AddNeonFrame(hud, opponent ? Red : NeonCyan, 0.72f);
             Shadow hudShadow = hud.AddComponent<Shadow>();
