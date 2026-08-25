@@ -8,6 +8,14 @@ namespace AppreciatorsTcg.UI
 {
     public class UiCardMotion : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IEndDragHandler
     {
+        // A wide fan looks lively in static mockups, but it forces every thin card
+        // line to be continuously rasterised at a steep angle in WebGL.  Keep the
+        // hand readable and give the cards just enough separation to feel natural.
+        private const float MaxHandTilt = 3.5f;
+        private const float RotationSnapThreshold = 0.025f;
+        private const float ScaleSnapThreshold = 0.001f;
+        private const float PositionSnapThreshold = 0.05f;
+
         private RectTransform rectTransform;
         private CanvasGroup canvasGroup;
         private UiCardParameters parameters;
@@ -49,10 +57,21 @@ namespace AppreciatorsTcg.UI
         {
             EnsureInitialized();
             float delta = Time.unscaledDeltaTime;
-            float scale = Mathf.Lerp(rectTransform.localScale.x, targetScale * dropScale, 1f - Mathf.Exp(-parameters.scaleSpeed * delta));
+            float desiredScale = targetScale * dropScale;
+            float scale = Mathf.Lerp(rectTransform.localScale.x, desiredScale, 1f - Mathf.Exp(-parameters.scaleSpeed * delta));
+            if (Mathf.Abs(scale - desiredScale) < ScaleSnapThreshold)
+            {
+                scale = desiredScale;
+            }
             rectTransform.localScale = Vector3.one * scale;
 
-            float z = Mathf.LerpAngle(rectTransform.localEulerAngles.z, targetRotation + dropRotation, 1f - Mathf.Exp(-parameters.rotationSpeed * delta));
+            float desiredRotation = targetRotation + dropRotation;
+            float currentRotation = rectTransform.localEulerAngles.z;
+            float z = Mathf.LerpAngle(currentRotation, desiredRotation, 1f - Mathf.Exp(-parameters.rotationSpeed * delta));
+            if (Mathf.Abs(Mathf.DeltaAngle(z, desiredRotation)) < RotationSnapThreshold)
+            {
+                z = desiredRotation;
+            }
             rectTransform.localRotation = Quaternion.Euler(0f, 0f, z);
 
             if (baseCaptured && !dragging)
@@ -62,6 +81,8 @@ namespace AppreciatorsTcg.UI
                 float targetY = baseLocalPosition.y + targetHeight * 18f + dropOffset + drawOffset.y;
                 current.x = Mathf.Lerp(current.x, targetX, 1f - Mathf.Exp(-parameters.movementSpeed * delta));
                 current.y = Mathf.Lerp(current.y, targetY, 1f - Mathf.Exp(-parameters.movementSpeed * delta));
+                if (Mathf.Abs(current.x - targetX) < PositionSnapThreshold) current.x = targetX;
+                if (Mathf.Abs(current.y - targetY) < PositionSnapThreshold) current.y = targetY;
                 rectTransform.localPosition = current;
             }
 
@@ -74,7 +95,10 @@ namespace AppreciatorsTcg.UI
             EnsureInitialized();
             float center = (count - 1) * 0.5f;
             float normalized = count <= 1 ? 0f : (index - center) / Mathf.Max(1f, center);
-            baseRotation = -normalized * parameters.bentAngle * 0.5f;
+            // Cap authored legacy values too: assets created before the crisp-card
+            // pass use a 20 degree bend, which is too harsh for small WebGL cards.
+            float authoredTilt = Mathf.Min(Mathf.Abs(parameters.bentAngle) * 0.5f, MaxHandTilt);
+            baseRotation = -normalized * authoredTilt;
             if (opponent)
             {
                 baseRotation *= -1f;

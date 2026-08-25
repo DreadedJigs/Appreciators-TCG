@@ -108,7 +108,10 @@ namespace AppreciatorsTcg.UI
             // Do not use a sliced Image here: some WebGL UI skins report no valid
             // sprite border, causing Unity to draw the whole card as a solid block.
             // Four thin strips are deterministic and leave the card face untouched.
-            const float thickness = 2.25f;
+            // Integer-width geometry holds up much better when the parent card is
+            // gently rotated. Fractional 2.25px strips visibly shimmer on some
+            // browser GPUs, especially at a hand-card scale.
+            const float thickness = 2f;
             float corner = inset + thickness * 2f;
             Color lineColor = new Color(color.r, color.g, color.b, alpha);
             List<Image> band = new List<Image>(4)
@@ -126,6 +129,7 @@ namespace AppreciatorsTcg.UI
             GameObject segment = new GameObject(name, typeof(RectTransform), typeof(Image));
             segment.transform.SetParent(parent, false);
             Image image = segment.GetComponent<Image>();
+            image.useSpriteMesh = false;
             image.color = color;
             image.raycastTarget = false;
             RectTransform rect = segment.GetComponent<RectTransform>();
