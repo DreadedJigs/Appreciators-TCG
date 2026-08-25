@@ -54,15 +54,14 @@
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/WebGL.loader.js";
       var config = {
-        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
         arguments: [],
-        dataUrl: buildUrl + "/WebGL.data.unityweb?v=20260817212730",
-        frameworkUrl: buildUrl + "/WebGL.framework.js.unityweb?v=20260817212730",
-        codeUrl: buildUrl + "/WebGL.wasm.unityweb?v=20260817212730",
+        dataUrl: buildUrl + "/WebGL.data.unityweb",
+        frameworkUrl: buildUrl + "/WebGL.framework.js.unityweb",
+        codeUrl: buildUrl + "/WebGL.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "unity-client",
-        productVersion: "alpha-20260817212730",
+        productVersion: "1.0",
         showBanner: unityShowBanner,
         // errorHandler: function(err, url, line) {
         //    alert("error " + err + " occurred at line " + line);
@@ -105,8 +104,8 @@
 
       } else {
         // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-        canvas.style.width = "100%";
-        canvas.style.height = "100%";
+        canvas.style.width = "1920px";
+        canvas.style.height = "1080px";
       }
 
       document.querySelector("#unity-loading-bar").style.display = "block";
@@ -117,7 +116,6 @@
         createUnityInstance(canvas, config, (progress) => {
           document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
               }).then((unityInstance) => {
-                window.APPRECIATORS_UNITY_INSTANCE = unityInstance;
                 document.querySelector("#unity-loading-bar").style.display = "none";
                 document.querySelector("#unity-fullscreen-button").onclick = () => {
                   unityInstance.SetFullscreen(1);
@@ -131,44 +129,5 @@
       document.body.appendChild(script);
 
     </script>
-  
-<script>
-(function () {
-  function resumeUnityAudio() {
-    var contexts = [];
-    function remember(context) {
-      if (context && typeof context.resume === 'function' && contexts.indexOf(context) < 0) contexts.push(context);
-    }
-    try { if (typeof WEBAudio !== 'undefined') remember(WEBAudio.audioContext); } catch (_) {}
-    try {
-      var instance = window.APPRECIATORS_UNITY_INSTANCE;
-      var module = instance && instance.Module;
-      remember(module && module.audioContext);
-      remember(module && module.WEBAudio && module.WEBAudio.audioContext);
-    } catch (_) {}
-    contexts.forEach(function (context) {
-      if (context.state !== 'running') Promise.resolve(context.resume()).catch(function () {});
-    });
-    document.documentElement.dataset.appreciatorsAudio = contexts.length
-      ? (contexts.some(function (context) { return context.state === 'running'; }) ? 'running' : 'resuming')
-      : 'waiting-for-unity';
-  }
-  window.APPRECIATORS_UNLOCK_AUDIO = resumeUnityAudio;
-  ['pointerdown', 'touchstart', 'mousedown', 'keydown'].forEach(function (eventName) {
-    document.addEventListener(eventName, resumeUnityAudio, { capture: true, passive: true });
-  });
-  function isMobileLandscape() { return navigator.maxTouchPoints > 0 && matchMedia('(orientation: landscape) and (max-height: 900px)').matches; }
-  function enterGameFullscreen() {
-    if (!isMobileLandscape() || document.fullscreenElement) return;
-    var root = document.documentElement;
-    var request = root.requestFullscreen || root.webkitRequestFullscreen;
-    if (!request) return;
-    Promise.resolve(request.call(root)).then(function () {
-      if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
-    }).catch(function () {});
-  }
-  document.addEventListener('pointerup', enterGameFullscreen, { passive: true });
-})();
-</script>
-</body>
+  </body>
 </html>
