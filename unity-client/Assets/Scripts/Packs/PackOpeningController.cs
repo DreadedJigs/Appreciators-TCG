@@ -1621,32 +1621,6 @@ namespace AppreciatorsTcg.Packs
                     PackCardArtResolver.LoadSprite(card));
             }
 
-            string slotLabel = reward.isMysterySlot
-                ? "FINAL MYSTERY"
-                : string.IsNullOrWhiteSpace(reward.slotLabel) ? $"CARD {reward.slotIndex}" : reward.slotLabel.ToUpperInvariant();
-            Text slotText = UIFactory.CreateText(panel.transform, slotLabel, 11, TextAnchor.MiddleCenter, frameColor, FontStyle.Bold);
-            slotText.gameObject.name = "RevealSlotLabel";
-            UIFactory.SetAnchors(slotText.rectTransform, new Vector2(0.24f, 0.955f), new Vector2(0.76f, 0.995f), Vector2.zero, Vector2.zero);
-            slotText.raycastTarget = false;
-
-            string collectionStatus;
-            Color statusColor;
-            if (reward.isDuplicate)
-            {
-                collectionStatus = $"DUPLICATE  +{reward.shardsAwarded} APPRECIATION SHARDS";
-                statusColor = UIFactory.NeonCyan;
-            }
-            else
-            {
-                collectionStatus = "NEW TO COLLECTION";
-                statusColor = UIFactory.Green;
-            }
-
-            Text status = UIFactory.CreateText(panel.transform, collectionStatus, 11, TextAnchor.MiddleCenter, statusColor, FontStyle.Bold);
-            status.gameObject.name = "CollectionStatus";
-            UIFactory.SetAnchors(status.rectTransform, new Vector2(0.18f, 0.006f), new Vector2(0.82f, 0.045f), Vector2.zero, Vector2.zero);
-            status.raycastTarget = false;
-
             return panel;
         }
 

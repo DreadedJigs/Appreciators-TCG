@@ -10,10 +10,9 @@ using UnityEngine.UI;
 namespace AppreciatorsTcg.UI
 {
     /// <summary>
-    /// Replaces legacy pre-composed card faces with the supplied rarity frames and
-    /// live collection data. It is intentionally discovery-based so every existing
-    /// card surface (deck, hand, board, collection, and inspection) is upgraded
-    /// without changing the old scene factories one by one.
+    /// Builds a metadata face only when a card has no authored production face.
+    /// BakedCardFace objects are complete card compositions and must remain intact;
+    /// rebuilding them at runtime makes the artwork and labels look pasted over.
     /// </summary>
     public sealed class RarityMetadataCardRenderer : MonoBehaviour
     {
@@ -45,9 +44,8 @@ namespace AppreciatorsTcg.UI
             nextScanAt = Time.unscaledTime + ScanInterval;
             foreach (Image image in Resources.FindObjectsOfTypeAll<Image>())
             {
-                bool legacyFace = image != null &&
-                    (image.gameObject.name == "BakedCardFace" || image.gameObject.name == "OfficialCardCanvas");
-                if (!legacyFace || Processed.Contains(image.GetInstanceID()))
+                bool fallbackFace = image != null && image.gameObject.name == "OfficialCardCanvas";
+                if (!fallbackFace || Processed.Contains(image.GetInstanceID()))
                 {
                     continue;
                 }
