@@ -14,13 +14,17 @@ namespace AppreciatorsTcg.UI
         private const string BrandStarfieldResourcePath = "Art/Official/Backgrounds/appreciators_starfield_motif_v2_8k";
         private static Font cachedDefaultFont;
         private static Sprite cachedBrandStarfieldPanelSprite;
+        private static Sprite cachedBrandStarfieldOnlySprite;
+        private static Sprite cachedBrandBottomMotifSprite;
         private static readonly Dictionary<string, Sprite> playmatSpriteCache = new Dictionary<string, Sprite>();
         // Official alpha palette. Keep these centralized so final art drops do not
         // require scene-by-scene color edits.
         // Light mode uses the same clean Chalk / Galactic Blue foundation as the
         // official Appreciators web experience. The saturated action colors below
         // remain unchanged so buttons stay instantly recognizable across themes.
-        public static Color Background => ThemeService.Surface(Hex("0F0A46"), Hex("FFFFFF"));
+        // Chill is the lightest blue in the brand kit.  It replaces the legacy
+        // seasonal scene artwork so light mode remains recognisably Appreciators.
+        public static Color Background => ThemeService.Surface(Hex("0F0A46"), Hex("C8FAFA"));
         public static Color Panel => ThemeService.Surface(WithAlpha(Hex("0F0A46"), 0.92f), WithAlpha(Hex("FFFFFF"), 0.98f));
         public static Color PanelAlt => ThemeService.Surface(WithAlpha(Hex("7841AA"), 0.90f), WithAlpha(Hex("D7C3EB"), 0.96f));
         public static Color GlassPanel => ThemeService.Surface(WithAlpha(Hex("0F0A46"), 0.72f), WithAlpha(Hex("FFFFFF"), 0.94f));
@@ -86,10 +90,11 @@ namespace AppreciatorsTcg.UI
 
         public static void CreateBackdrop(Transform parent)
         {
-            if (CreateResourceBackdropImage(parent, "SnowBoardMock", "Art/Placeholder/UserMock/appBCGmock", new Vector2(0, 0), new Vector2(1, 1), Color.white, true))
+            // Never show the old snowy placeholder in either theme. Screens which
+            // provide their own artwork can still layer it over this neutral base.
+            CreateBackdropPanel(parent, "BrandBackdropBase", Background, Vector2.zero, Vector2.one, 0);
+            if (!ThemeService.IsDark)
             {
-                CreateBackdropPanel(parent, "SnowBoardReadabilityWash", new Color(0.76f, 0.94f, 1.00f, 0.08f), Vector2.zero, Vector2.one, 0);
-                CreateBackdropPanel(parent, "SnowBoardLowerShade", new Color(0.09f, 0.03f, 0.025f, 0.18f), new Vector2(0, 0), new Vector2(1, 0.34f), 0);
                 return;
             }
 
@@ -201,21 +206,63 @@ namespace AppreciatorsTcg.UI
             fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             fitter.aspectRatio = texture == null ? 16f / 9f : (float)texture.width / texture.height;
 
+            GameObject baseObject = new GameObject("BrandMenuBase", typeof(RectTransform), typeof(Image));
+            baseObject.transform.SetParent(root.transform, false);
+            Image baseImage = baseObject.GetComponent<Image>();
+            baseImage.raycastTarget = false;
+            baseImage.color = ThemeService.IsDark ? Ink : IceBadge;
+            Stretch(baseObject.GetComponent<RectTransform>());
+
             GameObject artObject = new GameObject("BrandStarfieldArt", typeof(RectTransform), typeof(Image));
             artObject.transform.SetParent(root.transform, false);
             Image art = artObject.GetComponent<Image>();
             art.raycastTarget = false;
-            if (!UIAssetPack.ApplyResource(art, BrandStarfieldResourcePath, false))
+            if (cachedBrandStarfieldOnlySprite == null || cachedBrandBottomMotifSprite == null)
             {
-                art.color = Background;
+                Texture2D source = Resources.Load<Texture2D>(BrandStarfieldResourcePath);
+                if (source != null)
+                {
+                    // The lowest section contains the character motif. Keep it in
+                    // a dedicated component so the exact same bottom art can be
+                    // used in both themes instead of leaking a seasonal backdrop.
+                    float motifHeight = source.height * 0.315f;
+                    cachedBrandBottomMotifSprite = Sprite.Create(
+                        source,
+                        new Rect(0f, 0f, source.width, motifHeight),
+                        new Vector2(0.5f, 0.5f),
+                        100f);
+                    cachedBrandStarfieldOnlySprite = Sprite.Create(
+                        source,
+                        new Rect(0f, motifHeight, source.width, source.height - motifHeight),
+                        new Vector2(0.5f, 0.5f),
+                        100f);
+                }
             }
-            else if (!ThemeService.IsDark)
-            {
-                // Keep the brand starfield as a quiet texture in light mode rather
-                // than allowing it to fight the Chalk interface and card art.
-                art.color = new Color(0.66f, 0.76f, 1f, 0.16f);
-            }
+
+            art.sprite = cachedBrandStarfieldOnlySprite;
+            art.preserveAspect = false;
+            art.color = ThemeService.IsDark
+                ? Color.white
+                : new Color(Ink.r, Ink.g, Ink.b, 0.075f);
             Stretch(artObject.GetComponent<RectTransform>());
+
+            GameObject motifObject = new GameObject("BrandBottomMotif", typeof(RectTransform), typeof(Image));
+            motifObject.transform.SetParent(root.transform, false);
+            Image motif = motifObject.GetComponent<Image>();
+            motif.raycastTarget = false;
+            motif.sprite = cachedBrandBottomMotifSprite;
+            motif.preserveAspect = false;
+            // The composition remains the same: light mode only lowers its ink
+            // density so menus retain a quiet, airy brand-blue surface.
+            motif.color = ThemeService.IsDark
+                ? Color.white
+                : new Color(1f, 1f, 1f, 0.58f);
+            SetAnchors(motifObject.GetComponent<RectTransform>(), Vector2.zero, new Vector2(1f, 0.315f), Vector2.zero, Vector2.zero);
+
+            if (cachedBrandStarfieldOnlySprite == null)
+            {
+                art.color = Color.clear;
+            }
             return rootRect;
         }
 
