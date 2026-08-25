@@ -14,7 +14,7 @@ namespace AppreciatorsTcg.UI
     public sealed class RarityEdgePresentation : MonoBehaviour
     {
         private const string RootName = "RarityEdgeFrame";
-        private readonly List<Image> lines = new List<Image>();
+        private readonly List<List<Image>> lineBands = new List<List<Image>>();
         private bool holographic;
         private float phase;
 
@@ -38,7 +38,7 @@ namespace AppreciatorsTcg.UI
                 Destroy(existing.gameObject);
             }
 
-            lines.Clear();
+            lineBands.Clear();
             holographic = IsMythic(rarity);
             phase = Mathf.Abs(GetInstanceID() % 211) * 0.031f;
 
@@ -92,33 +92,64 @@ namespace AppreciatorsTcg.UI
 
         private void Update()
         {
-            if (!holographic || lines.Count < 4)
+            if (!holographic || lineBands.Count < 4)
             {
                 return;
             }
 
             float t = Time.unscaledTime * 0.82f + phase;
-            lines[1].color = Color.Lerp(UIFactory.Accent, UIFactory.NeonPink, Mathf.PingPong(t, 1f));
-            lines[2].color = Color.Lerp(UIFactory.NeonCyan, UIFactory.Accent, Mathf.PingPong(t + 0.33f, 1f));
-            lines[3].color = Color.Lerp(UIFactory.NeonPink, UIFactory.PortalViolet, Mathf.PingPong(t + 0.66f, 1f));
+            SetBandColor(1, Color.Lerp(UIFactory.Accent, UIFactory.NeonPink, Mathf.PingPong(t, 1f)));
+            SetBandColor(2, Color.Lerp(UIFactory.NeonCyan, UIFactory.Accent, Mathf.PingPong(t + 0.33f, 1f)));
+            SetBandColor(3, Color.Lerp(UIFactory.NeonPink, UIFactory.PortalViolet, Mathf.PingPong(t + 0.66f, 1f)));
         }
 
         private void AddLine(Transform parent, Color color, float alpha, float inset)
         {
-            GameObject edge = new GameObject("RarityLine", typeof(RectTransform), typeof(Image));
-            edge.transform.SetParent(parent, false);
-            Image image = edge.GetComponent<Image>();
-            image.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
-            image.type = Image.Type.Sliced;
-            image.fillCenter = false;
-            image.color = new Color(color.r, color.g, color.b, alpha);
+            // Do not use a sliced Image here: some WebGL UI skins report no valid
+            // sprite border, causing Unity to draw the whole card as a solid block.
+            // Four thin strips are deterministic and leave the card face untouched.
+            const float thickness = 2.25f;
+            float corner = inset + thickness * 2f;
+            Color lineColor = new Color(color.r, color.g, color.b, alpha);
+            List<Image> band = new List<Image>(4)
+            {
+                CreateSegment(parent, "RarityLineTop", lineColor, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(corner, -inset - thickness), new Vector2(-corner, -inset)),
+                CreateSegment(parent, "RarityLineBottom", lineColor, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(corner, inset), new Vector2(-corner, inset + thickness)),
+                CreateSegment(parent, "RarityLineLeft", lineColor, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(inset, corner), new Vector2(inset + thickness, -corner)),
+                CreateSegment(parent, "RarityLineRight", lineColor, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(-inset - thickness, corner), new Vector2(-inset, -corner))
+            };
+            lineBands.Add(band);
+        }
+
+        private static Image CreateSegment(Transform parent, string name, Color color, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+        {
+            GameObject segment = new GameObject(name, typeof(RectTransform), typeof(Image));
+            segment.transform.SetParent(parent, false);
+            Image image = segment.GetComponent<Image>();
+            image.color = color;
             image.raycastTarget = false;
-            RectTransform rect = edge.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = new Vector2(inset, inset);
-            rect.offsetMax = new Vector2(-inset, -inset);
-            lines.Add(image);
+            RectTransform rect = segment.GetComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = offsetMin;
+            rect.offsetMax = offsetMax;
+            return image;
+        }
+
+        private void SetBandColor(int index, Color color)
+        {
+            if (index < 0 || index >= lineBands.Count)
+            {
+                return;
+            }
+
+            foreach (Image image in lineBands[index])
+            {
+                if (image != null)
+                {
+                    image.color = color;
+                }
+            }
         }
 
         private static void AddCornerMarks(Transform parent, Color color, float inset)
