@@ -11,7 +11,7 @@ namespace AppreciatorsTcg.UI
         // A wide fan looks lively in static mockups, but it forces every thin card
         // line to be continuously rasterised at a steep angle in WebGL.  Keep the
         // hand readable and give the cards just enough separation to feel natural.
-        private const float MaxHandTilt = 3.5f;
+        private const float MaxHandTilt = 1.75f;
         private const float RotationSnapThreshold = 0.025f;
         private const float ScaleSnapThreshold = 0.001f;
         private const float PositionSnapThreshold = 0.05f;

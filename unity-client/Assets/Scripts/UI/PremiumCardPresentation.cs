@@ -124,6 +124,21 @@ namespace AppreciatorsTcg.UI
                 lastCardSize = cardSize;
             }
 
+            // Hand, deck, and pack-fan cards are intentionally small. Moving foil
+            // beneath their mask causes browser GPUs to shimmer along the upper and
+            // lower edge as the card is resampled. Keep the finish present but
+            // motionless at that scale; the full inspection view still animates.
+            bool compactCard = cardSize.x < 260f || cardSize.y < 390f;
+            if (compactCard)
+            {
+                foilRect.anchoredPosition = Vector2.zero;
+                foilImage.color = new Color(1f, 1f, 1f, intensity);
+                sheenImage.color = Color.clear;
+                cyanEdge.color = new Color(0.08f, 0.88f, 1f, intensity * 1.15f);
+                magentaEdge.color = new Color(1f, 0.16f, 0.86f, intensity);
+                return;
+            }
+
             float materialPulse = 0.84f + Mathf.Sin(time * 0.42f) * 0.12f;
             foilImage.color = new Color(1f, 1f, 1f, intensity * materialPulse);
             foilRect.anchoredPosition = new Vector2(Mathf.Sin(time * 0.24f) * 2.5f, Mathf.Cos(time * 0.19f) * 2f);

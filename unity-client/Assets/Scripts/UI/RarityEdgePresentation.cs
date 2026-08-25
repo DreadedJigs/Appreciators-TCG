@@ -97,6 +97,15 @@ namespace AppreciatorsTcg.UI
                 return;
             }
 
+            // Static compact frames avoid a visible colour shimmer during pack
+            // fans. The bands still read as holographic; animation is reserved for
+            // an enlarged card where there are enough physical pixels to support it.
+            RectTransform cardRect = transform as RectTransform;
+            if (cardRect == null || cardRect.rect.width < 260f || cardRect.rect.height < 390f)
+            {
+                return;
+            }
+
             float t = Time.unscaledTime * 0.82f + phase;
             SetBandColor(1, Color.Lerp(UIFactory.Accent, UIFactory.NeonPink, Mathf.PingPong(t, 1f)));
             SetBandColor(2, Color.Lerp(UIFactory.NeonCyan, UIFactory.Accent, Mathf.PingPong(t + 0.33f, 1f)));

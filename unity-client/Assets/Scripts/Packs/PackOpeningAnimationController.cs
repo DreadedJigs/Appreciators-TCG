@@ -656,7 +656,10 @@ namespace AppreciatorsTcg.Packs
                 bool hero = order[fanSlot] == heroIndex;
                 Vector2 target = new Vector2(delta * spacing, hero ? 8f : -18f - Mathf.Abs(delta) * 9f);
                 float scale = hero ? 0.66f : Mathf.Lerp(0.54f, 0.46f, Mathf.Abs(delta) / Mathf.Max(1f, center));
-                Quaternion rotation = Quaternion.Euler(0f, -delta * 5f, -delta * 6.5f);
+                // A 3D yaw makes thin card borders resample every frame in the
+                // browser. The final fan remains dimensional through overlap and
+                // depth, but uses a restrained 2D rotation for crisp edges.
+                Quaternion rotation = Quaternion.Euler(0f, 0f, -delta * 2.25f);
                 card.SetAsLastSibling();
                 StartCoroutine(AnimateTransform(card, target, Vector3.one * scale, rotation, ThemeService.ReducedMotion ? 0.12f : 0.46f, true));
             }
