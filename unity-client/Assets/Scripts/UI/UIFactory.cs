@@ -1166,7 +1166,6 @@ namespace AppreciatorsTcg.UI
             fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             fitter.aspectRatio = 2f / 3f;
             PremiumCardPresentation.Attach(canvas, rarity);
-            RarityEdgePresentation.Attach(canvas, rarity);
             return canvas;
         }
 

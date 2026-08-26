@@ -126,7 +126,6 @@ namespace AppreciatorsTcg.UI
             GameObject rules = NewSurface(canvas, "LiveEffectsPlate", UIFactory.Ink, new Vector2(0.030f, 0.025f), new Vector2(0.972f, 0.178f));
             AddText(rules.transform, $"BUILD  {ShortRule(card.GetBuildEffect(), 96)}", 11, TextAnchor.MiddleLeft, Color.white, FontStyle.Normal, new Vector2(0.04f, 0.50f), new Vector2(0.96f, 0.96f));
             AddText(rules.transform, $"DISCARD  {ShortRule(card.GetDiscardEffect(), 96)}", 11, TextAnchor.MiddleLeft, accent, FontStyle.Normal, new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.50f));
-            RarityEdgePresentation.Attach(canvasImage.gameObject, card.rarity);
         }
 
         private static GameObject NewSurface(Transform parent, string name, Color color, Vector2 min, Vector2 max, bool mask = false)
