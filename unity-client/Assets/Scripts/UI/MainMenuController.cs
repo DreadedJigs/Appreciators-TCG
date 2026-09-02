@@ -5,6 +5,7 @@ using System.Linq;
 using AppreciatorsTcg.Core;
 using AppreciatorsTcg.Data;
 using AppreciatorsTcg.Packs;
+using AppreciatorsTcg.Audio;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -29,11 +30,16 @@ namespace AppreciatorsTcg.UI
         private Text menuMarquee;
         private Button themeButton;
         private Button tutorialButton;
+        private Text musicTrackText;
+        private Button musicPlayButton;
+        private Button musicRepeatButton;
+        private Button musicVolumeButton;
         private readonly List<Button> tutorialLockedButtons = new List<Button>();
         private readonly Dictionary<Button, string> tutorialLockedLabels = new Dictionary<Button, string>();
 
         private void Start()
         {
+            BackgroundMusicService.Initialize();
             RectTransform playmat = UIFactory.CreateBrandMenuRoot(Root);
             mainPanel = new GameObject("MainBoardMenu", typeof(RectTransform));
             mainPanel.transform.SetParent(playmat, false);
@@ -47,6 +53,15 @@ namespace AppreciatorsTcg.UI
             menuMarquee = UIFactory.CreateText(header.transform, "A P P R E C I A T O R S   T C G", 39, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
             UIFactory.CreateText(header.transform, "LEARN  •  BUILD  •  GROW APPRECIATION", 17, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
             economyText = UIFactory.CreateText(header.transform, "SYNCING UNOPENED PACKS AND APPRECIATION SHARDS...", 17, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
+            musicTrackText = UIFactory.CreateText(header.transform, MusicTrackLabel(), 14, TextAnchor.MiddleCenter, UIFactory.IceBadge, FontStyle.Bold);
+            GameObject musicControls = UIFactory.CreateHorizontalStack(header.transform, "MusicControls", Color.clear, 5, 0);
+            LayoutElement musicControlLayout = musicControls.AddComponent<LayoutElement>();
+            musicControlLayout.minHeight = 32f;
+            musicControlLayout.preferredHeight = 36f;
+            musicPlayButton = UIFactory.CreateButton(musicControls.transform, MusicPlayLabel(), ToggleMusicPlayback, UIFactory.Green);
+            UIFactory.CreateButton(musicControls.transform, "SKIP  ▶", SkipMusicTrack, UIFactory.Blue);
+            musicRepeatButton = UIFactory.CreateButton(musicControls.transform, MusicRepeatLabel(), ToggleMusicRepeat, UIFactory.PortalViolet);
+            musicVolumeButton = UIFactory.CreateButton(musicControls.transform, MusicVolumeLabel(), CycleMusicVolume, UIFactory.Accent);
 
             string themeLabel = ThemeService.IsDark ? "SWITCH TO LIGHT MODE" : "SWITCH TO DARK MODE";
             themeButton = UIFactory.CreateButton(mainPanel.transform, themeLabel, ToggleTheme, UIFactory.Blue);
@@ -103,6 +118,67 @@ namespace AppreciatorsTcg.UI
         private void LateUpdate()
         {
             ApplyResponsiveMenuLayout(false);
+        }
+
+        private static string MusicTrackLabel()
+        {
+            return $"NOW PLAYING  •  {BackgroundMusicService.CurrentTrackName.ToUpperInvariant()}";
+        }
+
+        private static string MusicPlayLabel()
+        {
+            return BackgroundMusicService.IsPlaying ? "PAUSE" : "PLAY";
+        }
+
+        private static string MusicRepeatLabel()
+        {
+            return BackgroundMusicService.RepeatEnabled ? "REPEAT: ON" : "REPEAT: OFF";
+        }
+
+        private static string MusicVolumeLabel()
+        {
+            return $"MUSIC: {BackgroundMusicService.VolumePercent}%";
+        }
+
+        private void ToggleMusicPlayback()
+        {
+            BackgroundMusicService.TogglePlayPause();
+            RefreshMusicControls();
+        }
+
+        private void SkipMusicTrack()
+        {
+            BackgroundMusicService.Skip();
+            RefreshMusicControls();
+        }
+
+        private void ToggleMusicRepeat()
+        {
+            BackgroundMusicService.ToggleRepeat();
+            RefreshMusicControls();
+        }
+
+        private void CycleMusicVolume()
+        {
+            BackgroundMusicService.CycleVolume();
+            RefreshMusicControls();
+        }
+
+        private void RefreshMusicControls()
+        {
+            if (musicTrackText != null) musicTrackText.text = MusicTrackLabel();
+            SetButtonText(musicPlayButton, MusicPlayLabel());
+            SetButtonText(musicRepeatButton, MusicRepeatLabel());
+            SetButtonText(musicVolumeButton, MusicVolumeLabel());
+        }
+
+        private static void SetButtonText(Button button, string label)
+        {
+            Text text = button == null ? null : button.GetComponentInChildren<Text>();
+            if (text != null)
+            {
+                text.text = label;
+            }
         }
 
         private void ApplyResponsiveMenuLayout(bool force)
