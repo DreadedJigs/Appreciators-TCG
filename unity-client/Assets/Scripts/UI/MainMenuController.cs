@@ -21,6 +21,7 @@ namespace AppreciatorsTcg.UI
         private Button ritualButton;
         private Text economyText;
         private RectTransform menuHeader;
+        private RectTransform musicMenuRect;
         private RectTransform themeButtonRect;
         private RectTransform homeButtonRect;
         private RectTransform playColumnRect;
@@ -47,15 +48,30 @@ namespace AppreciatorsTcg.UI
 
             GameObject header = UIFactory.CreateVerticalStack(mainPanel.transform, "MenuHeader", UIFactory.GlassPanel, 3, 12);
             menuHeader = header.GetComponent<RectTransform>();
-            UIFactory.SetAnchors(header.GetComponent<RectTransform>(), new Vector2(0.24f, 0.785f), new Vector2(0.76f, 0.955f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(header.GetComponent<RectTransform>(), new Vector2(0.24f, 0.75f), new Vector2(0.76f, 0.91f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(header, UIFactory.NeonCyan);
             UIFactory.ApplyBrandStarfield(header);
             menuMarquee = UIFactory.CreateText(header.transform, "A P P R E C I A T O R S   T C G", 39, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
             UIFactory.CreateText(header.transform, "LEARN  •  BUILD  •  GROW APPRECIATION", 17, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
             economyText = UIFactory.CreateText(header.transform, "SYNCING UNOPENED PACKS AND APPRECIATION SHARDS...", 17, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
-            musicTrackText = UIFactory.CreateText(header.transform, MusicTrackLabel(), 11, TextAnchor.MiddleCenter, UIFactory.IceBadge, FontStyle.Bold);
-            GameObject musicControls = UIFactory.CreateHorizontalStack(header.transform, "MusicControls", Color.clear, 5, 0);
+            // Keep music with the top actions rather than consuming space in the title banner.
+            GameObject musicMenu = UIFactory.CreateHorizontalStack(mainPanel.transform, "MusicMenu", Color.clear, 5, 0);
+            musicMenuRect = musicMenu.GetComponent<RectTransform>();
+            UIFactory.SetAnchors(musicMenuRect, new Vector2(0.235f, 0.925f), new Vector2(0.765f, 0.985f), Vector2.zero, Vector2.zero);
+            musicTrackText = UIFactory.CreateText(musicMenu.transform, MusicTrackLabel(), 11, TextAnchor.MiddleCenter, UIFactory.IceBadge, FontStyle.Bold);
+            musicTrackText.resizeTextForBestFit = true;
+            musicTrackText.resizeTextMinSize = 8;
+            musicTrackText.resizeTextMaxSize = 11;
+            LayoutElement musicTrackLayout = musicTrackText.gameObject.AddComponent<LayoutElement>();
+            musicTrackLayout.minWidth = 124f;
+            musicTrackLayout.preferredWidth = 150f;
+            musicTrackLayout.flexibleWidth = 1f;
+
+            GameObject musicControls = UIFactory.CreateHorizontalStack(musicMenu.transform, "MusicControls", Color.clear, 5, 0);
             LayoutElement musicControlLayout = musicControls.AddComponent<LayoutElement>();
+            musicControlLayout.minWidth = 248f;
+            musicControlLayout.preferredWidth = 336f;
+            musicControlLayout.flexibleWidth = 3f;
             musicControlLayout.minHeight = 44f;
             musicControlLayout.preferredHeight = 48f;
             musicPlayButton = UIFactory.CreateButton(musicControls.transform, MusicPlayLabel(), ToggleMusicPlayback, UIFactory.Green);
@@ -215,9 +231,10 @@ namespace AppreciatorsTcg.UI
             lastResponsiveSize = size;
 
             bool phone = ResponsiveCanvasScaler.IsPhoneLayout;
-            SetRect(menuHeader, phone ? new Rect(0.12f, 0.785f, 0.68f, 0.19f) : new Rect(0.24f, 0.785f, 0.52f, 0.17f));
-            SetRect(themeButtonRect, phone ? new Rect(0.82f, 0.865f, 0.17f, 0.105f) : new Rect(0.78f, 0.925f, 0.205f, 0.06f));
-            SetRect(homeButtonRect, phone ? new Rect(0.015f, 0.865f, 0.17f, 0.105f) : new Rect(0.015f, 0.925f, 0.205f, 0.06f));
+            SetRect(menuHeader, phone ? new Rect(0.12f, 0.73f, 0.68f, 0.175f) : new Rect(0.24f, 0.75f, 0.52f, 0.16f));
+            SetRect(musicMenuRect, phone ? new Rect(0.195f, 0.925f, 0.61f, 0.06f) : new Rect(0.235f, 0.925f, 0.53f, 0.06f));
+            SetRect(themeButtonRect, phone ? new Rect(0.82f, 0.925f, 0.17f, 0.06f) : new Rect(0.78f, 0.925f, 0.205f, 0.06f));
+            SetRect(homeButtonRect, phone ? new Rect(0.015f, 0.925f, 0.17f, 0.06f) : new Rect(0.015f, 0.925f, 0.205f, 0.06f));
             SetRect(playColumnRect, phone ? new Rect(0.025f, 0.055f, 0.305f, 0.705f) : new Rect(0.055f, 0.285f, 0.275f, 0.43f));
             SetRect(growColumnRect, phone ? new Rect(0.3475f, 0.055f, 0.305f, 0.705f) : new Rect(0.3625f, 0.285f, 0.275f, 0.43f));
             SetRect(futureColumnRect, phone ? new Rect(0.67f, 0.055f, 0.305f, 0.705f) : new Rect(0.67f, 0.285f, 0.275f, 0.43f));
