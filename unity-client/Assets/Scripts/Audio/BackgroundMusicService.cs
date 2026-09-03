@@ -12,8 +12,8 @@ namespace AppreciatorsTcg.Audio
         private const string VolumeKey = "appreciators_music_volume";
         private const string RepeatKey = "appreciators_music_repeat";
 
-        private static readonly string[] TrackNames = { "Starfield Funk", "Pixel Sparkle" };
-        private static readonly string[] ResourcePaths = { "Audio/Music/StarfieldFunk", "Audio/Music/PixelSparkle" };
+        private static readonly string[] TrackNames = { "Starfield Funk", "Pixel Sparkle", "Luminous Wave" };
+        private static readonly string[] ResourcePaths = { "Audio/Music/StarfieldFunk", "Audio/Music/PixelSparkle", "Audio/Music/LuminousWave" };
 
         private static AudioSource source;
         private static AudioClip[] playlist;
