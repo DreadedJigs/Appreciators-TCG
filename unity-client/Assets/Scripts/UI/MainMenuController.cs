@@ -53,15 +53,19 @@ namespace AppreciatorsTcg.UI
             menuMarquee = UIFactory.CreateText(header.transform, "A P P R E C I A T O R S   T C G", 39, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
             UIFactory.CreateText(header.transform, "LEARN  •  BUILD  •  GROW APPRECIATION", 17, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
             economyText = UIFactory.CreateText(header.transform, "SYNCING UNOPENED PACKS AND APPRECIATION SHARDS...", 17, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
-            musicTrackText = UIFactory.CreateText(header.transform, MusicTrackLabel(), 14, TextAnchor.MiddleCenter, UIFactory.IceBadge, FontStyle.Bold);
+            musicTrackText = UIFactory.CreateText(header.transform, MusicTrackLabel(), 11, TextAnchor.MiddleCenter, UIFactory.IceBadge, FontStyle.Bold);
             GameObject musicControls = UIFactory.CreateHorizontalStack(header.transform, "MusicControls", Color.clear, 5, 0);
             LayoutElement musicControlLayout = musicControls.AddComponent<LayoutElement>();
-            musicControlLayout.minHeight = 32f;
-            musicControlLayout.preferredHeight = 36f;
+            musicControlLayout.minHeight = 44f;
+            musicControlLayout.preferredHeight = 48f;
             musicPlayButton = UIFactory.CreateButton(musicControls.transform, MusicPlayLabel(), ToggleMusicPlayback, UIFactory.Green);
             UIFactory.CreateButton(musicControls.transform, "SKIP  ▶", SkipMusicTrack, UIFactory.Blue);
             musicRepeatButton = UIFactory.CreateButton(musicControls.transform, MusicRepeatLabel(), ToggleMusicRepeat, UIFactory.PortalViolet);
             musicVolumeButton = UIFactory.CreateButton(musicControls.transform, MusicVolumeLabel(), CycleMusicVolume, UIFactory.Accent);
+            foreach (Button musicButton in musicControls.GetComponentsInChildren<Button>())
+            {
+                ConfigureMusicButton(musicButton);
+            }
 
             string themeLabel = ThemeService.IsDark ? "SWITCH TO LIGHT MODE" : "SWITCH TO DARK MODE";
             themeButton = UIFactory.CreateButton(mainPanel.transform, themeLabel, ToggleTheme, UIFactory.Blue);
@@ -178,6 +182,29 @@ namespace AppreciatorsTcg.UI
             if (text != null)
             {
                 text.text = label;
+            }
+        }
+
+        private static void ConfigureMusicButton(Button button)
+        {
+            if (button == null) return;
+
+            LayoutElement layout = button.GetComponent<LayoutElement>();
+            if (layout != null)
+            {
+                // The standard controls are 58/64 px tall and use 25 px labels.
+                // Keep this player row at exactly 75% of that visual scale.
+                layout.minHeight = 44f;
+                layout.preferredHeight = 48f;
+            }
+
+            Text label = button.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.fontSize = 19;
+                label.resizeTextForBestFit = true;
+                label.resizeTextMinSize = 11;
+                label.resizeTextMaxSize = 19;
             }
         }
 
