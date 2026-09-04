@@ -20,13 +20,14 @@ export const RANKED_LOSS_SHARD_PENALTY = 5;
 export const TUTORIAL_COMPLETION_SHARD_REWARD = 500;
 export const TUTORIAL_GAME_FINISH_SHARD_REWARD = 1000;
 export const BOSS_BATTLE_UNLOCK_COST = 2000;
-const STARTER_GRANT_VERSION = 1;
+// Versioned so accounts created before the consumable-pack correction retain
+// their currently available packs, but are never replenished after an opening.
+const STARTER_GRANT_VERSION = 2;
 const runtimeFallbackSigningSecret = crypto.randomBytes(32).toString("hex");
 let warnedAboutRuntimeSigningSecret = false;
-// The current public release is an alpha ritual test: every account must always
-// have three starter packs available. Protected developer grant endpoints still
-// require their separate admin-key checks below.
-const TEST_PACK_MODE = process.env.PACK_TEST_MODE_ALWAYS_STOCKED !== "false";
+// This is an opt-in local QA switch only. Production accounts receive their
+// three starter packs once; opening a pack consumes it permanently.
+const TEST_PACK_MODE = process.env.PACK_TEST_MODE_ALWAYS_STOCKED === "true";
 let loaded = false;
 
 export function getPackInventory(playerId) {

@@ -19,12 +19,23 @@ function listen(app) {
 }
 
 async function request(server, path, options = {}) {
+  const { headers = {}, ...requestOptions } = options;
   const address = server.address();
   const response = await fetch(`http://127.0.0.1:${address.port}${path}`, {
-    headers: { "content-type": "application/json" },
-    ...options
+    headers: { "content-type": "application/json", ...headers },
+    ...requestOptions
   });
   return { response, body: await response.json() };
+}
+
+async function registerSecureAccount(server, username) {
+  const registered = await request(server, "/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ username, password: "TestOnlySecurePassword123" })
+  });
+  assert.equal(registered.response.status, 201);
+  assert.match(registered.body.accessToken, /^ses_/);
+  return registered.body;
 }
 
 test("mystery profiles expose the required transparent odds", () => {
@@ -76,6 +87,25 @@ test("pack catalog publishes all mystery odds profiles", async () => {
     assert.equal(prices.legendary_guaranteed_pack, 1800);
   } finally {
     server.close();
+  }
+});
+
+test("creating a secure account grants exactly three starter packs", async () => {
+  resetPackInventoryForTests();
+  const server = await listen(createApp());
+  try {
+    const account = await registerSecureAccount(server, `StarterGrant${Date.now().toString(36)}`);
+    const starter = account.inventory.packs.find((pack) => pack.packId === "starter_appreciation_pack");
+    assert.equal(starter.count, 3);
+
+    const loaded = await request(server, `/api/packs/inventory?playerId=${encodeURIComponent(account.account.id)}`, {
+      headers: { authorization: `Bearer ${account.accessToken}` }
+    });
+    assert.equal(loaded.response.status, 200);
+    assert.equal(loaded.body.inventory.packs.find((pack) => pack.packId === "starter_appreciation_pack").count, 3);
+  } finally {
+    server.close();
+    resetPackInventoryForTests();
   }
 });
 
@@ -135,7 +165,7 @@ test("odds endpoint exposes slot distributions, starter guarantee, and Neutral-o
   }
 });
 
-test("open-pack route validates ownership and returns a signed authoritative reward", async () => {
+test("starter packs are granted once, consumed on open, and never replenished", async () => {
   process.env.PACK_REWARD_SIGNING_SECRET = "test-pack-signing-secret";
   resetPackInventoryForTests();
   const server = await listen(createApp());
@@ -159,7 +189,7 @@ test("open-pack route validates ownership and returns a signed authoritative rew
     assert.equal(opened.response.status, 200);
     assert.equal(opened.body.success, true);
     assert.equal(opened.body.requestId, "open-test-1");
-    assert.equal(opened.body.remainingPackCount, 3, "Alpha test mode keeps three starter packs ready after every ritual.");
+    assert.equal(opened.body.remainingPackCount, 2);
     assert.equal(opened.body.totalShardBalance, opened.body.inventory.appreciationShards);
     assert.equal(opened.body.algorithm, "HMAC-SHA256");
     assert.equal(opened.body.reward.cards.length, 5);
@@ -171,7 +201,7 @@ test("open-pack route validates ownership and returns a signed authoritative rew
     const signedPayload = JSON.parse(Buffer.from(opened.body.payloadBase64, "base64url").toString("utf8"));
     assert.equal(signedPayload.playerId, "test_player");
     assert.equal(signedPayload.requestId, "open-test-1");
-    assert.equal(opened.body.inventory.packs.find((pack) => pack.packId === "starter_appreciation_pack").count, 3);
+    assert.equal(opened.body.inventory.packs.find((pack) => pack.packId === "starter_appreciation_pack").count, 2);
 
     const replayed = await request(server, "/api/packs/open", {
       method: "POST",
@@ -209,9 +239,10 @@ test("open-pack route validates ownership and returns a signed authoritative rew
         })
       });
       assert.equal(remaining.response.status, 200);
+      assert.equal(remaining.body.remainingPackCount, 3 - index);
     }
 
-    const continuouslyStocked = await request(server, "/api/packs/open", {
+    const exhausted = await request(server, "/api/packs/open", {
       method: "POST",
       body: JSON.stringify({
         requestId: "open-test-4",
@@ -220,8 +251,8 @@ test("open-pack route validates ownership and returns a signed authoritative rew
         attunement: "Neutral"
       })
     });
-    assert.equal(continuouslyStocked.response.status, 200);
-    assert.equal(continuouslyStocked.body.remainingPackCount, 3);
+    assert.equal(exhausted.response.status, 409);
+    assert.match(exhausted.body.message, /does not own this pack/i);
   } finally {
     server.close();
     resetPackInventoryForTests();
@@ -378,12 +409,23 @@ test("account login restores inventory and ranked losses remove five Appreciatio
 test("tutorial completion grants exactly five hundred Appreciation Shards once", async () => {
   resetPackInventoryForTests();
   const server = await listen(createApp());
-  const playerId = "tutorial_reward_player";
 
   try {
-    const firstClaim = await request(server, "/api/economy/tutorial-complete", {
+    const guestAttempt = await request(server, "/api/economy/tutorial-complete", {
       method: "POST",
-      body: JSON.stringify({ playerId })
+      body: JSON.stringify({ playerId: "guest_player" })
+    });
+    assert.equal(guestAttempt.response.status, 401);
+    assert.equal(guestAttempt.body.errorCode, "AUTH_REQUIRED");
+
+    const account = await registerSecureAccount(server, `TutorialReward${Date.now().toString(36)}`);
+    const options = {
+      method: "POST",
+      headers: { authorization: `Bearer ${account.accessToken}` },
+      body: JSON.stringify({ playerId: "guest_player" })
+    };
+    const firstClaim = await request(server, "/api/economy/tutorial-complete", {
+      ...options
     });
     assert.equal(firstClaim.response.status, 200);
     assert.equal(firstClaim.body.shardsAwarded, 500);
@@ -392,8 +434,7 @@ test("tutorial completion grants exactly five hundred Appreciation Shards once",
     assert.equal(firstClaim.body.inventory.progress.tutorialCompleted, true);
 
     const replay = await request(server, "/api/economy/tutorial-complete", {
-      method: "POST",
-      body: JSON.stringify({ playerId })
+      ...options
     });
     assert.equal(replay.response.status, 200);
     assert.equal(replay.body.idempotentReplay, true);

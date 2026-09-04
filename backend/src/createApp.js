@@ -146,7 +146,15 @@ export function createApp() {
   app.post("/api/auth/register", authenticationLimiter, async (req, res, next) => {
     try {
       const result = await secureStore.registerAccount(req.body);
-      res.status(201).json({ success: true, ...result, message: "Secure account created. Store the session only on this device." });
+      // Initialize the account-bound starter entitlement at registration rather
+      // than waiting for a later screen to request inventory.
+      const inventory = getPackInventory(result.account.id);
+      res.status(201).json({
+        success: true,
+        ...result,
+        inventory,
+        message: "Secure account created. Three starter packs have been added to this account. Store the session only on this device."
+      });
     } catch (error) {
       next(error);
     }
@@ -359,7 +367,9 @@ export function createApp() {
 
   app.get("/api/packs/inventory/:playerId", packReadLimiter, requireProductionAccount((req, res, next) => {
     try {
-      res.json({ inventory: getPackInventory(req.params.playerId) });
+      // A path id is legacy UI compatibility only. In production the signed
+      // account remains the sole authority for which inventory may be read.
+      res.json({ inventory: getPackInventory(resolvePackPlayerId(req)) });
     } catch (error) {
       next(error);
     }
@@ -407,7 +417,10 @@ export function createApp() {
     }
   }));
 
-  app.post("/api/economy/tutorial-complete", economyWriteLimiter, requireProductionAccount((req, res, next) => {
+  // Tutorial rewards are account-only in every environment. This prevents
+  // guest/local identities from receiving currency and keys the one-time claim
+  // to the server-issued account id.
+  app.post("/api/economy/tutorial-complete", economyWriteLimiter, requireSecureAccount((req, res, next) => {
     try {
       res.json(awardTutorialCompletionShards(packRequestPayload(req)));
     } catch (error) {

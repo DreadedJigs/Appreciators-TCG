@@ -57,7 +57,7 @@ namespace AppreciatorsTcg.UI
             // Keep music with the top actions rather than consuming space in the title banner.
             GameObject musicMenu = UIFactory.CreateHorizontalStack(mainPanel.transform, "MusicMenu", Color.clear, 5, 0);
             musicMenuRect = musicMenu.GetComponent<RectTransform>();
-            UIFactory.SetAnchors(musicMenuRect, new Vector2(0.235f, 0.925f), new Vector2(0.765f, 0.985f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(musicMenuRect, new Vector2(0.235f, 0.940f), new Vector2(0.765f, 0.985f), Vector2.zero, Vector2.zero);
             musicTrackText = UIFactory.CreateText(musicMenu.transform, MusicTrackLabel(), 11, TextAnchor.MiddleCenter, UIFactory.IceBadge, FontStyle.Bold);
             musicTrackText.resizeTextForBestFit = true;
             musicTrackText.resizeTextMinSize = 8;
@@ -72,8 +72,8 @@ namespace AppreciatorsTcg.UI
             musicControlLayout.minWidth = 248f;
             musicControlLayout.preferredWidth = 336f;
             musicControlLayout.flexibleWidth = 3f;
-            musicControlLayout.minHeight = 44f;
-            musicControlLayout.preferredHeight = 48f;
+            musicControlLayout.minHeight = 34f;
+            musicControlLayout.preferredHeight = 36f;
             musicPlayButton = UIFactory.CreateButton(musicControls.transform, MusicPlayLabel(), ToggleMusicPlayback, UIFactory.Green);
             UIFactory.CreateButton(musicControls.transform, "SKIP  ▶", SkipMusicTrack, UIFactory.Blue);
             musicRepeatButton = UIFactory.CreateButton(musicControls.transform, MusicRepeatLabel(), ToggleMusicRepeat, UIFactory.PortalViolet);
@@ -86,11 +86,11 @@ namespace AppreciatorsTcg.UI
             string themeLabel = ThemeService.IsDark ? "SWITCH TO LIGHT MODE" : "SWITCH TO DARK MODE";
             themeButton = UIFactory.CreateButton(mainPanel.transform, themeLabel, ToggleTheme, UIFactory.Blue);
             themeButtonRect = themeButton.GetComponent<RectTransform>();
-            UIFactory.SetAnchors(themeButton.GetComponent<RectTransform>(), new Vector2(0.78f, 0.925f), new Vector2(0.985f, 0.985f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(themeButton.GetComponent<RectTransform>(), new Vector2(0.78f, 0.940f), new Vector2(0.985f, 0.985f), Vector2.zero, Vector2.zero);
 
             Button homeButton = UIFactory.CreateButton(mainPanel.transform, "HOME / QR", OpenHomeScreen, UIFactory.Accent);
             homeButtonRect = homeButton.GetComponent<RectTransform>();
-            UIFactory.SetAnchors(homeButtonRect, new Vector2(0.015f, 0.925f), new Vector2(0.220f, 0.985f), Vector2.zero, Vector2.zero);
+            UIFactory.SetAnchors(homeButtonRect, new Vector2(0.015f, 0.940f), new Vector2(0.220f, 0.985f), Vector2.zero, Vector2.zero);
 
             GameObject playColumn = CreateMenuColumn(mainPanel.transform, "PLAY", "Commit one card, command one lane.", new Rect(0.055f, 0.285f, 0.275f, 0.43f));
             playColumnRect = playColumn.GetComponent<RectTransform>();
@@ -208,19 +208,19 @@ namespace AppreciatorsTcg.UI
             LayoutElement layout = button.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                // The standard controls are 58/64 px tall and use 25 px labels.
-                // Keep this player row at exactly 75% of that visual scale.
-                layout.minHeight = 44f;
-                layout.preferredHeight = 48f;
+                // Keep the utility row 25% slimmer than the prior compact row
+                // so its controls read as utilities, not primary menu actions.
+                layout.minHeight = 34f;
+                layout.preferredHeight = 36f;
             }
 
             Text label = button.GetComponentInChildren<Text>();
             if (label != null)
             {
-                label.fontSize = 19;
+                label.fontSize = 16;
                 label.resizeTextForBestFit = true;
-                label.resizeTextMinSize = 11;
-                label.resizeTextMaxSize = 19;
+                label.resizeTextMinSize = 10;
+                label.resizeTextMaxSize = 16;
             }
         }
 
@@ -232,9 +232,9 @@ namespace AppreciatorsTcg.UI
 
             bool phone = ResponsiveCanvasScaler.IsPhoneLayout;
             SetRect(menuHeader, phone ? new Rect(0.12f, 0.73f, 0.68f, 0.175f) : new Rect(0.24f, 0.75f, 0.52f, 0.16f));
-            SetRect(musicMenuRect, phone ? new Rect(0.195f, 0.925f, 0.61f, 0.06f) : new Rect(0.235f, 0.925f, 0.53f, 0.06f));
-            SetRect(themeButtonRect, phone ? new Rect(0.82f, 0.925f, 0.17f, 0.06f) : new Rect(0.78f, 0.925f, 0.205f, 0.06f));
-            SetRect(homeButtonRect, phone ? new Rect(0.015f, 0.925f, 0.17f, 0.06f) : new Rect(0.015f, 0.925f, 0.205f, 0.06f));
+            SetRect(musicMenuRect, phone ? new Rect(0.195f, 0.940f, 0.61f, 0.045f) : new Rect(0.235f, 0.940f, 0.53f, 0.045f));
+            SetRect(themeButtonRect, phone ? new Rect(0.82f, 0.940f, 0.17f, 0.045f) : new Rect(0.78f, 0.940f, 0.205f, 0.045f));
+            SetRect(homeButtonRect, phone ? new Rect(0.015f, 0.940f, 0.17f, 0.045f) : new Rect(0.015f, 0.940f, 0.205f, 0.045f));
             SetRect(playColumnRect, phone ? new Rect(0.025f, 0.055f, 0.305f, 0.705f) : new Rect(0.055f, 0.285f, 0.275f, 0.43f));
             SetRect(growColumnRect, phone ? new Rect(0.3475f, 0.055f, 0.305f, 0.705f) : new Rect(0.3625f, 0.285f, 0.275f, 0.43f));
             SetRect(futureColumnRect, phone ? new Rect(0.67f, 0.055f, 0.305f, 0.705f) : new Rect(0.67f, 0.285f, 0.275f, 0.43f));
@@ -247,8 +247,8 @@ namespace AppreciatorsTcg.UI
                 menuMarquee.resizeTextMaxSize = phone ? 32 : 39;
                 menuMarquee.verticalOverflow = VerticalWrapMode.Truncate;
             }
-            ConfigureCompactButtonText(themeButton, phone, 16);
-            ConfigureCompactButtonText(homeButtonRect == null ? null : homeButtonRect.GetComponent<Button>(), phone, 16);
+            ConfigureTopUtilityButton(themeButton, phone);
+            ConfigureTopUtilityButton(homeButtonRect == null ? null : homeButtonRect.GetComponent<Button>(), phone);
 
             if (!phone) return;
             foreach (RectTransform column in new[] { playColumnRect, growColumnRect, futureColumnRect })
@@ -278,6 +278,25 @@ namespace AppreciatorsTcg.UI
             label.resizeTextForBestFit = compact;
             label.resizeTextMinSize = compact ? 11 : 18;
             label.resizeTextMaxSize = compact ? compactSize : 25;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
+        private static void ConfigureTopUtilityButton(Button button, bool phone)
+        {
+            if (button == null) return;
+            LayoutElement layout = button.GetComponent<LayoutElement>();
+            if (layout != null)
+            {
+                layout.minHeight = phone ? 30f : 34f;
+                layout.preferredHeight = phone ? 32f : 36f;
+            }
+
+            Text label = button.GetComponentInChildren<Text>();
+            if (label == null) return;
+            label.fontSize = phone ? 13 : 16;
+            label.resizeTextForBestFit = true;
+            label.resizeTextMinSize = phone ? 9 : 11;
+            label.resizeTextMaxSize = phone ? 13 : 16;
             label.verticalOverflow = VerticalWrapMode.Truncate;
         }
 

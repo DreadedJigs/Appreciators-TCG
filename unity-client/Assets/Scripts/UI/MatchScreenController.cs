@@ -1464,6 +1464,12 @@ namespace AppreciatorsTcg.UI
 
         private IEnumerator ClaimTutorialCompletionReward()
         {
+            if (!BackendApiClient.HasSecureSession)
+            {
+                ShowMatStatus("Tutorial demo complete. Guest play does not earn Appreciation Shards. Sign in to an account, then replay the tutorial to claim its one-time reward.");
+                yield break;
+            }
+
             TutorialRewardResponse reward = null;
             string rewardError = null;
             string playerId = LocalSaveSystem.LoadOrCreatePlayerId();
