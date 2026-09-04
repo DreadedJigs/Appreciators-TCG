@@ -11,6 +11,7 @@ namespace AppreciatorsTcg.Audio
     {
         private const string VolumeKey = "appreciators_music_volume";
         private const string RepeatKey = "appreciators_music_repeat";
+        private const int DefaultTrackIndex = 2;
 
         private static readonly string[] TrackNames = { "Starfield Funk", "Pixel Sparkle", "Luminous Wave" };
         private static readonly string[] ResourcePaths = { "Audio/Music/StarfieldFunk", "Audio/Music/PixelSparkle", "Audio/Music/LuminousWave" };
@@ -18,7 +19,9 @@ namespace AppreciatorsTcg.Audio
         private static AudioSource source;
         private static AudioClip[] playlist;
         private static MusicRuntime runtime;
-        private static int trackIndex;
+        // Start every new session on Luminous Wave while preserving the existing
+        // skip order for the rest of the playlist.
+        private static int trackIndex = DefaultTrackIndex;
         private static float volume;
         private static bool repeat;
         private static float startedAt;
