@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createApp } from "../src/createApp.js";
 import { clearInviteRoomsForTests } from "../src/inviteRoomStore.js";
 import { resetMockMintForTests } from "../src/web3MockStore.js";
+import { resetSecureGameStoreForTests } from "../src/secureGameStore.js";
 
 function listen(app) {
   return new Promise((resolve) => {
@@ -29,6 +30,12 @@ test("health route reports the online security foundation", async () => {
     assert.equal(body.status, "ok");
     assert.equal(body.phase, "online-security-foundation");
     assert.equal(body.capabilities.secureAccounts, true);
+    assert.equal(response.headers.get("x-powered-by"), null);
+    assert.match(response.headers.get("content-security-policy") || "", /frame-ancestors 'none'/);
+
+    const ready = await request(server, "/health/ready");
+    assert.equal(ready.response.status, 200);
+    assert.equal(ready.body.status, "ok");
   } finally {
     server.close();
   }
@@ -70,6 +77,63 @@ test("secure account routes gate cloud data and production rejects legacy player
     if (previousEnvironment === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousEnvironment;
     server.close();
+  }
+});
+
+test("authoritative online routes keep hands private and produce a verifiable replay", async () => {
+  const previousStorePath = process.env.APP_SECURE_STORE_PATH;
+  const storePath = "data/runtime/api-authoritative-" + process.pid + "-" + Date.now() + ".json";
+  process.env.APP_SECURE_STORE_PATH = storePath;
+  resetSecureGameStoreForTests();
+  const server = await listen(createApp());
+  try {
+    const register = async (username) => request(server, "/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password: "A-resilient-password-123" })
+    });
+    const suffix = String(Date.now()).slice(-10);
+    const host = await register("OH" + suffix);
+    const guest = await register("OG" + suffix);
+    const auth = (token) => ({ "content-type": "application/json", authorization: "Bearer " + token });
+    const hostQueue = await request(server, "/api/online-matches/queue", {
+      method: "POST",
+      headers: auth(host.body.accessToken),
+      body: JSON.stringify({ mode: "Casual", deckIds: [] })
+    });
+    assert.equal(hostQueue.body.status, "queued");
+    const guestQueue = await request(server, "/api/online-matches/queue", {
+      method: "POST",
+      headers: auth(guest.body.accessToken),
+      body: JSON.stringify({ mode: "Casual", deckIds: [] })
+    });
+    assert.equal(guestQueue.body.status, "matched");
+    const matchId = guestQueue.body.match.id;
+    const initial = await request(server, "/api/online-matches/" + matchId, { headers: auth(host.body.accessToken) });
+    const hostPlayer = initial.body.match.players.find((player) => player.side === "host");
+    const guestPlayer = initial.body.match.players.find((player) => player.side === "guest");
+    assert.equal(hostPlayer.hand.length, 0);
+    assert.equal(guestPlayer.hand, undefined);
+
+    const draw = await request(server, "/api/online-matches/" + matchId + "/actions", {
+      method: "POST",
+      headers: auth(host.body.accessToken),
+      body: JSON.stringify({ type: "draw", actionId: "api-host-draw-0001", expectedVersion: 1 })
+    });
+    assert.equal(draw.response.status, 200);
+    const privateHost = draw.body.match.players.find((player) => player.side === "host");
+    const privateGuest = draw.body.match.players.find((player) => player.side === "guest");
+    assert.equal(privateHost.hand.length, 2);
+    assert.equal(privateGuest.hand, undefined);
+
+    const replay = await request(server, "/api/online-matches/" + matchId + "/replay", { headers: auth(host.body.accessToken) });
+    assert.equal(replay.response.status, 200);
+    assert.equal(replay.body.integrityVerified, true);
+    assert.equal(replay.body.events.length, 2);
+  } finally {
+    server.close();
+    resetSecureGameStoreForTests();
+    if (previousStorePath === undefined) delete process.env.APP_SECURE_STORE_PATH;
+    else process.env.APP_SECURE_STORE_PATH = previousStorePath;
   }
 });
 

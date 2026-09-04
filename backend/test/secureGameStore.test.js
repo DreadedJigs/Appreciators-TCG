@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, rmSync } from "node:fs";
 import test from "node:test";
 import { SecureGameStore } from "../src/secureGameStore.js";
+import { verifyAuthoritativeMatchIntegrity } from "../src/authoritativeMatchEngine.js";
 
 function createStore(name) {
   return new SecureGameStore({
@@ -29,6 +30,11 @@ test("secure accounts hash passwords, issue opaque sessions, and revoke them", a
 
     const relogin = await store.loginAccount({ username: "Secure Player", password: "AReallyStrongPass123" });
     assert.equal(relogin.account.id, registered.account.id);
+    const sessions = await store.listSessions(registered.accessToken);
+    assert.equal(sessions.length, 2);
+    const revoked = await store.revokeOtherSessions(registered.accessToken);
+    assert.equal(revoked.revoked, 1);
+    await assert.rejects(store.verifySession(relogin.accessToken), { errorCode: "SESSION_EXPIRED" });
     await assert.rejects(
       store.loginAccount({ username: "Secure Player", password: "definitely wrong password" }),
       { errorCode: "INVALID_CREDENTIALS" }
@@ -86,21 +92,48 @@ test("online matches enforce membership, phase order, turn ownership, and revisi
     );
     const drew = await store.applyMatchAction(host.account.id, matchId, { actionId: "host-draw-0001", type: "draw", expectedVersion: 1 });
     assert.equal(drew.match.phase, "learn");
+    const hostState = drew.match.players.find((player) => player.side === "host");
+    const guestState = drew.match.players.find((player) => player.side === "guest");
+    assert.equal(hostState.hand.length, 2);
+    assert.equal(guestState.hand, undefined);
+    const rawMatch = store.data.matches.find((match) => match.id === matchId);
+    rawMatch.state.boardLimit = 0;
+    await assert.rejects(
+      store.applyMatchAction(host.account.id, matchId, {
+        actionId: "host-build-board-full",
+        type: "build",
+        cardId: hostState.hand[0].id,
+        expectedVersion: 2
+      }),
+      { errorCode: "BOARD_FULL" }
+    );
+    assert.equal(rawMatch.state.players.host.hand.length, 2);
+    assert.equal(rawMatch.phase, "learn");
+    rawMatch.state.boardLimit = 3;
     const built = await store.applyMatchAction(host.account.id, matchId, {
       actionId: "host-build-0001",
       type: "build",
-      cardId: "regular_body",
+      cardId: hostState.hand[0].id,
       lane: "Art",
       expectedVersion: 2
     });
-    assert.equal(built.match.phase, "grow");
-    const ended = await store.applyMatchAction(host.account.id, matchId, { actionId: "host-end-00001", type: "end-round", expectedVersion: 3 });
+    assert.equal(built.match.phase, "battle");
+    const resolved = await store.applyMatchAction(host.account.id, matchId, {
+      actionId: "host-battle-001",
+      type: "resolve-battle",
+      expectedVersion: 3
+    });
+    assert.equal(resolved.match.phase, "grow");
+    const ended = await store.applyMatchAction(host.account.id, matchId, { actionId: "host-end-00001", type: "end-round", expectedVersion: 4 });
     assert.equal(ended.match.activeSide, "guest");
     assert.equal(ended.match.phase, "draw");
     await assert.rejects(
       store.applyMatchAction(guest.account.id, matchId, { actionId: "guest-stale-01", type: "draw", expectedVersion: 1 }),
       { errorCode: "MATCH_VERSION_CONFLICT" }
     );
+    assert.equal(verifyAuthoritativeMatchIntegrity(rawMatch), true);
+    rawMatch.events[0].payload.tampered = true;
+    assert.equal(verifyAuthoritativeMatchIntegrity(rawMatch), false);
   } finally {
     removeStore(store);
   }

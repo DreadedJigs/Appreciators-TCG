@@ -9,6 +9,15 @@ import { EventEmitter } from "node:events";
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { promisify } from "node:util";
+import { Pool } from "pg";
+import {
+  applyAuthoritativeMatchAction,
+  createAuthoritativeMatch,
+  isAuthoritativeMatch,
+  publicAuthoritativeEvents,
+  publicAuthoritativeMatch,
+  verifyAuthoritativeMatchIntegrity
+} from "./authoritativeMatchEngine.js";
 
 const scrypt = promisify(scryptCallback);
 const MAX_SNAPSHOT_BYTES = 192 * 1024;
@@ -32,6 +41,13 @@ export class SecureGameStore {
     this.allowFilePersistence = options.allowFilePersistence ?? (
       !this.isProduction || process.env.APP_ALLOW_FILE_PERSISTENCE === "true"
     );
+    this.databaseUrl = String(options.databaseUrl ?? process.env.DATABASE_URL ?? "").trim();
+    this.databaseSsl = options.databaseSsl ?? process.env.APP_DATABASE_SSL === "true";
+    this.usingPostgres = Boolean(this.databaseUrl);
+    this.postgresTable = "appreciators_secure_state";
+    this.postgresStoreKey = "primary";
+    this.pg = null;
+    this.postgresSchemaReady = false;
     const configuredDirectory = options.dataDirectory || process.env.APP_DATA_DIR || "data/runtime";
     this.filePath = resolve(options.filePath || process.env.APP_SECURE_STORE_PATH || `${configuredDirectory}/secure-game-store.json`);
     this.usingExplicitDataDirectory = Boolean(options.dataDirectory || process.env.APP_DATA_DIR);
@@ -47,6 +63,15 @@ export class SecureGameStore {
   }
 
   getStatus() {
+    if (this.usingPostgres) {
+      return {
+        driver: "postgresql",
+        configured: true,
+        durable: true,
+        storagePathConfigured: true,
+        reason: "ready"
+      };
+    }
     return {
       driver: "file",
       configured: this.allowFilePersistence,
@@ -58,6 +83,18 @@ export class SecureGameStore {
           : "ready")
         : "Set APP_DATA_DIR to a persistent volume and APP_ALLOW_FILE_PERSISTENCE=true, or configure the database adapter before enabling production accounts."
     };
+  }
+
+  async checkReadiness() {
+    await this.ensureReady();
+    if (this.usingPostgres) {
+      try {
+        await this.pg.query("SELECT 1");
+      } catch (error) {
+        throw requestError("PostgreSQL readiness check failed: " + error.message, 503, "PERSISTENCE_UNAVAILABLE");
+      }
+    }
+    return this.getStatus();
   }
 
   async registerAccount(payload = {}) {
@@ -163,6 +200,27 @@ export class SecureGameStore {
     });
   }
 
+  async listSessions(rawToken) {
+    const identity = await this.verifySession(rawToken);
+    const now = Date.now();
+    return this.data.sessions
+      .filter((session) => session.accountId === identity.account.id && !session.revokedAt && Date.parse(session.expiresAt) > now)
+      .map((session) => ({ ...publicSession(session), current: session.id === identity.session.id }));
+  }
+
+  async revokeOtherSessions(rawToken) {
+    const identity = await this.verifySession(rawToken);
+    return this.mutate(() => {
+      let revoked = 0;
+      for (const session of this.data.sessions) {
+        if (session.accountId !== identity.account.id || session.id === identity.session.id || session.revokedAt) continue;
+        session.revokedAt = nowIso();
+        revoked += 1;
+      }
+      return { success: true, revoked };
+    });
+  }
+
   async getCloudSave(accountId) {
     await this.ensureReady();
     this.requireAccount(accountId);
@@ -250,7 +308,22 @@ export class SecureGameStore {
   async getMatchEvents(accountId, matchId, afterSequence = 0) {
     await this.ensureReady();
     const match = this.matchForMember(accountId, matchId);
+    if (isAuthoritativeMatch(match)) {
+      return publicAuthoritativeEvents(match, accountId, afterSequence);
+    }
     return publicMatchEvents(match, afterSequence);
+  }
+
+  async getMatchReplay(accountId, matchId) {
+    await this.ensureReady();
+    const match = this.matchForMember(accountId, matchId);
+    if (!isAuthoritativeMatch(match)) {
+      throw requestError("Replays are available for authoritative matches only.", 409, "MATCH_RULES_UPGRADE_REQUIRED");
+    }
+    return {
+      ...publicAuthoritativeEvents(match, accountId, 0),
+      integrityVerified: verifyAuthoritativeMatchIntegrity(match)
+    };
   }
 
   async waitForMatchEvents(accountId, matchId, afterSequence = 0, waitMs = 20_000) {
@@ -274,42 +347,37 @@ export class SecureGameStore {
     return this.mutate(() => {
       const match = this.matchForMember(accountId, matchId);
       if (match.status === "complete") throw requestError("This match is complete.", 409, "MATCH_COMPLETE");
-      const action = normalizeMatchAction(payload);
       const expectedVersion = optionalPositiveInteger(payload.expectedVersion);
       if (expectedVersion !== null && expectedVersion !== match.version) {
         throw requestError("This match changed. Synchronize before submitting another action.", 409, "MATCH_VERSION_CONFLICT", {
           currentVersion: match.version
         });
       }
-      if (match.actionIds.includes(action.actionId)) {
-        return { idempotentReplay: true, match: publicMatch(match, accountId), event: match.events.find((event) => event.actionId === action.actionId) };
+      if (isAuthoritativeMatch(match)) {
+        const result = applyAuthoritativeMatchAction(match, accountId, payload);
+        this.emitMatch(match);
+        return result;
       }
-
-      const actor = match.players.find((player) => player.accountId === accountId);
-      applyAuthoritativeAction(match, actor, action);
-      match.actionIds.push(action.actionId);
-      if (match.actionIds.length > MATCH_EVENT_LIMIT) match.actionIds.splice(0, match.actionIds.length - MATCH_EVENT_LIMIT);
-      match.version += 1;
-      match.updatedAt = nowIso();
-      const event = {
-        sequence: match.events.length ? match.events[match.events.length - 1].sequence + 1 : 1,
-        actionId: action.actionId,
-        type: action.type,
-        actorId: accountId,
-        side: actor.side,
-        payload: action.payload,
-        round: match.round,
-        phase: match.phase,
-        createdAt: match.updatedAt
-      };
-      match.events.push(event);
-      if (match.events.length > MATCH_EVENT_LIMIT) match.events.splice(0, match.events.length - MATCH_EVENT_LIMIT);
-      this.emitMatch(match);
-      return { idempotentReplay: false, match: publicMatch(match, accountId), event };
+      throw requestError("This legacy match cannot be resumed. Start a new authoritative match.", 409, "MATCH_RULES_UPGRADE_REQUIRED");
     });
   }
 
   async ensureReady() {
+    if (this.usingPostgres) {
+      if (!this.pg) {
+        this.pg = new Pool({
+          connectionString: this.databaseUrl,
+          ssl: this.databaseSsl ? { rejectUnauthorized: false } : undefined,
+          max: 8,
+          idleTimeoutMillis: 30_000,
+          connectionTimeoutMillis: 8_000
+        });
+      }
+      await this.ensurePostgresSchema();
+      await this.refreshPostgresState();
+      this.loaded = true;
+      return;
+    }
     if (this.loaded) return;
     if (!this.allowFilePersistence) {
       throw requestError(this.getStatus().reason, 503, "PERSISTENCE_NOT_CONFIGURED");
@@ -328,6 +396,7 @@ export class SecureGameStore {
 
   async mutate(work) {
     const run = async () => {
+      if (this.usingPostgres) return this.mutatePostgres(work);
       const result = await work();
       this.persist();
       return result;
@@ -335,6 +404,66 @@ export class SecureGameStore {
     const next = this.writeQueue.then(run, run);
     this.writeQueue = next.catch(() => undefined);
     return next;
+  }
+
+  async ensurePostgresSchema() {
+    if (this.postgresSchemaReady) return;
+    try {
+      await this.pg.query(
+        "CREATE TABLE IF NOT EXISTS appreciators_secure_state (" +
+          "store_key text PRIMARY KEY, " +
+          "document jsonb NOT NULL, " +
+          "updated_at timestamptz NOT NULL DEFAULT now()" +
+        ")"
+      );
+      await this.pg.query(
+        "INSERT INTO appreciators_secure_state (store_key, document) VALUES ($1, $2::jsonb) ON CONFLICT (store_key) DO NOTHING",
+        [this.postgresStoreKey, JSON.stringify(createEmptyData())]
+      );
+      this.postgresSchemaReady = true;
+    } catch (error) {
+      throw requestError("PostgreSQL persistence could not be initialized: " + error.message, 503, "PERSISTENCE_UNAVAILABLE");
+    }
+  }
+
+  async refreshPostgresState() {
+    try {
+      const result = await this.pg.query(
+        "SELECT document FROM appreciators_secure_state WHERE store_key = $1",
+        [this.postgresStoreKey]
+      );
+      if (result.rowCount !== 1) throw new Error("the primary secure-state document is missing");
+      this.data = normalizeStoredData(result.rows[0].document);
+    } catch (error) {
+      throw requestError("PostgreSQL persistence could not be read: " + error.message, 503, "PERSISTENCE_UNAVAILABLE");
+    }
+  }
+
+  async mutatePostgres(work) {
+    let client;
+    try {
+      client = await this.pg.connect();
+      await client.query("BEGIN");
+      const selected = await client.query(
+        "SELECT document FROM appreciators_secure_state WHERE store_key = $1 FOR UPDATE",
+        [this.postgresStoreKey]
+      );
+      if (selected.rowCount !== 1) throw new Error("the primary secure-state document is missing");
+      this.data = normalizeStoredData(selected.rows[0].document);
+      const result = await work();
+      await client.query(
+        "UPDATE appreciators_secure_state SET document = $2::jsonb, updated_at = now() WHERE store_key = $1",
+        [this.postgresStoreKey, JSON.stringify(this.data)]
+      );
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      try { if (client) await client.query("ROLLBACK"); } catch { /* best effort */ }
+      if (error?.errorCode) throw error;
+      throw requestError("PostgreSQL persistence could not be written: " + error.message, 503, "PERSISTENCE_UNAVAILABLE");
+    } finally {
+      if (client) client.release();
+    }
   }
 
   persist() {
@@ -556,28 +685,11 @@ function normalizeMode(value) {
 }
 
 function createMatch({ mode, host, hostDeckIds, guest, guestDeckIds }) {
-  const createdAt = nowIso();
-  return {
-    id: `match_${randomUUID().replace(/-/g, "")}`,
-    mode,
-    status: "active",
-    version: 1,
-    round: 1,
-    phase: "draw",
-    activeSide: "host",
-    players: [
-      { accountId: host.id, displayName: host.username, side: "host", deckIds: hostDeckIds },
-      { accountId: guest.id, displayName: guest.username, side: "guest", deckIds: guestDeckIds }
-    ],
-    events: [{ sequence: 1, actionId: "match-created", type: "match-started", actorId: "", side: "", payload: {}, round: 1, phase: "draw", createdAt }],
-    actionIds: [],
-    result: null,
-    createdAt,
-    updatedAt: createdAt
-  };
+  return createAuthoritativeMatch({ mode, host, hostDeckIds, guest, guestDeckIds });
 }
 
 function publicMatch(match, accountId) {
+  if (isAuthoritativeMatch(match)) return publicAuthoritativeMatch(match, accountId);
   const player = match.players.find((entry) => entry.accountId === accountId);
   return {
     id: match.id,
@@ -596,6 +708,7 @@ function publicMatch(match, accountId) {
 }
 
 function publicMatchEvents(match, afterSequence) {
+  if (isAuthoritativeMatch(match)) return publicAuthoritativeEvents(match, "", afterSequence);
   const after = Math.max(0, Number.parseInt(afterSequence, 10) || 0);
   return { match: publicMatch(match, ""), events: match.events.filter((event) => event.sequence > after), latestSequence: match.events.at(-1)?.sequence || 0 };
 }

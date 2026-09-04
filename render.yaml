@@ -5,7 +5,7 @@ services:
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /health
+    healthCheckPath: /health/ready
     autoDeploy: true
     plan: starter
     disk:
@@ -35,6 +35,8 @@ services:
         generateValue: true
       - key: PACK_REWARD_SIGNING_KEY_ID
         value: render-alpha-v1
+      - key: MATCH_EVENT_SIGNING_SECRET
+        generateValue: true
       - key: PACK_INVENTORY_PERSISTENCE
         value: "true"
       - key: PACK_INVENTORY_STORE_PATH

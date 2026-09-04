@@ -1,0 +1,37 @@
+name: Backend security and regression checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Reject production dependency vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
+      - name: Check backend syntax
+        run: node --check src/createApp.js && node --check src/secureGameStore.js && node --check src/authoritativeMatchEngine.js
+      - name: Run API, economy, account, and online-match tests
+        run: npm test
+      - name: Check whitespace-safe changes
+        working-directory: .
+        run: git diff --check HEAD^ HEAD

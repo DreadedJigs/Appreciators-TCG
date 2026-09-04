@@ -79,6 +79,7 @@ const publicDir = join(dirname(fileURLToPath(import.meta.url)), "..", "public");
 
 export function createApp() {
   const app = express();
+  const isProduction = process.env.NODE_ENV === "production";
   const secureStore = getSecureGameStore();
   const packOpenLimiter = createRateLimiter({ windowMs: 60_000, maxRequests: 30, scope: "pack-open" });
   const packTestLimiter = createRateLimiter({ windowMs: 60_000, maxRequests: 60, scope: "pack-test" });
@@ -88,11 +89,31 @@ export function createApp() {
   const onlineMatchLimiter = createRateLimiter({ windowMs: 60_000, maxRequests: 90, scope: "online-match" });
 
   app.set("trust proxy", 1);
+  app.disable("x-powered-by");
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Private-Network", "true");
     res.header("X-Content-Type-Options", "nosniff");
+    res.header("X-Frame-Options", "DENY");
     res.header("Referrer-Policy", "strict-origin-when-cross-origin");
     res.header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    res.header("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+    res.header("Cross-Origin-Resource-Policy", "same-origin");
+    res.header(
+      "Content-Security-Policy",
+      "default-src 'self'; " +
+      "base-uri 'self'; " +
+      "object-src 'none'; " +
+      "frame-ancestors 'none'; " +
+      "script-src 'self' 'wasm-unsafe-eval'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: blob: https:; " +
+      "font-src 'self' data:; " +
+      "media-src 'self' data: blob:; " +
+      "connect-src 'self' https://rpc.apechain.com"
+    );
+    if (isProduction) {
+      res.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
     next();
   });
   app.use(cors(createCorsOptions()));
@@ -118,6 +139,15 @@ export function createApp() {
       persistence: storage,
       timestamp: new Date().toISOString()
     });
+  });
+
+  app.get("/health/ready", async (_req, res, next) => {
+    try {
+      const storage = await secureStore.checkReadiness();
+      res.json({ status: "ok", persistence: storage, timestamp: new Date().toISOString() });
+    } catch (error) {
+      next(error);
+    }
   });
 
   const requireSecureAccount = (handler) => async (req, res, next) => {
@@ -178,6 +208,14 @@ export function createApp() {
     res.json(await secureStore.revokeSession(req.get("authorization")));
   }));
 
+  app.get("/api/account/sessions", requireSecureAccount(async (req, res) => {
+    res.json({ success: true, sessions: await secureStore.listSessions(req.get("authorization")) });
+  }));
+
+  app.post("/api/account/sessions/revoke-others", requireSecureAccount(async (req, res) => {
+    res.json(await secureStore.revokeOtherSessions(req.get("authorization")));
+  }));
+
   app.get("/api/account/me", requireSecureAccount(async (req, res) => {
     res.json({ success: true, account: req.auth.account, session: req.auth.session });
   }));
@@ -211,6 +249,10 @@ export function createApp() {
       req.query.waitMs
     );
     res.json({ success: true, ...response });
+  }));
+
+  app.get("/api/online-matches/:matchId/replay", onlineMatchLimiter, requireSecureAccount(async (req, res) => {
+    res.json({ success: true, ...(await secureStore.getMatchReplay(req.auth.account.id, req.params.matchId)) });
   }));
 
   app.post("/api/online-matches/:matchId/actions", onlineMatchLimiter, requireSecureAccount(async (req, res) => {

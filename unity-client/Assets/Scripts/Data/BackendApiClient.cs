@@ -201,6 +201,55 @@ namespace AppreciatorsTcg.Data
             yield return PutJson("/api/cloud-save", payload, onSuccess, onError, PackRequestTimeoutSeconds);
         }
 
+        public IEnumerator QueueAuthoritativeOnlineMatch(string mode, string[] deckIds, System.Action<OnlineMatchQueueResponse> onSuccess, System.Action<string> onError)
+        {
+            if (!RequireSecureSession(onError)) yield break;
+            OnlineMatchQueueRequest request = new OnlineMatchQueueRequest
+            {
+                mode = string.IsNullOrWhiteSpace(mode) ? "Casual" : mode,
+                deckIds = deckIds ?? Array.Empty<string>()
+            };
+            yield return PostJson("/api/online-matches/queue", request, onSuccess, onError, PackRequestTimeoutSeconds);
+        }
+
+        public IEnumerator CancelAuthoritativeOnlineQueue(string ticketId, System.Action<OnlineMatchQueueResponse> onSuccess, System.Action<string> onError)
+        {
+            if (!RequireSecureSession(onError)) yield break;
+            yield return PostJson("/api/online-matches/queue/cancel", new OnlineMatchQueueCancelRequest { ticketId = ticketId ?? string.Empty }, onSuccess, onError, PackRequestTimeoutSeconds);
+        }
+
+        public IEnumerator GetAuthoritativeOnlineMatch(string matchId, System.Action<OnlineMatchEventsResponse> onSuccess, System.Action<string> onError)
+        {
+            if (!RequireSecureSession(onError)) yield break;
+            yield return GetJson($"/api/online-matches/{UnityWebRequest.EscapeURL(matchId ?? string.Empty)}", onSuccess, onError, PackRequestTimeoutSeconds);
+        }
+
+        public IEnumerator GetAuthoritativeOnlineEvents(string matchId, int afterSequence, int waitMilliseconds, System.Action<OnlineMatchEventsResponse> onSuccess, System.Action<string> onError)
+        {
+            if (!RequireSecureSession(onError)) yield break;
+            int after = Mathf.Max(0, afterSequence);
+            int wait = Mathf.Clamp(waitMilliseconds, 0, 25000);
+            string path = $"/api/online-matches/{UnityWebRequest.EscapeURL(matchId ?? string.Empty)}/events?after={after}&waitMs={wait}";
+            yield return GetJson(path, onSuccess, onError, Mathf.Max(PackRequestTimeoutSeconds, wait / 1000 + 10));
+        }
+
+        public IEnumerator SubmitAuthoritativeOnlineAction(string matchId, OnlineMatchActionRequest request, System.Action<OnlineMatchActionResponse> onSuccess, System.Action<string> onError)
+        {
+            if (!RequireSecureSession(onError)) yield break;
+            if (request == null)
+            {
+                onError?.Invoke("An online match action is required.");
+                yield break;
+            }
+            yield return PostJson($"/api/online-matches/{UnityWebRequest.EscapeURL(matchId ?? string.Empty)}/actions", request, onSuccess, onError, PackRequestTimeoutSeconds);
+        }
+
+        public IEnumerator GetAuthoritativeOnlineReplay(string matchId, System.Action<OnlineMatchEventsResponse> onSuccess, System.Action<string> onError)
+        {
+            if (!RequireSecureSession(onError)) yield break;
+            yield return GetJson($"/api/online-matches/{UnityWebRequest.EscapeURL(matchId ?? string.Empty)}/replay", onSuccess, onError, PackRequestTimeoutSeconds);
+        }
+
         public IEnumerator GetPackOdds(string packId, System.Action<PackOddsResponse> onSuccess, System.Action<string> onError)
         {
             yield return GetJson($"/api/packs/odds/{UnityWebRequest.EscapeURL(packId ?? string.Empty)}", onSuccess, onError, PackRequestTimeoutSeconds);
@@ -600,6 +649,17 @@ namespace AppreciatorsTcg.Data
             {
                 request.SetRequestHeader("Authorization", $"Bearer {secureAccessToken}");
             }
+        }
+
+        private static bool RequireSecureSession(Action<string> onError)
+        {
+            if (HasSecureSession)
+            {
+                return true;
+            }
+
+            onError?.Invoke("Sign in with a secure account to use online matches.");
+            return false;
         }
 
         private static string BuildInviteQuery(string username, string[] deckIds)
