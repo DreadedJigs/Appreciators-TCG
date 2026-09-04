@@ -68,6 +68,9 @@ namespace AppreciatorsTcg.EditorTools
             string index = File.ReadAllText(indexPath);
             string buildStamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
             index = index.Replace(
+                "var loaderUrl = buildUrl + \"/WebGL.loader.js\";",
+                "var loaderUrl = buildUrl + \"/WebGL.loader.js?v=" + buildStamp + "\";");
+            index = index.Replace(
                 "dataUrl: buildUrl + \"/WebGL.data.unityweb\",",
                 "dataUrl: buildUrl + \"/WebGL.data.unityweb?v=" + buildStamp + "\",");
             index = index.Replace(
@@ -82,6 +85,9 @@ namespace AppreciatorsTcg.EditorTools
             index = index.Replace(
                 "}).then((unityInstance) => {",
                 "}).then((unityInstance) => {\n                window.APPRECIATORS_UNITY_INSTANCE = unityInstance;");
+            index = index.Replace(
+                "}).catch((message) => {\n                alert(message);\n              });\n            };\n\n      document.body.appendChild(script);",
+                "}).catch((message) => {\n                console.error(message);\n                unityShowBanner(\"The game could not start. Refresh once and try again. Details: \" + String(message), \"error\");\n              });\n            };\n\n      script.onerror = () => {\n        unityShowBanner(\"The game startup file could not load. Refresh once and try again.\", \"error\");\n      };\n      document.body.appendChild(script);");
             index = index.Replace(
                 "var config = {",
                 "var config = {\n        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),");

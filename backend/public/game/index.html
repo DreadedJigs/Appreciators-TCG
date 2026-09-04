@@ -52,17 +52,17 @@
       }
 
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/WebGL.loader.js";
+      var loaderUrl = buildUrl + "/WebGL.loader.js?v=20260904184222";
       var config = {
         devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
         arguments: [],
-        dataUrl: buildUrl + "/WebGL.data.unityweb?v=20260904181728",
-        frameworkUrl: buildUrl + "/WebGL.framework.js.unityweb?v=20260904181728",
-        codeUrl: buildUrl + "/WebGL.wasm.unityweb?v=20260904181728",
+        dataUrl: buildUrl + "/WebGL.data.unityweb?v=20260904184222",
+        frameworkUrl: buildUrl + "/WebGL.framework.js.unityweb?v=20260904184222",
+        codeUrl: buildUrl + "/WebGL.wasm.unityweb?v=20260904184222",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "unity-client",
-        productVersion: "alpha-20260904181728",
+        productVersion: "alpha-20260904184222",
         showBanner: unityShowBanner,
         // errorHandler: function(err, url, line) {
         //    alert("error " + err + " occurred at line " + line);
@@ -124,10 +124,14 @@
                 };
 
               }).catch((message) => {
-                alert(message);
+                console.error(message);
+                unityShowBanner("The game could not start. Refresh once and try again. Details: " + String(message), "error");
               });
             };
 
+      script.onerror = () => {
+        unityShowBanner("The game startup file could not load. Refresh once and try again.", "error");
+      };
       document.body.appendChild(script);
 
     </script>
