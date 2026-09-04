@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using AppreciatorsTcg.Data;
 using UnityEngine;
 
 namespace AppreciatorsTcg.Core
@@ -32,6 +33,7 @@ namespace AppreciatorsTcg.Core
         private const string TutorialCoreKey = "appreciators.tutorial.core.v2";
         private const string TutorialCompletedKey = "appreciators.tutorial.completed.v1";
         private const string ReducedMotionKey = "appreciators.accessibility.reducedMotion.v1";
+        private const string CloudSaveVersionKey = "appreciators.cloudSave.version.v1";
 
         public static void SaveTheme(AppreciatorsTheme theme)
         {
@@ -371,6 +373,77 @@ namespace AppreciatorsTcg.Core
         public static void SaveReducedMotion(bool enabled)
         {
             PlayerPrefs.SetInt(ReducedMotionKey, enabled ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        public static int LoadCloudSaveVersion() => Math.Max(0, PlayerPrefs.GetInt(CloudSaveVersionKey, 0));
+
+        public static CloudSaveSnapshot CaptureCloudSave()
+        {
+            PlayerDeckCollection collection = LoadDeckCollection();
+            return new CloudSaveSnapshot
+            {
+                schemaVersion = 1,
+                settings = new CloudSaveSettings
+                {
+                    theme = LoadTheme().ToString(),
+                    reducedMotion = LoadReducedMotion(),
+                    musicVolume = Mathf.Clamp01(PlayerPrefs.GetFloat("appreciators_music_volume", 0.62f)),
+                    musicRepeat = PlayerPrefs.GetInt("appreciators_music_repeat", 1) == 1
+                },
+                tutorial = new CloudSaveTutorial
+                {
+                    step = LoadTutorialStep(),
+                    coreDemonstrated = LoadTutorialCoreDemonstrated(),
+                    completed = HasCompletedTutorial()
+                },
+                deckIds = LoadDeckIds().ToArray(),
+                namedDecks = (collection.decks ?? new List<PlayerDeckProfile>())
+                    .Where(deck => deck != null)
+                    .Take(12)
+                    .Select(deck => new CloudDeck
+                    {
+                        name = deck.name,
+                        cardIds = (deck.cardIds ?? new List<string>()).Take(30).ToArray()
+                    })
+                    .ToArray(),
+                selectedBossTokenId = LoadSelectedBossTokenId()
+            };
+        }
+
+        public static void ApplyCloudSave(CloudSaveResponse save)
+        {
+            if (save?.snapshot == null) return;
+            CloudSaveSnapshot snapshot = save.snapshot;
+            if (Enum.TryParse(snapshot.settings?.theme, true, out AppreciatorsTheme theme))
+            {
+                SaveTheme(theme);
+            }
+            SaveReducedMotion(snapshot.settings?.reducedMotion == true);
+            PlayerPrefs.SetFloat("appreciators_music_volume", Mathf.Clamp01(snapshot.settings?.musicVolume ?? 0.62f));
+            PlayerPrefs.SetInt("appreciators_music_repeat", snapshot.settings?.musicRepeat == false ? 0 : 1);
+            SaveDeckIds(snapshot.deckIds ?? Array.Empty<string>());
+            SaveDeckCollection(new PlayerDeckCollection
+            {
+                decks = (snapshot.namedDecks ?? Array.Empty<CloudDeck>())
+                    .Select((deck, index) => new PlayerDeckProfile
+                    {
+                        id = $"cloud_{index + 1}",
+                        name = deck?.name ?? $"Deck {index + 1}",
+                        cardIds = (deck?.cardIds ?? Array.Empty<string>()).Take(30).ToList()
+                    })
+                    .ToList()
+            });
+            SaveSelectedBossTokenId(snapshot.selectedBossTokenId);
+            SaveTutorialProgress(snapshot.tutorial?.step ?? 0, snapshot.tutorial?.coreDemonstrated == true);
+            if (snapshot.tutorial?.completed == true) MarkTutorialCompleted();
+            PlayerPrefs.SetInt(CloudSaveVersionKey, Math.Max(0, save.version));
+            PlayerPrefs.Save();
+        }
+
+        public static void SaveCloudSaveVersion(int version)
+        {
+            PlayerPrefs.SetInt(CloudSaveVersionKey, Math.Max(0, version));
             PlayerPrefs.Save();
         }
     }

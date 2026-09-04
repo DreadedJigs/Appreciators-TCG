@@ -21,14 +21,54 @@ async function request(server, path, options = {}) {
   return { response, body };
 }
 
-test("health route reports prototype service status", async () => {
+test("health route reports the online security foundation", async () => {
   const server = await listen(createApp());
   try {
     const { response, body } = await request(server, "/health");
     assert.equal(response.status, 200);
     assert.equal(body.status, "ok");
-    assert.equal(body.phase, "1-prototype");
+    assert.equal(body.phase, "online-security-foundation");
+    assert.equal(body.capabilities.secureAccounts, true);
   } finally {
+    server.close();
+  }
+});
+
+test("secure account routes gate cloud data and production rejects legacy player identities", async () => {
+  const previousEnvironment = process.env.NODE_ENV;
+  const server = await listen(createApp());
+  try {
+    const unsignedSave = await request(server, "/api/cloud-save");
+    assert.equal(unsignedSave.response.status, 401);
+
+    const username = `Secure${Date.now()}`;
+    const registration = await request(server, "/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password: "A-resilient-password-123" })
+    });
+    assert.equal(registration.response.status, 201);
+    assert.match(registration.body.accessToken, /^ses_/);
+    assert.equal(registration.body.account.password, undefined);
+
+    const save = await request(server, "/api/cloud-save", {
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${registration.body.accessToken}`
+      }
+    });
+    assert.equal(save.response.status, 200);
+    assert.equal(save.body.version, 0);
+
+    process.env.NODE_ENV = "production";
+    const legacy = await request(server, "/api/session/login", {
+      method: "POST",
+      body: JSON.stringify({ username: "Spoofable guest", playerId: "another-player" })
+    });
+    assert.equal(legacy.response.status, 410);
+    assert.equal(legacy.body.errorCode, "LEGACY_IDENTITY_DISABLED");
+  } finally {
+    if (previousEnvironment === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousEnvironment;
     server.close();
   }
 });

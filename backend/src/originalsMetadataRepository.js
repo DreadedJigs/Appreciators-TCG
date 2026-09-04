@@ -30,6 +30,22 @@ export function getOriginalsTokenMetadata(tokenId) {
   return token;
 }
 
+export function getOneOfOneOriginals() {
+  ensureTokenIndex();
+  return [...tokensById.values()]
+    .filter((token) => token.attributes?.some((attribute) =>
+      String(attribute?.traitType || "").trim().toLowerCase() === "1-1" &&
+      String(attribute?.value || "").trim().toLowerCase() === "true"
+    ))
+    .map((token) => ({
+      tokenId: token.tokenId,
+      name: token.attributes?.find((attribute) => attribute.traitType === "Name")?.value || token.name,
+      image: token.image,
+      metadataUrl: token.metadataUrl,
+      oneOfOne: true
+    }));
+}
+
 function ensureTokenIndex() {
   if (tokensById) {
     return;

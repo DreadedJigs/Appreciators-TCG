@@ -1,32 +1,48 @@
 import { randomBytes } from "node:crypto";
-import { verifyMessage } from "ethers";
-import { getOriginalsTokenMetadata } from "./originalsMetadataRepository.js";
+import { getAddress, verifyMessage } from "ethers";
+import { getOneOfOneOriginals } from "./originalsMetadataRepository.js";
 
-const APECHAIN_ID = 33139;
-const ORIGINALS_CONTRACT = "0xd92b263b48f74d0cd21f9d2c01b6cd06f2ab96cd";
-const DEFAULT_APECHAIN_RPC_URL = "https://rpc.apechain.com/http";
-const ONE_OF_ONE_TOKEN_IDS = [1618, 6239];
+const DEFAULT_APECHAIN_CHAIN_ID = 33139;
+const KNOWN_ORIGINALS_CONTRACT = "0xd92b263b48f74d0cd21f9d2c01b6cd06f2ab96cd";
+const DEVELOPMENT_RPC_URL = "https://rpc.apechain.com/http";
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+const RPC_TIMEOUT_MS = 12_000;
 const challenges = new Map();
+
+/** Returns configuration only; it never performs an RPC call. */
+export function getWalletVerificationStatus() {
+  const config = getConfiguration();
+  return {
+    configured: config.configured,
+    chainId: config.chainId,
+    contractAddress: config.contractAddress,
+    tokenCount: config.oneOfOneAssets.length,
+    reason: config.reason
+  };
+}
 
 export function createWalletChallenge(payload = {}) {
   pruneExpiredChallenges();
   const playerId = requirePlayerId(payload.playerId);
   const walletAddress = normalizeWalletAddress(payload.walletAddress);
-  const challengeId = randomBytes(18).toString("hex");
-  const nonce = randomBytes(16).toString("hex");
+  const challengeId = randomBytes(24).toString("hex");
+  const nonce = randomBytes(24).toString("hex");
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + CHALLENGE_TTL_MS);
+  const config = getConfiguration();
   const message = [
     "Appreciators TCG wallet verification",
     "",
+    `URI: ${config.applicationUrl}`,
+    "Version: 1",
+    `Chain ID: ${config.chainId}`,
     `Account: ${playerId}`,
     `Wallet: ${walletAddress}`,
-    `Chain: ApeChain (${APECHAIN_ID})`,
     `Nonce: ${nonce}`,
-    `Issued: ${issuedAt.toISOString()}`,
+    `Issued At: ${issuedAt.toISOString()}`,
+    `Expiration Time: ${expiresAt.toISOString()}`,
     "",
-    "This signature proves wallet control. It does not authorize a transaction or spend assets."
+    "This signature proves wallet control for Appreciators TCG. It does not authorize a transaction or spend assets."
   ].join("\n");
 
   challenges.set(challengeId, {
@@ -41,9 +57,10 @@ export function createWalletChallenge(payload = {}) {
     success: true,
     challengeId,
     walletAddress,
-    chainId: APECHAIN_ID,
+    chainId: config.chainId,
     message,
-    expiresAt: expiresAt.toISOString()
+    expiresAt: expiresAt.toISOString(),
+    verificationConfigured: config.configured
   };
 }
 
@@ -63,7 +80,7 @@ export async function verifyWalletChallenge(payload = {}) {
 
   let recoveredAddress;
   try {
-    recoveredAddress = verifyMessage(challenge.message, String(payload.signature || "")).toLowerCase();
+    recoveredAddress = getAddress(verifyMessage(challenge.message, String(payload.signature || ""))).toLowerCase();
   } catch {
     throw requestError("The wallet signature is invalid.", 401, "INVALID_WALLET_SIGNATURE");
   }
@@ -86,62 +103,109 @@ export function resetWalletChallengesForTests() {
 }
 
 async function readOriginalsOwnership(walletAddress) {
-  try {
-    const balanceHex = await ethCall(`0x70a08231${encodeAddress(walletAddress)}`);
-    const originalsBalance = safeHexNumber(balanceHex);
-    const ownedOneOfOnes = [];
-    for (const tokenId of ONE_OF_ONE_TOKEN_IDS) {
-      const ownerHex = await ethCall(`0x6352211e${encodeUint256(tokenId)}`);
-      if (decodeAddress(ownerHex) !== walletAddress.toLowerCase()) continue;
-      const metadata = getOriginalsTokenMetadata(tokenId);
-      const displayName = metadata.attributes?.find((attribute) => attribute.traitType === "Name")?.value || metadata.name;
-      ownedOneOfOnes.push({
-        tokenId,
-        name: displayName,
-        image: metadata.image,
-        metadataUrl: metadata.metadataUrl,
-        oneOfOne: true
-      });
-    }
+  const config = getConfiguration();
+  if (!config.configured) {
     return {
       network: "ApeChain",
-      chainId: APECHAIN_ID,
-      contractAddress: ORIGINALS_CONTRACT,
-      originalsBalance,
-      assets: ownedOneOfOnes,
-      ownershipVerified: true,
-      oneOfOneEligible: ownedOneOfOnes.length > 0,
-      eligibilitySource: "ApeChain ownerOf"
-    };
-  } catch (error) {
-    return {
-      network: "ApeChain",
-      chainId: APECHAIN_ID,
-      contractAddress: ORIGINALS_CONTRACT,
+      chainId: config.chainId,
+      contractAddress: config.contractAddress,
       originalsBalance: 0,
       assets: [],
       ownershipVerified: false,
       oneOfOneEligible: false,
-      eligibilitySource: "ApeChain unavailable",
-      verificationError: `Wallet control verified, but ApeChain ownership could not be read: ${error.message}`
+      eligibilitySource: "ownership verification not configured",
+      verificationError: config.reason
+    };
+  }
+
+  try {
+    const [chainIdHex, contractCode, balanceHex] = await Promise.all([
+      rpcCall(config, "eth_chainId", []),
+      rpcCall(config, "eth_getCode", [config.contractAddress, "latest"]),
+      ethCall(config, `0x70a08231${encodeAddress(walletAddress)}`)
+    ]);
+    const actualChainId = Number(BigInt(chainIdHex));
+    if (actualChainId !== config.chainId) {
+      throw new Error(`RPC returned chain ${actualChainId}, expected ApeChain ${config.chainId}.`);
+    }
+    if (!/^0x[0-9a-f]+$/i.test(contractCode) || /^0x0*$/i.test(contractCode)) {
+      throw new Error("The configured Originals contract has no bytecode on the configured ApeChain RPC.");
+    }
+
+    const ownershipChecks = await Promise.all(config.oneOfOneAssets.map(async (asset) => {
+      try {
+        const ownerHex = await ethCall(config, `0x6352211e${encodeUint256(asset.tokenId)}`);
+        return decodeAddress(ownerHex) === walletAddress.toLowerCase() ? asset : null;
+      } catch {
+        return null;
+      }
+    }));
+    const assets = ownershipChecks.filter(Boolean);
+    return {
+      network: "ApeChain",
+      chainId: config.chainId,
+      contractAddress: config.contractAddress,
+      originalsBalance: safeHexNumber(balanceHex),
+      assets,
+      ownershipVerified: true,
+      oneOfOneEligible: assets.length > 0,
+      eligibilitySource: "ApeChain RPC: chain ID, contract bytecode, balanceOf, and ownerOf"
+    };
+  } catch (error) {
+    return {
+      network: "ApeChain",
+      chainId: config.chainId,
+      contractAddress: config.contractAddress,
+      originalsBalance: 0,
+      assets: [],
+      ownershipVerified: false,
+      oneOfOneEligible: false,
+      eligibilitySource: "ApeChain RPC unavailable",
+      verificationError: `Wallet control was verified, but on-chain ownership could not be confirmed: ${error.message}`
     };
   }
 }
 
-async function ethCall(data) {
-  const rpcUrl = process.env.APECHAIN_RPC_URL || DEFAULT_APECHAIN_RPC_URL;
+function getConfiguration() {
+  const isProduction = process.env.NODE_ENV === "production";
+  const chainId = parseChainId(process.env.APECHAIN_CHAIN_ID || DEFAULT_APECHAIN_CHAIN_ID);
+  const contractAddress = normalizeConfiguredAddress(process.env.ORIGINALS_CONTRACT_ADDRESS || KNOWN_ORIGINALS_CONTRACT);
+  const rpcUrl = String(process.env.APECHAIN_RPC_URL || (isProduction ? "" : DEVELOPMENT_RPC_URL)).trim();
+  const oneOfOneAssets = configuredOneOfOnes();
+  const applicationUrl = String(process.env.APP_PUBLIC_URL || "https://appreciators-tcg.com").trim().replace(/\/$/, "");
+  const reason = !rpcUrl
+    ? "Wallet ownership is disabled until APECHAIN_RPC_URL is configured on the server."
+    : !contractAddress
+      ? "Wallet ownership is disabled until ORIGINALS_CONTRACT_ADDRESS is configured on the server."
+      : oneOfOneAssets.length === 0
+        ? "Wallet ownership is disabled until supported 1-of-1 token IDs are configured or imported metadata is available."
+        : "ready";
+  return { chainId, contractAddress, rpcUrl, oneOfOneAssets, applicationUrl, configured: reason === "ready", reason };
+}
+
+function configuredOneOfOnes() {
+  const configuredIds = String(process.env.BOSS_ONE_OF_ONE_TOKEN_IDS || "")
+    .split(",")
+    .map((value) => Number.parseInt(value.trim(), 10))
+    .filter((value) => Number.isInteger(value) && value > 0);
+  const imported = getOneOfOneOriginals();
+  if (configuredIds.length === 0) return imported;
+  const importedById = new Map(imported.map((asset) => [asset.tokenId, asset]));
+  return [...new Set(configuredIds)].map((tokenId) => importedById.get(tokenId)).filter(Boolean);
+}
+
+async function ethCall(config, data) {
+  return rpcCall(config, "eth_call", [{ to: config.contractAddress, data }, "latest"]);
+}
+
+async function rpcCall(config, method, params) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12_000);
+  const timer = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
   try {
-    const response = await fetch(rpcUrl, {
+    const response = await fetch(config.rpcUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "eth_call",
-        params: [{ to: ORIGINALS_CONTRACT, data }, "latest"]
-      }),
+      body: JSON.stringify({ jsonrpc: "2.0", id: randomBytes(4).readUInt32BE(0), method, params }),
       signal: controller.signal
     });
     if (!response.ok) throw new Error(`RPC HTTP ${response.status}`);
@@ -172,6 +236,20 @@ function safeHexNumber(value) {
   return Number(parsed > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : parsed);
 }
 
+function parseChainId(value) {
+  const chainId = Number.parseInt(value, 10);
+  if (!Number.isInteger(chainId) || chainId <= 0) throw new Error("APECHAIN_CHAIN_ID must be a positive integer.");
+  return chainId;
+}
+
+function normalizeConfiguredAddress(value) {
+  try {
+    return getAddress(String(value || "")).toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
 function pruneExpiredChallenges() {
   const now = Date.now();
   for (const [challengeId, challenge] of challenges.entries()) {
@@ -180,11 +258,11 @@ function pruneExpiredChallenges() {
 }
 
 function normalizeWalletAddress(value) {
-  const walletAddress = String(value || "").trim();
-  if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+  try {
+    return getAddress(String(value || "").trim());
+  } catch {
     throw requestError("Enter a valid 42-character EVM wallet address.", 400, "INVALID_WALLET_ADDRESS");
   }
-  return walletAddress;
 }
 
 function requirePlayerId(value) {

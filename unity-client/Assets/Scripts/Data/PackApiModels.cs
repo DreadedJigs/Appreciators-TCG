@@ -32,6 +32,82 @@ namespace AppreciatorsTcg.Data
     }
 
     [Serializable]
+    public class SecureAccountCredentials
+    {
+        public string username;
+        public string password;
+        public string deviceName;
+    }
+
+    [Serializable]
+    public class SecureSession
+    {
+        public string id;
+        public string expiresAt;
+    }
+
+    [Serializable]
+    public class SecureAccountSessionResponse
+    {
+        public bool success;
+        public AccountProfile account;
+        public SecureSession session;
+        public string accessToken;
+        public string message;
+    }
+
+    [Serializable]
+    public class CloudSaveSettings
+    {
+        public string theme = "Dark";
+        public bool reducedMotion;
+        public float musicVolume = 0.62f;
+        public bool musicRepeat = true;
+    }
+
+    [Serializable]
+    public class CloudSaveTutorial
+    {
+        public int step;
+        public bool coreDemonstrated;
+        public bool completed;
+    }
+
+    [Serializable]
+    public class CloudDeck
+    {
+        public string name;
+        public string[] cardIds = Array.Empty<string>();
+    }
+
+    [Serializable]
+    public class CloudSaveSnapshot
+    {
+        public int schemaVersion = 1;
+        public CloudSaveSettings settings = new CloudSaveSettings();
+        public CloudSaveTutorial tutorial = new CloudSaveTutorial();
+        public string[] deckIds = Array.Empty<string>();
+        public CloudDeck[] namedDecks = Array.Empty<CloudDeck>();
+        public string selectedBossTokenId;
+    }
+
+    [Serializable]
+    public class CloudSaveRequest
+    {
+        public int expectedVersion;
+        public CloudSaveSnapshot snapshot;
+    }
+
+    [Serializable]
+    public class CloudSaveResponse
+    {
+        public bool success;
+        public int version;
+        public string updatedAt;
+        public CloudSaveSnapshot snapshot;
+    }
+
+    [Serializable]
     public class PlayerProgress
     {
         public bool tutorialCompleted;

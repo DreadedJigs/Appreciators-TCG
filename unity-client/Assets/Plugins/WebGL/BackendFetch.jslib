@@ -25,6 +25,34 @@ mergeInto(LibraryManager.library, {
       });
   },
 
+  AppreciatorsFetchGetAuthorized: function (urlPtr, tokenPtr, gameObjectPtr, successMethodPtr, errorMethodPtr) {
+    var url = UTF8ToString(urlPtr);
+    var token = UTF8ToString(tokenPtr);
+    var gameObject = UTF8ToString(gameObjectPtr);
+    var successMethod = UTF8ToString(successMethodPtr);
+    var errorMethod = UTF8ToString(errorMethodPtr);
+
+    fetch(url, {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(function (response) {
+        return response.text().then(function (text) {
+          if (response.ok) {
+            SendMessage(gameObject, successMethod, text);
+            return;
+          }
+
+          SendMessage(gameObject, errorMethod, text || response.statusText || ("HTTP " + response.status));
+        });
+      })
+      .catch(function (error) {
+        SendMessage(gameObject, errorMethod, error && error.message ? error.message : String(error));
+      });
+  },
+
   AppreciatorsCopyText: function (textPtr, gameObjectPtr, successMethodPtr, errorMethodPtr) {
     var text = UTF8ToString(textPtr);
     var gameObject = UTF8ToString(gameObjectPtr);

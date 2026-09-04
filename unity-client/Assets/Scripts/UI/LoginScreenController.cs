@@ -15,6 +15,7 @@ namespace AppreciatorsTcg.UI
     public class LoginScreenController : ScreenControllerBase
     {
         private InputField nameInput;
+        private InputField passwordInput;
         private RawImage mobileQrImage;
         private Text mobileQrStatus;
         private Text mobileQrUrl;
@@ -55,12 +56,17 @@ namespace AppreciatorsTcg.UI
             UIFactory.MakeDimensionalPanel(panel, UIFactory.Green);
             UIFactory.MakePanelTransparent(panel);
             UIFactory.CreateText(panel.transform, "ENTER THE PLAYMAT", 27, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
-            loginIntroText = UIFactory.CreateText(panel.transform, "Learn the cards. Build the board.\nUse the same player name to restore packs and Appreciation Shards.", 18, TextAnchor.MiddleCenter, UIFactory.MutedTextColor);
+            loginIntroText = UIFactory.CreateText(panel.transform, "Create a secure account for online matches, cloud saves, and verified wallet access.", 18, TextAnchor.MiddleCenter, UIFactory.MutedTextColor);
             loginFlowText = UIFactory.CreateText(panel.transform, "DRAW TWO  •  COMMIT ONE  •  END TURN  •  DISCARD  •  COMBAT", 16, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
 
             nameInput = UIFactory.CreateInputField(panel.transform, "Player name", LocalSaveSystem.LoadPlayerName());
-            loginButton = UIFactory.CreateButton(panel.transform, "ENTER / RESTORE PLAYER", Login, UIFactory.Green);
-            loginStatus = UIFactory.CreateText(panel.transform, "Account inventory syncs through the shared play server.", 16, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
+            passwordInput = UIFactory.CreateInputField(panel.transform, "Password (12+ characters)", string.Empty);
+            passwordInput.contentType = InputField.ContentType.Password;
+            GameObject secureAccountActions = UIFactory.CreateHorizontalStack(panel.transform, "SecureAccountActions", Color.clear, 8, 0);
+            UIFactory.CreateButton(secureAccountActions.transform, "CREATE ACCOUNT", CreateSecureAccount, UIFactory.Green);
+            UIFactory.CreateButton(secureAccountActions.transform, "SIGN IN", SignInSecureAccount, UIFactory.Blue);
+            loginButton = UIFactory.CreateButton(panel.transform, "PLAY AS GUEST", Login, UIFactory.PortalViolet);
+            loginStatus = UIFactory.CreateText(panel.transform, "Secure accounts sync online progress. Guest play stays on this device.", 16, TextAnchor.MiddleCenter, UIFactory.MutedTextColor, FontStyle.Bold);
             UIFactory.CreateButton(panel.transform, "CONNECT WALLET / WEB3", () => SceneManager.LoadScene("Web3MockScene"), UIFactory.Blue);
 
             GameObject accessPanel = UIFactory.CreateVerticalStack(playmat, "MobileEntry", UIFactory.GlassPanel, 6, 14);
@@ -119,8 +125,8 @@ namespace AppreciatorsTcg.UI
                 }
             }
             ConfigurePhoneCopy(loginIntroText, phone,
-                "Restore packs and Appreciation Shards with your player name.",
-                "Learn the cards. Build the board.\nUse the same player name to restore packs and Appreciation Shards.",
+                "Create an account for online play and cloud saves.",
+                "Create a secure account for online matches, cloud saves, and verified wallet access.",
                 phone ? 16 : 18,
                 phone ? 42f : -1f);
             ConfigurePhoneCopy(loginFlowText, phone,
@@ -129,8 +135,8 @@ namespace AppreciatorsTcg.UI
                 16,
                 phone ? 28f : -1f);
             ConfigurePhoneCopy(loginStatus, phone,
-                "Account inventory syncs through the shared server.",
-                "Account inventory syncs through the shared play server.",
+                "Sign in for online sync. Guests remain local.",
+                "Secure accounts sync online progress. Guest play stays on this device.",
                 16,
                 phone ? 30f : -1f);
             if (phone && mobileEntryRect != null)
@@ -203,6 +209,96 @@ namespace AppreciatorsTcg.UI
             {
                 StartCoroutine(LoginRoutine());
             }
+        }
+
+        private void CreateSecureAccount()
+        {
+            if (!loginInProgress) StartCoroutine(SecureAccountRoutine(true));
+        }
+
+        private void SignInSecureAccount()
+        {
+            if (!loginInProgress) StartCoroutine(SecureAccountRoutine(false));
+        }
+
+        private IEnumerator SecureAccountRoutine(bool create)
+        {
+            string playerName = string.IsNullOrWhiteSpace(nameInput.text) ? string.Empty : nameInput.text.Trim();
+            string password = passwordInput == null ? string.Empty : passwordInput.text;
+            if (string.IsNullOrWhiteSpace(playerName) || string.IsNullOrWhiteSpace(password))
+            {
+                loginStatus.text = "ENTER AN ACCOUNT NAME AND PASSWORD.";
+                loginStatus.color = UIFactory.Red;
+                yield break;
+            }
+
+            loginInProgress = true;
+            loginButton.interactable = false;
+            loginStatus.text = create ? "CREATING SECURE ACCOUNT..." : "SIGNING IN SECURELY...";
+            loginStatus.color = UIFactory.Accent;
+            BackendApiClient apiClient = gameObject.AddComponent<BackendApiClient>();
+            SecureAccountSessionResponse response = null;
+            string requestError = null;
+            if (create)
+            {
+                yield return apiClient.RegisterSecureAccount(playerName, password, value => response = value, error => requestError = error);
+            }
+            else
+            {
+                yield return apiClient.LoginSecureAccount(playerName, password, value => response = value, error => requestError = error);
+            }
+
+            if (response?.success != true || response.account == null || string.IsNullOrWhiteSpace(response.account.id))
+            {
+                loginStatus.text = $"SECURE ACCOUNT FAILED — {ReadableAccountError(requestError)}";
+                loginStatus.color = UIFactory.Red;
+                loginButton.interactable = true;
+                loginInProgress = false;
+                yield break;
+            }
+
+            LocalSaveSystem.SavePlayerName(response.account.username);
+            LocalSaveSystem.SavePlayerId(response.account.id);
+            passwordInput.text = string.Empty;
+            loginStatus.text = "SECURE SESSION READY — RESTORING CLOUD PLAY DATA...";
+            loginStatus.color = UIFactory.Green;
+            CloudSaveResponse cloudSave = null;
+            string cloudError = null;
+            yield return apiClient.GetCloudSave(value => cloudSave = value, error => cloudError = error);
+            if (cloudSave?.success == true)
+            {
+                if (cloudSave.version > 0)
+                {
+                    LocalSaveSystem.ApplyCloudSave(cloudSave);
+                }
+                else
+                {
+                    CloudSaveResponse uploadedSave = null;
+                    CloudSaveRequest initialSave = new CloudSaveRequest
+                    {
+                        expectedVersion = 0,
+                        snapshot = LocalSaveSystem.CaptureCloudSave()
+                    };
+                    yield return apiClient.SaveCloudSave(initialSave, value => uploadedSave = value, error => cloudError = error);
+                    if (uploadedSave?.success == true)
+                    {
+                        LocalSaveSystem.SaveCloudSaveVersion(uploadedSave.version);
+                    }
+                }
+                CloudSaveSyncService.MarkSynchronized();
+            }
+            else if (!string.IsNullOrWhiteSpace(cloudError))
+            {
+                Debug.LogWarning($"[CloudSave] Initial sync deferred: {cloudError}");
+            }
+            yield return new WaitForSecondsRealtime(0.35f);
+            SceneManager.LoadScene("MainMenuScene");
+        }
+
+        private static string ReadableAccountError(string error)
+        {
+            if (string.IsNullOrWhiteSpace(error)) return "PLEASE TRY AGAIN";
+            return error.Length > 120 ? error.Substring(0, 120) : error;
         }
 
         private IEnumerator LoginRoutine()

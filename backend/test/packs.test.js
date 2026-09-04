@@ -604,7 +604,7 @@ test("wallet account status never grants boss eligibility from the client", asyn
   }
 });
 
-test("wallet connection requires a one-time signed challenge", async () => {
+test("wallet connection requires an authenticated account before issuing a one-time challenge", async () => {
   resetBossBattlesForTests();
   resetWalletChallengesForTests();
   const server = await listen(createApp());
@@ -614,21 +614,8 @@ test("wallet connection requires a one-time signed challenge", async () => {
       method: "POST",
       body: JSON.stringify({ playerId: "signed_wallet", walletAddress })
     });
-    assert.equal(challenge.response.status, 200);
-    assert.equal(challenge.body.walletAddress.toLowerCase(), walletAddress);
-    assert.match(challenge.body.message, /does not authorize a transaction/i);
-
-    const forged = await request(server, "/api/wallet/account/verify", {
-      method: "POST",
-      body: JSON.stringify({
-        playerId: "signed_wallet",
-        walletAddress,
-        challengeId: challenge.body.challengeId,
-        signature: "0xdeadbeef"
-      })
-    });
-    assert.equal(forged.response.status, 401);
-    assert.equal(forged.body.errorCode, "INVALID_WALLET_SIGNATURE");
+    assert.equal(challenge.response.status, 401);
+    assert.equal(challenge.body.errorCode, "AUTH_REQUIRED");
   } finally {
     server.close();
     resetWalletChallengesForTests();

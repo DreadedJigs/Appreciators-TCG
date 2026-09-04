@@ -536,6 +536,21 @@ function getRoomOrThrow(inviteCode) {
   return room;
 }
 
+function assertInviteParticipant(room, playerId) {
+  const safeId = safePlayerId(playerId);
+  const isParticipant = Boolean(
+    safeId &&
+    (room.host?.id === safeId || room.guest?.id === safeId)
+  );
+
+  if (!isParticipant) {
+    throw Object.assign(new Error("This account is not a participant in the invite match."), {
+      statusCode: 403,
+      errorCode: "INVITE_MATCH_FORBIDDEN"
+    });
+  }
+}
+
 export function createInviteRoom(input = {}) {
   loadRoomsIfNeeded();
   pruneExpiredRooms();
@@ -564,12 +579,15 @@ export function createInviteRoom(input = {}) {
   };
 }
 
-export function getInviteRoom(inviteCode) {
-  return publicRoom(getRoomOrThrow(inviteCode));
+export function getInviteRoom(inviteCode, participantId = "") {
+  const room = getRoomOrThrow(inviteCode);
+  if (participantId) assertInviteParticipant(room, participantId);
+  return publicRoom(room);
 }
 
-export function getInviteMatchState(inviteCode) {
+export function getInviteMatchState(inviteCode, participantId = "") {
   const room = getRoomOrThrow(inviteCode);
+  if (participantId) assertInviteParticipant(room, participantId);
   return {
     room: publicRoom(room),
     matchState: publicMatchState(room.matchState)
@@ -925,8 +943,9 @@ export function recordInviteAction(inviteCode, input = {}) {
   };
 }
 
-export function getInviteActions(inviteCode, afterSequence = 0) {
+export function getInviteActions(inviteCode, afterSequence = 0, participantId = "") {
   const room = getRoomOrThrow(inviteCode);
+  if (participantId) assertInviteParticipant(room, participantId);
   const after = Number.parseInt(afterSequence, 10) || 0;
   return {
     room: publicRoom(room),

@@ -12,6 +12,7 @@ namespace AppreciatorsTcg.Data
     {
         private const int RequestTimeoutSeconds = 10;
         private const int PackRequestTimeoutSeconds = 45;
+        private static string secureAccessToken;
         private Action<string> pendingGetSuccess;
         private Action<string> pendingGetError;
         private bool pendingGetComplete;
@@ -19,7 +20,24 @@ namespace AppreciatorsTcg.Data
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
         private static extern void AppreciatorsFetchGet(string url, string gameObjectName, string successMethod, string errorMethod);
+
+        [DllImport("__Internal")]
+        private static extern void AppreciatorsFetchGetAuthorized(string url, string token, string gameObjectName, string successMethod, string errorMethod);
 #endif
+
+        public static bool HasSecureSession => !string.IsNullOrWhiteSpace(secureAccessToken);
+
+        // Deliberately memory-only: browser PlayerPrefs/local storage is not a
+        // secure credential vault. A reload asks the player to sign in again.
+        public static void SetSecureSession(string accessToken)
+        {
+            secureAccessToken = accessToken?.Trim() ?? string.Empty;
+        }
+
+        public static void ClearSecureSession()
+        {
+            secureAccessToken = string.Empty;
+        }
 
         private void Awake()
         {
@@ -151,6 +169,36 @@ namespace AppreciatorsTcg.Data
                 playerId = playerId
             };
             yield return PostJson("/api/session/login", payload, onSuccess, onError, PackRequestTimeoutSeconds);
+        }
+
+        public IEnumerator RegisterSecureAccount(string username, string password, System.Action<SecureAccountSessionResponse> onSuccess, System.Action<string> onError)
+        {
+            SecureAccountCredentials request = new SecureAccountCredentials { username = username, password = password, deviceName = SystemInfo.deviceModel };
+            yield return PostJson<SecureAccountSessionResponse>("/api/auth/register", request, response =>
+            {
+                if (response != null && !string.IsNullOrWhiteSpace(response.accessToken)) SetSecureSession(response.accessToken);
+                onSuccess?.Invoke(response);
+            }, onError, PackRequestTimeoutSeconds);
+        }
+
+        public IEnumerator LoginSecureAccount(string username, string password, System.Action<SecureAccountSessionResponse> onSuccess, System.Action<string> onError)
+        {
+            SecureAccountCredentials request = new SecureAccountCredentials { username = username, password = password, deviceName = SystemInfo.deviceModel };
+            yield return PostJson<SecureAccountSessionResponse>("/api/auth/login", request, response =>
+            {
+                if (response != null && !string.IsNullOrWhiteSpace(response.accessToken)) SetSecureSession(response.accessToken);
+                onSuccess?.Invoke(response);
+            }, onError, PackRequestTimeoutSeconds);
+        }
+
+        public IEnumerator GetCloudSave(System.Action<CloudSaveResponse> onSuccess, System.Action<string> onError)
+        {
+            yield return GetJson("/api/cloud-save", onSuccess, onError, PackRequestTimeoutSeconds);
+        }
+
+        public IEnumerator SaveCloudSave(CloudSaveRequest payload, System.Action<CloudSaveResponse> onSuccess, System.Action<string> onError)
+        {
+            yield return PutJson("/api/cloud-save", payload, onSuccess, onError, PackRequestTimeoutSeconds);
         }
 
         public IEnumerator GetPackOdds(string packId, System.Action<PackOddsResponse> onSuccess, System.Action<string> onError)
@@ -398,7 +446,14 @@ namespace AppreciatorsTcg.Data
             pendingGetComplete = false;
             pendingGetSuccess = onSuccess;
             pendingGetError = onError;
-            AppreciatorsFetchGet(url, gameObject.name, nameof(OnFetchSuccess), nameof(OnFetchError));
+            if (HasSecureSession)
+            {
+                AppreciatorsFetchGetAuthorized(url, secureAccessToken, gameObject.name, nameof(OnFetchSuccess), nameof(OnFetchError));
+            }
+            else
+            {
+                AppreciatorsFetchGet(url, gameObject.name, nameof(OnFetchSuccess), nameof(OnFetchError));
+            }
 
             float timeoutAt = Time.realtimeSinceStartup + timeoutSeconds;
             while (!pendingGetComplete && Time.realtimeSinceStartup < timeoutAt)
@@ -417,6 +472,7 @@ namespace AppreciatorsTcg.Data
             using (UnityWebRequest request = UnityWebRequest.Get(url))
             {
                 request.timeout = timeoutSeconds;
+                ApplyAuthorization(request);
                 yield return request.SendWebRequest();
 
                 if (request.result == UnityWebRequest.Result.Success)
@@ -459,8 +515,38 @@ namespace AppreciatorsTcg.Data
                 request.uploadHandler = new UploadHandlerRaw(body);
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.SetRequestHeader("Content-Type", "application/json");
+                ApplyAuthorization(request);
                 yield return request.SendWebRequest();
 
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    TryParseJson(path, request.downloadHandler.text, onSuccess, onError);
+                }
+                else
+                {
+                    onError?.Invoke(DescribeFailure(url, request));
+                }
+            }
+        }
+
+        private IEnumerator PutJson<T>(string path, object payload, System.Action<T> onSuccess, System.Action<string> onError, int timeoutSeconds = RequestTimeoutSeconds)
+        {
+            if (payload == null)
+            {
+                onError?.Invoke($"Cannot PUT a null JSON payload to '{path}'.");
+                yield break;
+            }
+
+            string url = BuildUrl(path);
+            byte[] body = Encoding.UTF8.GetBytes(JsonUtility.ToJson(payload));
+            using (UnityWebRequest request = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPUT))
+            {
+                request.timeout = timeoutSeconds;
+                request.uploadHandler = new UploadHandlerRaw(body);
+                request.downloadHandler = new DownloadHandlerBuffer();
+                request.SetRequestHeader("Content-Type", "application/json");
+                ApplyAuthorization(request);
+                yield return request.SendWebRequest();
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     TryParseJson(path, request.downloadHandler.text, onSuccess, onError);
@@ -506,6 +592,14 @@ namespace AppreciatorsTcg.Data
         private static string BuildUrl(string path)
         {
             return $"{AppConfig.ApiBaseUrl.TrimEnd('/')}{path}";
+        }
+
+        private static void ApplyAuthorization(UnityWebRequest request)
+        {
+            if (HasSecureSession)
+            {
+                request.SetRequestHeader("Authorization", $"Bearer {secureAccessToken}");
+            }
         }
 
         private static string BuildInviteQuery(string username, string[] deckIds)

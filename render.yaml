@@ -15,6 +15,16 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: APP_DATA_DIR
+        value: /var/data
+      - key: APP_SECURE_STORE_PATH
+        value: /var/data/secure-game-store.json
+      - key: APP_ALLOW_FILE_PERSISTENCE
+        value: "true"
+      - key: APP_ALLOWED_ORIGINS
+        value: https://appreciators-tcg-backend.onrender.com
+      - key: APP_PUBLIC_URL
+        value: https://appreciators-tcg-backend.onrender.com/game
       - key: INVITE_ROOM_PERSISTENCE
         value: "true"
       - key: INVITE_ROOM_STORE_PATH
@@ -30,6 +40,18 @@ services:
       - key: PACK_INVENTORY_STORE_PATH
         value: /var/data/appreciators-pack-inventory.json
       - key: PACK_TEST_GRANTS_ENABLED
-        value: "true"
+        value: "false"
       - key: PACK_TEST_ADMIN_KEY
         generateValue: true
+      - key: BOSS_BATTLE_PERSISTENCE
+        value: "true"
+      - key: BOSS_BATTLE_STORE_PATH
+        value: /var/data/appreciators-boss-battles.json
+      - key: APECHAIN_RPC_URL
+        value: https://rpc.apechain.com/http
+      - key: APECHAIN_CHAIN_ID
+        value: "33139"
+      - key: ORIGINALS_CONTRACT_ADDRESS
+        value: 0xd92b263b48f74d0cd21f9d2c01b6cd06f2ab96cd
+      - key: BOSS_ONE_OF_ONE_TOKEN_IDS
+        value: 946,1329,1618,1778,2458,3196,3838,3949,3997,4152,4305,4389,4809,4814,5672,6136,6239,6382,6511,6604
