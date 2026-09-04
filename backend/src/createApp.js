@@ -104,7 +104,11 @@ export function createApp() {
       "base-uri 'self'; " +
       "object-src 'none'; " +
       "frame-ancestors 'none'; " +
-      "script-src 'self' 'wasm-unsafe-eval'; " +
+      // Unity 6's loader creates a same-origin Blob URL for its framework
+      // script and decompression worker. Keeping this explicit preserves CSP
+      // protection without leaving the WebGL canvas on a blank screen.
+      "script-src 'self' blob: 'wasm-unsafe-eval'; " +
+      "worker-src 'self' blob:; " +
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' data: blob: https:; " +
       "font-src 'self' data:; " +

@@ -31,7 +31,10 @@ test("health route reports the online security foundation", async () => {
     assert.equal(body.phase, "online-security-foundation");
     assert.equal(body.capabilities.secureAccounts, true);
     assert.equal(response.headers.get("x-powered-by"), null);
-    assert.match(response.headers.get("content-security-policy") || "", /frame-ancestors 'none'/);
+    const contentSecurityPolicy = response.headers.get("content-security-policy") || "";
+    assert.match(contentSecurityPolicy, /frame-ancestors 'none'/);
+    assert.match(contentSecurityPolicy, /script-src 'self' blob: 'wasm-unsafe-eval'/);
+    assert.match(contentSecurityPolicy, /worker-src 'self' blob:/);
 
     const ready = await request(server, "/health/ready");
     assert.equal(ready.response.status, 200);
