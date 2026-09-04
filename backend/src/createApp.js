@@ -98,6 +98,13 @@ export function createApp() {
     res.header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
     res.header("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
     res.header("Cross-Origin-Resource-Policy", "same-origin");
+    const isUnityWebGlRequest = req.path === "/game" || req.path.startsWith("/game/");
+    // Unity's generated WebGL shell contains its own inline bootstrap. Allow
+    // that bootstrap only for the immutable game assets; API and account pages
+    // keep the stricter no-inline script policy.
+    const scriptSources = isUnityWebGlRequest
+      ? "script-src 'self' 'unsafe-inline' blob: 'wasm-unsafe-eval'; "
+      : "script-src 'self' blob: 'wasm-unsafe-eval'; ";
     res.header(
       "Content-Security-Policy",
       "default-src 'self'; " +
@@ -105,9 +112,8 @@ export function createApp() {
       "object-src 'none'; " +
       "frame-ancestors 'none'; " +
       // Unity 6's loader creates a same-origin Blob URL for its framework
-      // script and decompression worker. Keeping this explicit preserves CSP
-      // protection without leaving the WebGL canvas on a blank screen.
-      "script-src 'self' blob: 'wasm-unsafe-eval'; " +
+      // script and decompression worker.
+      scriptSources +
       "worker-src 'self' blob:; " +
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' data: blob: https:; " +

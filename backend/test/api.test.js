@@ -36,6 +36,11 @@ test("health route reports the online security foundation", async () => {
     assert.match(contentSecurityPolicy, /script-src 'self' blob: 'wasm-unsafe-eval'/);
     assert.match(contentSecurityPolicy, /worker-src 'self' blob:/);
 
+    const gameResponse = await fetch(`http://127.0.0.1:${server.address().port}/game/`);
+    const gamePolicy = gameResponse.headers.get("content-security-policy") || "";
+    assert.equal(gameResponse.status, 200);
+    assert.match(gamePolicy, /script-src 'self' 'unsafe-inline' blob: 'wasm-unsafe-eval'/);
+
     const ready = await request(server, "/health/ready");
     assert.equal(ready.response.status, 200);
     assert.equal(ready.body.status, "ok");
