@@ -55,7 +55,6 @@ namespace AppreciatorsTcg.UI
             UIFactory.SetAnchors(panel.GetComponent<RectTransform>(), new Vector2(0.07f, 0.25f), new Vector2(0.49f, 0.72f), Vector2.zero, Vector2.zero);
             UIFactory.MakeDimensionalPanel(panel, UIFactory.Green);
             UIFactory.MakePanelTransparent(panel);
-            UIFactory.CreateText(panel.transform, "ENTER THE PLAYMAT", 27, TextAnchor.MiddleCenter, UIFactory.Cream, FontStyle.Bold);
             loginIntroText = UIFactory.CreateText(panel.transform, "Create a secure account for online matches, cloud saves, and verified wallet access.", 18, TextAnchor.MiddleCenter, UIFactory.MutedTextColor);
             loginFlowText = UIFactory.CreateText(panel.transform, "DRAW TWO  •  COMMIT ONE  •  END TURN  •  DISCARD  •  COMBAT", 16, TextAnchor.MiddleCenter, UIFactory.Accent, FontStyle.Bold);
 
